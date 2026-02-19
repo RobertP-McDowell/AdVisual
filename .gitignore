@@ -1,0 +1,8 @@
+# Output
+bin/
+*.exe
+*.o
+
+# Dependecies.
+include/
+lib/
