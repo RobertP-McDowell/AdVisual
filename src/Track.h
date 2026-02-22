@@ -20,7 +20,6 @@ struct Note {
 struct Channel {
 	wxColour colour = *wxWHITE;
 	deque<Note> notes;
-	int16_t tick_count = 0;
 	map<int, string> instrument_events = {{0, "Piano1"}}; // Value = Instrument name.
 	map<int, float> volume_events = {{0, 1.0f}}; // Value = Volume mulitplier (0.0 - 1.0).
 	map<int, float> pitch_events = {{0, 1.0f}}; // Value = Pitch variation (0.0 - 2.0, nominal is 1.0).
@@ -32,6 +31,8 @@ struct Channel {
 	void get_last_instrument_event(int start_tick, int& ret_tick, string& ret_value);
 	void get_last_pitch_event(int start_tick, int& ret_tick, float& ret_value);
 	void get_last_volume_event(int start_tick, int& ret_tick, float& ret_value);
+	void clear_channel_data();
+	int get_tick_count() const { return (notes.empty() ? 0 : notes.back().offset + notes.back().length); }
 };
 
 struct Track {
@@ -49,4 +50,5 @@ struct Track {
 	void set_tempo_event(int at_tick, float value);
 	void get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value);
 	void set_events(shared_ptr<Channel> on_channel, int at_tick, float tempo_event, string instrument_event, float pitch_event, float volume_event);
+	void clear_track_data(); // Clears all events of track and channel, and notes.
 };

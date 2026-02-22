@@ -80,6 +80,21 @@ void Channel::get_last_pitch_event(int start_tick, int& ret_tick, float& ret_val
 void Channel::get_last_volume_event(int start_tick, int& ret_tick, float& ret_value)
 		{ get_last_event(start_tick, volume_events, ret_tick, ret_value); }
 
+void Track::clear_track_data() {
+	tempo_events.clear();
+	for (shared_ptr<Channel>& channel : channels) {
+		channel->clear_channel_data();
+	}
+	music_mode = 0;
+}
+
+void Channel::clear_channel_data() {
+	instrument_events.clear();
+	pitch_events.clear();
+	volume_events.clear();
+	notes.clear();
+}
+
 void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_position) {
 	insert_position = notes.size();
 	for (int i = notes.size() - 1; i >= 0; i--) {

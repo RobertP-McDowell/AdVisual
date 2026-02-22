@@ -17,7 +17,7 @@
 
 using namespace std;
 
-const int pitch_range = 95;
+const int pitch_range = 108 - 12;
 
 unique_ptr<wxPopupWindow> c = nullptr;
 
@@ -123,7 +123,7 @@ public:
 	int editing_event_tick;
 	shared_ptr<Channel> current_channel;
 	shared_ptr<Track> current_track;
-	void Popup(int at_tick);
+	void Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel);
 private:
 	void init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID);
 	void on_show(wxShowEvent& event);
@@ -181,8 +181,9 @@ public:
 	MainFrame();
 
 private:
-	void on_load(wxCommandEvent &event);
 	void on_play(wxCommandEvent &event);
+	void on_load(wxCommandEvent &event);
+	void on_save(wxCommandEvent &event);
 	void on_exit(wxCommandEvent &event);
 	void on_about(wxCommandEvent &event);
 	unique_ptr<ComposerPanel> panel;
@@ -193,6 +194,7 @@ enum
 	ID_COMPOSER = 1,
 	ID_PLAY = 2,
 	ID_LOAD = 3,
+	ID_SAVE = 4,
 	ID_TEMPO_EVENT = 10,
 	ID_INSTRUMENT_EVENT = 11,
 	ID_PITCH_EVENT = 12,
@@ -226,9 +228,9 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	grid_panel = make_unique<wxScrolledWindow>(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
 	grid_panel->SetBackgroundColour(bg_colour);
 	grid_panel->EnableScrolling(true, true);
-	grid_panel->ShowScrollbars(wxSHOW_SB_ALWAYS, wxSHOW_SB_DEFAULT);
-	grid_panel->SetVirtualSize(wxSize(10000.0 / zoom, (note_size.y * pitch_range ) / zoom));
-	grid_panel->SetScrollRate(4, 5);
+	grid_panel->ShowScrollbars(wxSHOW_SB_ALWAYS, wxSHOW_SB_ALWAYS);
+	grid_panel->SetScrollbars(note_size.x, note_size.y, 0, pitch_range, 0, pitch_range/2.0);
+	//grid_panel->SetVirtualSize(wxSize(10000.0 / zoom, (note_size.y * pitch_range ) / zoom));
 	
 	grid_panel->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_grid, this);
 	grid_panel->Bind(wxEVT_SCROLLWIN_THUMBTRACK, &ComposerPanel::on_scroll_grid, this);
@@ -300,7 +302,9 @@ EventPopup::EventPopup(wxWindow* parent, shared_ptr<Track> track, shared_ptr<Cha
 	event_field->SetHint( new_hint ); \
 } while(0)
 
-void EventPopup::Popup(int at_tick) {
+void EventPopup::Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel) {
+	current_track = track;
+	current_channel = channel;
 	editing_event_tick = at_tick;
 	update_event_field(tempo_field, current_track->get_last_tempo_event, float, to_string, 4);
 	update_event_field(instrument_field, current_channel->get_last_instrument_event, string, , 9);
@@ -316,8 +320,9 @@ MainFrame::MainFrame() :
 	SetMinSize(wxSize(250, 250));
 	
 	wxMenu *menuFile = new wxMenu;
-	menuFile->Append(ID_PLAY, "&PLAY...\tCtrl-P", "Play any Adlib song.");
+	menuFile->Append(ID_PLAY, "&Play...\tCtrl-P", "Play any Adlib song.");
 	menuFile->Append(ID_LOAD, "&Load...\tCtrl-L", "Load ROL files");
+	menuFile->Append(ID_SAVE, "&Save As...\tCtrl-S", "Save ROL file to location");
 	menuFile->AppendSeparator();
 	menuFile->Append(wxID_EXIT);
 
@@ -337,6 +342,7 @@ MainFrame::MainFrame() :
 	Bind(wxEVT_MENU, &MainFrame::on_about, this, wxID_ABOUT);
 	Bind(wxEVT_MENU, &MainFrame::on_play, this, ID_PLAY);
 	Bind(wxEVT_MENU, &MainFrame::on_load, this, ID_LOAD);
+	Bind(wxEVT_MENU, &MainFrame::on_save, this, ID_SAVE);
 }
 
 void MainFrame::on_exit(wxCommandEvent &event) {
@@ -355,9 +361,18 @@ void MainFrame::on_play(wxCommandEvent &event) {
 }
 
 void MainFrame::on_load(wxCommandEvent &event) {
-	wxString filename = wxFileSelector("Select file to play", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.ROL");
+	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.ROL");
 	if (!filename.empty()) {
 		FileAccess::LoadTrack((string)filename, *(panel->current_track.get()));
+	}
+	Refresh();
+	Update();
+}
+
+void MainFrame::on_save(wxCommandEvent &event) {
+	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.ROL");
+	if (!filename.empty()) {
+		FileAccess::SaveTrack((string)filename, *(panel->current_track.get()));
 	}
 	Refresh();
 	Update();
@@ -379,10 +394,10 @@ void ComposerPanel::on_preview_channels_checked(wxCommandEvent& event) {
 
 void ComposerPanel::on_scroll_grid(wxScrollWinEvent& event) {
 	if (event.GetOrientation() == wxHORIZONTAL) {
-		grid_offset.x = event.GetPosition();
+		grid_offset.x = note_size.x * event.GetPosition();
 	}
 	else {
-		grid_offset.y = event.GetPosition();
+		grid_offset.y = note_size.x * event.GetPosition();
 	}
 	Refresh();
 	Update();
@@ -491,6 +506,7 @@ void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
 		current_channel->add_note(*editing_note);
 	}
 	editing_note = nullptr;
+	grid_panel->SetVirtualSize((current_channel->get_tick_count() * note_size.x) + grid_panel->GetSize().x, pitch_range);
 	Refresh();
 	Update();
 }
@@ -522,14 +538,23 @@ void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {
 	GetSize(&panel_width, &panel_height);
 	int event_header_width;
 	int event_header_height;
+	int draw_offstep = grid_offset.x % note_size.x;
 	event_header->GetSize(&event_header_width, &event_header_height);
-	wxSize event_bar_size = wxSize(note_size.x, event_header_height);
+	wxSize event_bar_size = wxSize(note_size.x, event_header_height / 4.0);
 	vector<int16_t> event_ticks;
-	wxGraphicsPen note_pen = gc->CreatePen(wxGraphicsPenInfo(
-	current_channel->colour).Width(1.25).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
-	gc->SetPen(note_pen);
-	gc->SetFont(event_font, *wxWHITE);
-	gc->SetBrush(*wxBLACK_BRUSH);
+	wxGraphicsPen grid_pen = gc->CreatePen(wxGraphicsPenInfo(
+	wxColour(100, 100, 100)).Width(1.25).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
+	gc->SetPen(grid_pen);
+	gc->SetFont(event_font, *wxBLACK);
+	
+	for (int column = 0; column <= panel_width / note_size.x; column++) {
+		gc->StrokeLine((column * note_size.x) - draw_offstep, 0, (column * note_size.x) - draw_offstep, panel_height);
+	}
+	
+	wxGraphicsPen event_pen = gc->CreatePen(wxGraphicsPenInfo(
+	wxColour(0, 0, 0)).Width(2.0).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
+	gc->SetPen(event_pen);
+	gc->SetBrush(*wxWHITE_BRUSH);
 	for (auto event = current_track->tempo_events.begin(); event != current_track->tempo_events.end(); event++) {
 		int event_on_grid = (event->first * note_size.x) - grid_offset.x;
 		if (event_on_grid > panel_width) break;
@@ -540,25 +565,28 @@ void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {
 		//text.resize(3);
 		//gc->DrawText(text, event_on_grid - grid_offset.x, 0);
 	}
+	gc->SetBrush(wxColour(200, 10, 10));
 	for (auto event = current_channel->instrument_events.begin(); event != current_channel->instrument_events.end(); event++) {
 		int event_on_grid = (event->first * note_size.x) - grid_offset.x;
 		if (event_on_grid > panel_width) break;
-		if (event_on_grid < -(note_size.x * 20) || count(event_ticks.begin(), event_ticks.end(), event->first)) continue;
-		gc->DrawRectangle(event_on_grid, 0, event_bar_size.x, event_bar_size.y);
+		if (event_on_grid < -(note_size.x * 20)) continue;
+		gc->DrawRectangle(event_on_grid, event_bar_size.y, event_bar_size.x, event_bar_size.y);
 		event_ticks.push_back(event->first);
 	}
+	gc->SetBrush(wxColour(10, 200, 10));
 	for (auto event = current_channel->pitch_events.begin(); event != current_channel->pitch_events.end(); event++) {
 		int event_on_grid = (event->first * note_size.x) - grid_offset.x;
 		if (event_on_grid > panel_width) break;
-		if (event_on_grid < -(note_size.x * 20) || count(event_ticks.begin(), event_ticks.end(), event->first)) continue;
-		gc->DrawRectangle(event_on_grid, 0, event_bar_size.x, event_bar_size.y);
+		if (event_on_grid < -(note_size.x * 20)) continue;
+		gc->DrawRectangle(event_on_grid, event_bar_size.y * 2, event_bar_size.x, event_bar_size.y);
 		event_ticks.push_back(event->first);
 	}
+	gc->SetBrush(wxColour(10, 10, 200));
 	for (auto event = current_channel->volume_events.begin(); event != current_channel->volume_events.end(); event++) {
 		int event_on_grid = (event->first * note_size.x) - grid_offset.x;
 		if (event_on_grid > panel_width) break;
-		if (event_on_grid < -(note_size.x * 20) || count(event_ticks.begin(), event_ticks.end(), event->first)) continue;
-		gc->DrawRectangle(event_on_grid, 0, event_bar_size.x, event_bar_size.y);
+		if (event_on_grid < -(note_size.x * 20)) continue;
+		gc->DrawRectangle(event_on_grid, event_bar_size.y * 3, event_bar_size.x, event_bar_size.y);
 		event_ticks.push_back(event->first);
 	}
 	delete gc;
@@ -581,7 +609,7 @@ void ComposerPanel::on_lmb_up_event_header(wxMouseEvent& event) {
 		else if (event->first > mouse_tick) break;
 	}
 	event_field->Position(ClientToScreen(wxPoint(0, 0)), (GetSize() / 2.0) - (event_field->GetSize() / 2.0));
-	event_field->Popup(mouse_tick);
+	event_field->Popup(mouse_tick, current_track, current_channel);
 }
 
 float get_float_from_string(string str_val, float min = 0.0, float max = 1.0) {
@@ -603,19 +631,17 @@ float get_float_from_string(string str_val, float min = 0.0, float max = 1.0) {
 }
 
 void EventPopup::on_text_entered(wxCommandEvent& event) {
-	cout << "Text entered" << "\n";
+	Dismiss();
 }
 
 void EventPopup::on_show(wxShowEvent& event) {
 	if (event.IsShown() == false) {
 		current_track->set_tempo_event(editing_event_tick, get_float_from_string((string)tempo_field->GetValue(), 0.01, 10.0));
 		current_channel->set_instrument_event(editing_event_tick, (string)instrument_field->GetValue());
-		cout << "Pitch: " << pitch_field->GetValue() << " " << (string)pitch_field->GetValue() << "\n";
 		current_channel->set_pitch_event(editing_event_tick, get_float_from_string((string)pitch_field->GetValue(), 0.0, 2.0));
 		current_channel->set_volume_event(editing_event_tick, get_float_from_string((string)volume_field->GetValue(), 0.0, 1.0));
-		for (auto it = current_channel->pitch_events.begin(); it != current_channel->pitch_events.end(); it++) {
-			cout << "Tick: " << it->first << " Value: " << it->second << "\n";
-		}
+		GetParent()->Refresh();
+		GetParent()->Update();
 	}
 }
 
