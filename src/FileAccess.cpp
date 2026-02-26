@@ -167,7 +167,7 @@ void FileAccess::SaveTrack(string save_path, Track& track) {
 	cout << "Saving File: " << save_path << "\n";
 	file = make_unique<fstream>(save_path, ios::out);
 	if (!file->is_open()) {
-		cerr << "Could not open file: " << save_path.c_str() << "\n";
+		cerr << "Could not open file: " << save_path << "\n";
 		if (file->bad()) cerr << "Fatal error: badbit is set.\n";
 		if (file->fail()) cerr << strerror(errno) << "\n";
 		return;
@@ -183,12 +183,12 @@ void FileAccess::SaveTrack(string save_path, Track& track) {
 	file->close();
 }
 
-void FileAccess::LoadTrack(const string& load_path, Track& track) {
+void FileAccess::LoadTrack(string load_path, Track& track) {
 	cout << "Load File: " << load_path << "\n";
 	track.clear_track_data();
 	file = make_unique<fstream>(load_path, ios::in);
 	if (!file->is_open()) {
-		cerr << "Could not open file: " << load_path.c_str() << "\n";
+		cerr << "Could not open file: " << load_path << "\n";
 		if (file->bad()) cerr << "Fatal error: badbit is set.\n";
 		if (file->fail()) cerr << strerror(errno) << "\n";
 		return;

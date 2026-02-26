@@ -98,12 +98,12 @@ void Channel::clear_channel_data() {
 void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_position) {
 	insert_position = notes.size();
 	for (int i = notes.size() - 1; i >= 0; i--) {
-		Note& note = notes[i];
+		Note note = notes[i];
 		if (note.offset < eraser_offset + eraser_length && note.offset + note.length > eraser_offset) {
 			insert_position = i;
 			if (note.offset < eraser_offset) {
 				Note note_slice1(note.offset, note.pitch, eraser_offset - note.offset);
-				notes.insert(notes.begin() + i+1, note_slice1);
+				notes.insert(notes.begin() + i + 1, note_slice1);
 				insert_position = i + 1;
 			}
 			if (note.offset + note.length > eraser_offset + eraser_length) {
@@ -116,9 +116,14 @@ void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_posi
 }
 
 void Channel::add_note(Note new_note) {
+	//cout << "Add note: " << " (" << new_note.offset << "," << new_note.offset + new_note.length << ")\n";
 	int insert_position = notes.size();
 	erase_notes(new_note.offset, new_note.length, insert_position);
 	notes.insert(notes.begin() + insert_position, new_note);
+	//cout << "New note:\n";
+	//for (Note& note : notes) {
+	//	cout << " (" << note.offset << "," << note.offset + note.length << ")" << "\n";
+	//}
 }
 
 Note::Note() {}
