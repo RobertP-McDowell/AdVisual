@@ -1,8 +1,13 @@
 #pragma once
 
+#include <wx/artprov.h>
 using namespace std;
 
 const int pitch_range = 108 - 12;
+
+const wxString ASSETS_PATH = "/home/robert/Desktop/AdVisual/assets/";
+
+wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size);
 
 enum
 {

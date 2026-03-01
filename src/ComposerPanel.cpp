@@ -39,7 +39,6 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	current_track = make_shared<Track>();
 	current_channel = (current_track->channels[0]);
 	wxPoint control_offset(30, 0);
-	wxCheckBox* preview_channels_button = new wxCheckBox(this, wxID_ANY, "Channel Previews", control_offset);
 	
 	event_popup = make_unique<EventPopup>(this, current_track, current_channel);
 }

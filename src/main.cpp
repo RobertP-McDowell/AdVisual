@@ -1,4 +1,3 @@
-// Start of wxWidgets "Hello World" Program
 #include <wx/wx.h>
 #include <wx/utils.h>
 #include <wx/filedlg.h> 
@@ -14,6 +13,7 @@
 #include <FileAccess.h>
 #include <AdPlayer.h>
 #include <ComposerPanel.h>
+#include <InsmakerPanel.h>
 #include <iostream>
 #include <memory>
 #include <deque>
@@ -139,12 +139,6 @@ private:
 
 IMPLEMENT_DYNAMIC_CLASS(ChannelButton, wxControl)
 
-const wxString ASSETS_PATH = "/home/robert/Desktop/AdVisual/assets/";
-
-wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size) {
-	return wxBitmapBundle::FromSVGFile(ASSETS_PATH + asset_name, asset_size);
-}
-
 class AdVisualToolBar : public wxToolBar {
 public:
 	AdVisualToolBar(wxWindow* parent, int id = wxID_ANY, wxPoint position = wxDefaultPosition,
@@ -234,8 +228,10 @@ class MainFrame : public wxFrame {
 public:
 	MainFrame();
 	ComposerPanel* composer_panel;
+	InsmakerPanel* insmaker_panel;
 	AdVisualToolBar* toolbar;
 private:
+	void on_resize(wxSizeEvent& event);
 	void on_show_file_menu(wxCommandEvent& event);
 	void on_show_help_menu(wxCommandEvent& event);
 	void on_show_composer_panel(wxCommandEvent& event);
@@ -261,15 +257,20 @@ bool MainApp::OnInit()
 MainFrame::MainFrame() : 
 	wxFrame(nullptr, wxID_ANY, "AdVisual", wxDefaultPosition, wxSize(1920, 1024))
 {
-	SetMinSize(wxSize(250, 250));
+	SetMinSize(wxSize(320, 180));
 
 	toolbar = new AdVisualToolBar(this, wxID_ANY, wxDefaultPosition, wxSize(100, 36));
 	SetToolBar(toolbar);
 
 	CreateStatusBar();
+
 	composer_panel = new ComposerPanel(this);
 	toolbar->CreateComposerTools(composer_panel);
 
+	insmaker_panel = new InsmakerPanel(this);
+	insmaker_panel->Show(false);
+
+	Bind(wxEVT_SIZE, &MainFrame::on_resize, this, wxID_ANY);
 	Bind(wxEVT_MENU, &MainFrame::on_exit, this, wxID_EXIT);
 	Bind(wxEVT_MENU, &MainFrame::on_about, this, wxID_ABOUT);
 	Bind(wxEVT_MENU, &MainFrame::on_show_composer_panel, this, ID_COMPOSER);
@@ -277,6 +278,12 @@ MainFrame::MainFrame() :
 	Bind(wxEVT_MENU, &MainFrame::on_play, this, ID_PLAY);
 	Bind(wxEVT_MENU, &MainFrame::on_load, this, ID_LOAD);
 	Bind(wxEVT_MENU, &MainFrame::on_save, this, ID_SAVE);
+}
+
+void MainFrame::on_resize(wxSizeEvent &event) {
+	composer_panel->SetSize(GetSize());
+	insmaker_panel->SetSize(GetSize());
+	
 }
 
 void MainFrame::on_exit(wxCommandEvent &event) {
@@ -292,12 +299,14 @@ void MainFrame::on_about(wxCommandEvent &event) {
 
 void MainFrame::on_show_composer_panel(wxCommandEvent& event) {
 	composer_panel->Show(true);
+	insmaker_panel->Show(false);
 	toolbar->ShowComposerTools(true);
 }
 void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 	composer_panel->Show(false);
+	insmaker_panel->Show(true);
 	toolbar->ShowComposerTools(false);
-	cout << "Show Insmaker";
+	cout << "Show Insmaker\n";
 }
 
 void MainFrame::on_play(wxCommandEvent &event) {
