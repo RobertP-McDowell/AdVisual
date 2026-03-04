@@ -7,7 +7,7 @@
    viewBox="0 0 32 32"
    version="1.1"
    id="svg1"
-   sodipodi:docname="PlusButton.svg"
+   sodipodi:docname="FullSine.svg"
    inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="19.379145"
-     inkscape:cx="11.094401"
-     inkscape:cy="18.602472"
+     inkscape:zoom="14.210118"
+     inkscape:cx="10.555859"
+     inkscape:cy="8.1280115"
      inkscape:window-width="2048"
      inkscape:window-height="1128"
      inkscape:window-x="0"
@@ -39,13 +39,9 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:4.2332;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none"
-       d="M 1.5514782,16 H 30.448522"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
+       d="m 2.65954,16 c 0,0 0.3814782,-11.053902 6.6702301,-11.053902 6.2887519,0 7.0517079,22.107804 13.3404589,22.107804 C 28.95898,27.053902 29.34046,16 29.34046,16 Z"
        id="path1"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:4.17537;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none"
-       d="M 16,1.3584144 V 30.221926"
-       id="path2" />
+       sodipodi:nodetypes="czzcc" />
   </g>
 </svg>
