@@ -202,15 +202,16 @@ void bank_move_OPLFM_fields(OPLFM& opl) {
 	fieldcpy(&opl.feedback, 1);
 	fieldcpy(&opl.attack_rate, 1);
 	fieldcpy(&opl.sustain_level, 1);
-	fieldcpy(&opl.envelope_scaling, 1);
+	fieldcpy(&opl.sustain_sound, 1);
 	fieldcpy(&opl.decay_rate, 1);
 	fieldcpy(&opl.release_rate, 1);
 	fieldcpy(&opl.output_level, 1);
 	fieldcpy(&opl.tremelo, 1);
 	fieldcpy(&opl.vibrato, 1);
+	fieldcpy(&opl.envelope_scaling, 1);
 	//fieldcpy(&opl., 1);
 	//fieldcpy(&opl., 1);
-	fieldzero(2);
+	fieldzero(1);
 	DBPRINT("level_scaling: " << int(opl.level_scaling) << " freq_mul: " << int(opl.frequency_multiplier) <<
 		" feedback: " << int(opl.feedback) << " atk_rt: " << int(opl.attack_rate) << " sustain_lvl: " << int(opl.sustain_level) <<
 		" envelope_scaling: " << int(opl.envelope_scaling) << " decay_rt: " << int(opl.decay_rate) <<
@@ -265,17 +266,19 @@ void FileAccess::SaveBank(string save_path, Bank& bank) {
 	cout << "Saving Bank not yet implemented!\n";
 }
 
-void FileAccess::LoadBank(string load_path, Bank& bank) {
+Bank FileAccess::LoadBank(string load_path) {
+	Bank bank;
 	cout << "Load Bank File: " << load_path << "\n";
 	file = make_unique<fstream>(load_path, ios::in);
 	if (!file->is_open()) {
 		cerr << "Could not open file: " << load_path << "\n";
 		if (file->bad()) cerr << "Fatal error: badbit is set.\n";
 		if (file->fail()) cerr << strerror(errno) << "\n";
-		return;
+		return bank;
 	}
 
 	bank_move_fields(bank, false);
 
 	file->close();
+	return bank;
 }

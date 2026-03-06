@@ -31,4 +31,5 @@ public:
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
 	void clear_bank_data() { instruments.clear(); }
+	Instrument* GetInstrumentByName(char name[9]);
 };

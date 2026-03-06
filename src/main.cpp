@@ -145,11 +145,18 @@ public:
 		wxSize size = wxDefaultSize, long style = wxTB_HORIZONTAL, const wxString& name = wxToolBarNameStr);
 	void CreateComposerTools(ComposerPanel* composer_panel);
 	void ShowComposerTools(bool show);
+	void CreateInsmakerTools(InsmakerPanel* insmaker_panel);
+	void ShowInsmakerTools(bool show);
 private:
-	vector<wxToolBarToolBase*> composer_tools;
-	vector<ChannelButton*> channel_buttons;
+	void show_tools(bool show, vector<wxToolBarToolBase*> tools);
+	// Composer events:
 	void on_channel_button_pressed(wxCommandEvent& event);
 	void on_preview_channels_checked(wxCommandEvent& event);
+	// Insmaker events:
+	void on_select_instrument_enter(wxCommandEvent& event);
+	vector<wxToolBarToolBase*> composer_tools;
+	vector<wxToolBarToolBase*> insmaker_tools;
+	vector<ChannelButton*> channel_buttons;
 	wxSize tool_size;
 	wxSize square_size;
 };
@@ -201,17 +208,35 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
 		"Track Options", "Change base Track settings.") );
 }
 
-void AdVisualToolBar::ShowComposerTools(bool show) {
+void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
+	wxSize tool_size = wxSize(54, 36) / 1.5;
+	wxSize square_size = wxSize(tool_size.y, tool_size.y);
+	// Start Composer ToolBar.
+	// We add to composer tools, so we can hide and show them at will.
+	AddSeparator();
+	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	instrument_select_field->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_select_instrument_enter, this, wxID_ANY);
+	insmaker_tools.push_back( AddControl(instrument_select_field, "Select Ins") );
+}
+
+void AdVisualToolBar::show_tools(bool show, vector<wxToolBarToolBase*> tools) {
 	if (show) {
-		for (wxToolBarToolBase*& tool_base : composer_tools) {
+		for (wxToolBarToolBase*& tool_base : tools) {
 			AddTool(tool_base);
 		}
 	}
 	else {
-		for (wxToolBarToolBase*& tool_base : composer_tools) {
+		for (wxToolBarToolBase*& tool_base : tools) {
 			RemoveTool(tool_base->GetId());
 		}
 	}
+}
+
+void AdVisualToolBar::ShowComposerTools(bool show) {
+	show_tools(show, composer_tools);
+}
+void AdVisualToolBar::ShowInsmakerTools(bool show) {
+	show_tools(show, insmaker_tools);
 }
 
 class MainFrame : public wxFrame {
@@ -248,7 +273,7 @@ bool MainApp::OnInit()
 	return true;
 }
 
-MainFrame::MainFrame() : 
+MainFrame::MainFrame() :
 	wxFrame(nullptr, wxID_ANY, "AdVisual", wxDefaultPosition, wxSize(1920, 1024))
 {
 	SetMinSize(wxSize(320, 180));
@@ -262,7 +287,9 @@ MainFrame::MainFrame() :
 	toolbar->CreateComposerTools(composer_panel);
 
 	insmaker_panel = new InsmakerPanel(this);
+	toolbar->CreateInsmakerTools(insmaker_panel);
 	insmaker_panel->Show(false);
+	toolbar->ShowInsmakerTools(false);
 
 	Bind(wxEVT_SIZE, &MainFrame::on_resize, this, wxID_ANY);
 	Bind(wxEVT_MENU, &MainFrame::on_exit, this, wxID_EXIT);
@@ -318,12 +345,13 @@ void MainFrame::on_show_composer_panel(wxCommandEvent& event) {
 	composer_panel->Show(true);
 	insmaker_panel->Show(false);
 	toolbar->ShowComposerTools(true);
+	toolbar->ShowInsmakerTools(false);
 }
 void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 	composer_panel->Show(false);
 	insmaker_panel->Show(true);
 	toolbar->ShowComposerTools(false);
-	cout << "Show Insmaker\n";
+	toolbar->ShowInsmakerTools(true);
 }
 
 void MainFrame::on_play_track(wxCommandEvent &event) {
@@ -352,18 +380,20 @@ void MainFrame::on_save_track(wxCommandEvent &event) {
 }
 
 void MainFrame::on_load_bank(wxCommandEvent &event) {
-	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk|Instrument Files(*.INS)|*.INS");
+	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		FileAccess::LoadBank((string)filename, *(insmaker_panel->current_bank.get()));
+		insmaker_panel->SetBank(make_shared<Bank>(FileAccess::LoadBank((string)filename)));
 	}
+	char new_name[9] = "ACCORDN";
+	insmaker_panel->SetInstrumentByName(new_name);
 	Refresh();
 	Update();
 }
 
 void MainFrame::on_save_bank(wxCommandEvent &event) {
-	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk|Instrument Files(*.INS)|*.INS");
+	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		FileAccess::SaveBank((string)filename, *(insmaker_panel->current_bank.get()));
+		FileAccess::SaveBank((string)filename, *(insmaker_panel->GetBank().get()));
 	}
 	Refresh();
 	Update();
@@ -382,3 +412,14 @@ void AdVisualToolBar::on_preview_channels_checked(wxCommandEvent& event) {
 	Refresh();
 	Update();
 }
+
+void AdVisualToolBar::on_select_instrument_enter(wxCommandEvent& event) {
+	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
+	char ins_name[9];
+	wxString evt_str = event.GetString().MakeUpper();
+	evt_str.resize(8);
+	memcpy(&ins_name, evt_str.c_str(), 9);
+	insmaker_panel->SetInstrumentByName(ins_name);
+}
+
+

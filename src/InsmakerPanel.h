@@ -19,6 +19,8 @@
 
 using namespace std;
 
+
+
 enum {
 	ID_MINUS = 1,
 	ID_PLUS = 2,
@@ -26,10 +28,117 @@ enum {
 
 wxDECLARE_EVENT(EVT_SPIN_BOX_SLIDER, wxCommandEvent);
 
-class SpinBoxSlider : public wxControl {
-private:
+class OPLFMPropertyControl : public wxControl {
+protected:
+	uint8_t* value_ptr = nullptr;
+	uint8_t control_value = 0;
+public:
+	virtual void SetControlValue(int new_control_value) { control_value = (new_control_value < 0 ? uint8_t(0) : uint8_t(new_control_value)); }
+	int GetNewValue() const { return control_value; }
+	void SaveCurrentValue() { *value_ptr = control_value; }
+	uint8_t LoadFromValue(uint8_t* new_value_ptr) { // Returns the potentially unsaved control_value, for later.
+		if (new_value_ptr == nullptr) {
+			Show(false);
+			return 0;
+		}
+		value_ptr = new_value_ptr;
+		uint8_t old_control_value = control_value;
+		control_value = *value_ptr;
+		Show(true);
+		Refresh();
+		Update();
+		return old_control_value;
+	}
+	bool HasUnsavedChange() const { return control_value != *value_ptr; }
+	OPLFMPropertyControl(wxWindow* parent, int id, uint8_t* p_value_ptr) : 
+			wxControl(parent, id), value_ptr(p_value_ptr) {
+		if (value_ptr == nullptr) {
+			Show(false);
+			return;
+		}
+		control_value = *p_value_ptr;
+	}
+};
+
+class OPLFMCheckbox : public OPLFMPropertyControl {
+protected:
+	void on_set_focus(wxFocusEvent& event) {
+		Refresh();
+		Update();
+	}
+	void on_kill_focus(wxFocusEvent& event) {
+		Refresh();
+		Update();
+	}
+	void on_key_down(wxKeyEvent& event) {
+		if (event.IsKeyInCategory(WXK_CATEGORY_ARROW)) {
+			switch (event.GetKeyCode()) {
+			case WXK_LEFT:
+				SetControlValue(0);
+				return;
+			case WXK_RIGHT:
+				SetControlValue(1);
+				return;
+			}
+		}
+		event.Skip();
+	}
+	void on_lmb_down(wxMouseEvent& event) {
+		SetFocus();
+		Refresh();
+		Update();
+	}
+	void on_lmb_up(wxMouseEvent& event) {
+		SetControlValue(uint8_t(!control_value));
+		Refresh();
+		Update();
+	}
+	void on_paint(wxPaintEvent& event) {
+		wxPaintDC dc(this);
+		wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
+		wxSize bitmap_size = wxSize(32, 32);
+		if (control_value == 1) {
+			wxBitmap checked_bitmap = GetAsset((HasFocus() ? "CheckboxCheckedFocused.svg" : "CheckboxChecked.svg"), GetSize()).GetBitmap(bitmap_size);
+			gc->DrawBitmap(checked_bitmap, 0, 0, bitmap_size.x, bitmap_size.y);
+		}
+		if (control_value == 0) {
+			wxBitmap checked_bitmap = GetAsset((HasFocus() ? "CheckboxUncheckedFocused.svg" : "CheckboxUnchecked.svg"), GetSize()).GetBitmap(bitmap_size);
+			gc->DrawBitmap(checked_bitmap, 0, 0, bitmap_size.x, bitmap_size.y);
+		}
+		if (control_value != *value_ptr) {
+			wxBitmap checked_bitmap = GetAsset("UnsavedAsterisk.svg", GetSize()).GetBitmap(bitmap_size);
+			gc->DrawBitmap(checked_bitmap, bitmap_size.x, 0, bitmap_size.x, bitmap_size.y);
+		}
+		delete gc;
+	}
+	void Init() {
+		wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+		wxColour bg_colour(10, 10, 10);
+		wxSize increment_button_size(GetSize().y, GetSize().y);
+		SetBackgroundStyle(wxBG_STYLE_PAINT);
+		SetWindowStyle(wxBORDER_NONE);
+		Bind(wxEVT_KILL_FOCUS, &OPLFMCheckbox::on_kill_focus, this);
+		Bind(wxEVT_SET_FOCUS, &OPLFMCheckbox::on_set_focus, this);
+		Bind(wxEVT_KEY_DOWN, &OPLFMCheckbox::on_key_down, this);
+		Bind(wxEVT_LEFT_DOWN, &OPLFMCheckbox::on_lmb_down, this);
+		Bind(wxEVT_LEFT_UP, &OPLFMCheckbox::on_lmb_up, this);
+		Bind(wxEVT_PAINT, &OPLFMCheckbox::on_paint, this);
+	}
+	wxSize DoGetBestSize() const override {
+		return wxSize(66, 33);
+	}
+public:
+	OPLFMCheckbox(wxWindow* parent, int id, uint8_t* p_value_ptr) : OPLFMPropertyControl(parent, id, p_value_ptr) {
+		Init();
+	}
+};
+
+class SpinBoxSlider : public OPLFMPropertyControl {
+protected:
 	void on_increment_button_pressed(wxCommandEvent& event) {
-		SetNewValue(slider_value + (event.GetId() == ID_PLUS ? 1 : -1));
+		int new_control_value = control_value + (event.GetId() == ID_PLUS ? 1 : -1);
+		// Make sure unsigned int isn't negative.
+		SetControlValue(new_control_value);
 	}
 	void on_set_focus(wxFocusEvent& event) {
 		Refresh();
@@ -46,10 +155,10 @@ private:
 		if (event.IsKeyInCategory(WXK_CATEGORY_ARROW)) {
 			switch (event.GetKeyCode()) {
 			case WXK_LEFT:
-				SetNewValue(slider_value - 1);
+				SetControlValue(control_value - 1);
 				return;
 			case WXK_RIGHT:
-				SetNewValue(slider_value + 1);
+				SetControlValue(control_value + 1);
 				return;
 			}
 		}
@@ -64,22 +173,25 @@ private:
 		if (event.Dragging()) {
 			int slider_width = slider_panel->GetSize().x;
 			float new_slider_valuef = (event.GetPosition().x / float(slider_width)) * max_value;
-			int new_slider_value = (new_slider_valuef > *value_ptr ? floor(new_slider_valuef) : ceil(new_slider_valuef));
-			if (slider_value != new_slider_value) {
-				SetNewValue(clamp(new_slider_value, min_value, max_value));
+			// First we use int, than cast to uint8_t, just so we have a higher and lower bounds limit and it won't wrap negative numbers.
+			int int_new_slider_value = (new_slider_valuef > *value_ptr ? floor(new_slider_valuef) : ceil(new_slider_valuef));
+			int_new_slider_value = clamp(int_new_slider_value, int(min_value), int(max_value));
+			uint8_t new_slider_value = (int_new_slider_value < 0 ? uint8_t(0) : uint8_t(int_new_slider_value)); // Keep unsigned positive.
+			if (control_value != new_slider_value) {
+				SetControlValue(new_slider_value);
 				Refresh();
 				Update();
 			}
 		}
 	}
 	void on_lmb_up(wxMouseEvent& event) {
-		SetNewValue(slider_value);
+		SetControlValue(control_value);
 		Refresh();
 		Update();
 	}
 	void paint_text_on_slider(wxGraphicsContext* gc, int slider_width, int slider_height, string text,
 			int offset, int offset_pad, bool draw_high = true, wxBrush bg_brush = wxNullBrush) {
-		// Just a helper function to keep value and slider_value text within slider width bounds.
+		// Just a helper function to keep value and control_value text within slider width bounds.
 		wxDouble text_width, text_height, text_descent, text_leading_space;
 		gc->GetTextExtent(text, &text_width, &text_height, &text_descent, &text_leading_space);
 		int difference = (text_width + offset) - slider_width;
@@ -99,7 +211,7 @@ private:
 		int slider_width, slider_height;
 		slider_panel->GetSize(&slider_width, &slider_height);
 		int tick_count = max_value - min_value;
-		int tick_spacing = slider_width / (tick_count != 0 ? tick_count : 1);
+		double tick_spacing = slider_width / double(tick_count != 0 ? tick_count : 1); // Use double so it size nicely.
 		int tick_height = slider_height / 3.0;
 		for (int i = 0; i <= tick_count; i++) {
 			int x_offset = (i * tick_spacing);
@@ -110,8 +222,8 @@ private:
 		wxGraphicsFont number_font = gc->CreateFont(slider_height, wxEmptyString, wxFONTFLAG_DEFAULT, *wxWHITE);
 		gc->SetFont(number_font);
 		int current_tick_offset = *value_ptr * tick_spacing;
-		int slider_tick_offset = slider_value * tick_spacing;
-		slider_tick_offset += (slider_value > *value_ptr ? 0 : 1); // Consistently draw brush before ticks.
+		int slider_tick_offset = control_value * tick_spacing;
+		slider_tick_offset += (control_value > *value_ptr ? 0 : 1); // Consistently draw brush before ticks.
 		if (HasUnsavedChange()) { // Draw Slider Value and Text.
 			wxGraphicsBrush highlight_brush;
 			if (HasFocus()) {
@@ -123,7 +235,7 @@ private:
 			gc->SetPen(wxNullPen);
 			gc->SetBrush(highlight_brush);
 			gc->DrawRectangle(current_tick_offset, 0, slider_tick_offset - current_tick_offset, slider_height);
-			paint_text_on_slider(gc, slider_width, slider_height, to_string(slider_value), slider_tick_offset, bold_tick_width, false);
+			paint_text_on_slider(gc, slider_width, slider_height, to_string(control_value), slider_tick_offset, bold_tick_width, false);
 			paint_text_on_slider(gc, slider_width, slider_height, to_string(*value_ptr), current_tick_offset, bold_tick_width, true);
 		}
 		else { // We draw text with a black background when not actively editing, for better text clarity.
@@ -166,42 +278,59 @@ private:
 		slider_panel->Bind(wxEVT_MOTION, &SpinBoxSlider::on_mouse_motion, this);
 		slider_panel->Bind(wxEVT_LEFT_UP, &SpinBoxSlider::on_lmb_up, this);
 		slider_panel->Bind(wxEVT_PAINT, &SpinBoxSlider::on_paint, this);
-		slider_value = *value_ptr;
 		SetSizerAndFit(sizer);
+	}
+	wxSize DoGetBestSize() const override {
+		return wxSize(32, 32);
 	}
 	wxPanel* slider_panel;
 	bool lmb_down = false;
-	int min_value = 0;
-	int max_value = 100;
-	int slider_value = 0;
-	uint8_t* value_ptr = nullptr;
+	uint8_t min_value = 0;
+	uint8_t max_value = 100;
 public:
-	void SetNewValue(int new_value);
-	int GetNewValue() const { return slider_value; }
-	void SaveCurrentValue() { *value_ptr = slider_value; }
-	bool HasUnsavedChange() const { return slider_value != *value_ptr; }
-	SpinBoxSlider(wxWindow* parent, int id = wxID_ANY, uint8_t* p_value_ptr = 0, uint8_t p_min_value = 0, uint8_t p_max_value = 100);
-	SpinBoxSlider() { Init(); }
+	void SetControlValue(int new_control_value) override;
+	SpinBoxSlider(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t p_min_value = 0, uint8_t p_max_value = 100);
 };
 
 class InsmakerPanel : public wxScrolledWindow {
 public:
 	InsmakerPanel(wxWindow* parent, int id = wxID_ANY);
-	shared_ptr<Bank> current_bank;
-	shared_ptr<Instrument> current_instrument;
+	shared_ptr<Bank> GetBank() const { return current_bank; }
+	void SetBank(shared_ptr<Bank> new_bank) {
+		//delete current_instrument; // TODO: Should check we own this ins.
+		//current_instrument = nullptr;
+		current_bank = new_bank;
+	}
+	void SetInstrumentByName(char name[9]) {
+		if (current_bank) {
+			current_instrument = current_bank->GetInstrumentByName(name);
+			if (current_instrument == nullptr) {
+				DBPRINT("Instrument of name " << name << " Could not be found, using generic instrument");
+				current_instrument = new Instrument;
+			}
+			else {
+				cout << "Editing Instrument: " << current_instrument->name << "\n";
+			}
+			update_oplfm_editor(&(current_instrument->carrier), &(current_instrument->modulator));
+		}
+	}
 private:
-	void add_property_name(string name, wxBoxSizer* sizer);
-	void add_oplfm_editor(OPLFM* opl, bool carrier, wxBoxSizer* sizer);
-	void add_slider_property(string name, uint8_t* p_value_ptr, uint8_t p_min_value, uint8_t p_max_value, wxBoxSizer* sizer);
-	void add_checkbox_property(string name, bool value_ptr, wxBoxSizer* sizer);
-	void on_carrier_slider_event(wxCommandEvent& event);
-	void on_modulator_slider_event(wxCommandEvent& event);
-	void on_carrier_checkbox_event(wxCommandEvent& event);
-	void on_modulator_checkbox_event(wxCommandEvent& event);
+	void create_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
+	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
+	void update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8_t* mod_value_ptr);
+	void add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
+		uint8_t p_min_value, uint8_t p_max_value);
+	void add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
+	void on_slider_event(wxCommandEvent& event);
+	void on_checkbox_event(wxCommandEvent& event);
 	void SaveChanges();
 	//void add_radio_property();
 	int16_t music_mode = 0;
-	map<string, int> properties;
+	shared_ptr<Bank> current_bank;
+	Instrument* current_instrument;
+	wxFlexGridSizer* property_sizer;
+	vector<OPLFMPropertyControl*> carrier_properties;
+	vector<OPLFMPropertyControl*> modulator_properties;
 	//map<string, variant> unsaved_properties;
 	int number_of_unsaved_changes = 0; // Is more than 0 if a Slider or Checkbox is not their saved value.
 };
