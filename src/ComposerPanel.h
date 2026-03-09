@@ -10,6 +10,7 @@
 #include <wx/popupwin.h>
 #include <common.h>
 #include <Track.h>
+#include <Instrument.h>
 #include <FileAccess.h>
 #include <AdPlayer.h>
 #include <memory.h>
@@ -22,6 +23,7 @@ public:
 	int editing_event_tick;
 	shared_ptr<Channel> current_channel;
 	shared_ptr<Track> current_track;
+	wxString current_track_file_path = wxEmptyString;
 	void Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel);
 private:
 	void init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID);
@@ -31,6 +33,7 @@ private:
 	wxTextCtrl* instrument_field;
 	wxTextCtrl* pitch_field;
 	wxTextCtrl* volume_field;
+	BankControl* bank_ctrl;
 };
 
 class ComposerPanel : public wxPanel {

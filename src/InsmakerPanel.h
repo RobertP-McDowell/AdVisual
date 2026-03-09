@@ -19,8 +19,6 @@
 
 using namespace std;
 
-
-
 enum {
 	ID_MINUS = 1,
 	ID_PLUS = 2,
@@ -33,7 +31,11 @@ protected:
 	uint8_t* value_ptr = nullptr;
 	uint8_t control_value = 0;
 public:
-	virtual void SetControlValue(int new_control_value) { control_value = (new_control_value < 0 ? uint8_t(0) : uint8_t(new_control_value)); }
+	virtual void SetControlValue(int new_control_value) {
+		control_value = (new_control_value < 0 ? uint8_t(0) : uint8_t(new_control_value));
+		Refresh();
+		Update();
+	}
 	int GetNewValue() const { return control_value; }
 	void SaveCurrentValue() { *value_ptr = control_value; }
 	uint8_t LoadFromValue(uint8_t* new_value_ptr) { // Returns the potentially unsaved control_value, for later.
@@ -311,7 +313,12 @@ public:
 			else {
 				cout << "Editing Instrument: " << current_instrument->name << "\n";
 			}
-			update_oplfm_editor(&(current_instrument->carrier), &(current_instrument->modulator));
+			if (current_instrument->percussion_mode == 0) {
+				update_oplfm_editor(&(current_instrument->carrier), &(current_instrument->modulator));
+			}
+			else {
+				update_oplfm_editor(nullptr, &(current_instrument->modulator));
+			}
 		}
 	}
 private:
@@ -326,8 +333,9 @@ private:
 	void SaveChanges();
 	//void add_radio_property();
 	int16_t music_mode = 0;
-	shared_ptr<Bank> current_bank;
 	Instrument* current_instrument;
+	shared_ptr<Bank> current_bank;
+	wxString current_bank_file_path = wxEmptyString;
 	wxFlexGridSizer* property_sizer;
 	vector<OPLFMPropertyControl*> carrier_properties;
 	vector<OPLFMPropertyControl*> modulator_properties;

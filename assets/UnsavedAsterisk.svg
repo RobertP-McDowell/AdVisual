@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="10.273158"
-     inkscape:cx="3.8936419"
-     inkscape:cy="1.8981504"
+     inkscape:zoom="29.05688"
+     inkscape:cx="5.2311192"
+     inkscape:cy="4.9730047"
      inkscape:window-width="2048"
      inkscape:window-height="1124"
      inkscape:window-x="0"
@@ -39,19 +39,19 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#949494;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        d="M 4.7877455,1.3875901 V 6.9212798"
        id="path1" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#9c9c9c;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#aaaaaa;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        d="M 2.0464721,4.1544351 H 7.5290194"
        id="path2" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#a2a2a2;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#b2b2b2;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        d="M 6.8846144,2.0575656 2.690876,6.2513042"
        id="path4" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#a6a6a6;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#c1c1c1;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        d="M 2.690876,2.0575656 6.8846144,6.2513042"
        id="path5" />
   </g>

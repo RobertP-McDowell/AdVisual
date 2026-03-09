@@ -232,25 +232,32 @@ void bank_move_fields(Bank& bank, bool write) {
 	uint16_t num_of_ins;
 	uint32_t name_offset;
 	uint32_t data_offset;
+	uint16_t byte_size_of_instrument = 17;
 	fieldcpyLE16(&num_of_ins_used, 2);
 	fieldcpyLE16(&num_of_ins, 2);
+	vector<uint16_t> data_indices;
+	data_indices.resize(num_of_ins_used);
 	fieldcpyLE32(&name_offset, 4);
 	fieldcpyLE32(&data_offset, 4);
 	DBPRINT("2Ins used: " << num_of_ins_used << " Ins count: " << num_of_ins <<
 		" name offset: " << name_offset << " data_offset: " << data_offset << "\n");
 	fieldzero(8); // Padding.
-	for (uint16_t insi = 0; insi < num_of_ins; insi++) {
+	for (uint16_t insi = 0; insi < num_of_ins_used; insi++) {
 		uint16_t data_index = data_offset + (insi * sizeof(uint16_t));
 		Instrument new_instrument;
 		fieldcpyLE16(&data_index, 2);
 		fieldcpy(&new_instrument.flags, 1);
 		fieldcpy(&new_instrument.name, 9);
 		bank.instruments.push_back(new_instrument);
+		data_indices[data_index] = insi;
 		DBPRINT(insi << " / " << num_of_ins << "Ins Flags: " << int(new_instrument.flags) << " Ins name: " << new_instrument.name);
 	}
+	for (uint16_t insi = num_of_ins_used; insi < num_of_ins; insi++) {
+		fieldzero(2+1+9); // memzero unused instruments.
+	}
 	DBPRINT("data_offset: " << data_offset << " should equal file pos: " << file_pos);
-	for (uint16_t insi = 0; insi < num_of_ins; insi++) {
-		Instrument& new_instrument = bank.instruments[insi];
+	for (uint16_t insi = 0; insi < num_of_ins_used; insi++) {
+		Instrument& new_instrument = bank.instruments[data_indices.at(insi)];
 		fieldcpy(&new_instrument.percussion_mode, 1);
 		fieldcpy(&new_instrument.voice_number, 1);
 		bank_move_OPLFM_fields(new_instrument.modulator);
@@ -258,7 +265,11 @@ void bank_move_fields(Bank& bank, bool write) {
 		fieldcpy(&new_instrument.modulator.waveform, 1);
 		fieldcpy(&new_instrument.carrier.waveform, 1);
 		DBPRINT("mWave: " << new_instrument.modulator.waveform << " cWave: " << new_instrument.carrier.waveform <<
-			"name: " << new_instrument.name << " " << insi << " / " << num_of_ins <<  " Part2 ");
+			"name: " << new_instrument.name << " Data index: " << insi << " / " << num_of_ins <<
+			" Instrument index: " << data_indices.at(insi));
+	}
+	for (uint16_t insi = num_of_ins_used; insi < num_of_ins; insi++) {
+		fieldzero(byte_size_of_instrument); // memzero unused instrument data.
 	}
 }
 

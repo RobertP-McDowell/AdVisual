@@ -10,6 +10,7 @@
 #include <wx/artprov.h>
 #include <common.h>
 #include <Track.h>
+#include <Instrument.h>
 #include <FileAccess.h>
 #include <AdPlayer.h>
 #include <ComposerPanel.h>
@@ -147,13 +148,20 @@ public:
 	void ShowComposerTools(bool show);
 	void CreateInsmakerTools(InsmakerPanel* insmaker_panel);
 	void ShowInsmakerTools(bool show);
+	wxPopupWindow* bank_popup;
+	BankControl* bank_ctrl;
 private:
 	void show_tools(bool show, vector<wxToolBarToolBase*> tools);
 	// Composer events:
 	void on_channel_button_pressed(wxCommandEvent& event);
 	void on_preview_channels_checked(wxCommandEvent& event);
 	// Insmaker events:
+	void on_select_instrument_set_focus(wxFocusEvent& event);
+	void on_select_instrument_kill_focus(wxFocusEvent& event);
+	void on_select_instrument_text_changed(wxCommandEvent& event);
 	void on_select_instrument_enter(wxCommandEvent& event);
+	void on_bank_selector_select_item(wxListEvent& event);
+	
 	vector<wxToolBarToolBase*> composer_tools;
 	vector<wxToolBarToolBase*> insmaker_tools;
 	vector<ChannelButton*> channel_buttons;
@@ -166,6 +174,15 @@ AdVisualToolBar::AdVisualToolBar(wxWindow* parent, int id, wxPoint position, wxS
 	wxSize tool_size = wxSize(54, 36) / 1.5;
 	wxSize square_size = wxSize(tool_size.y, tool_size.y);
 	SetMargins(0, 0);
+
+	bank_popup = new wxPopupWindow(this);
+	bank_popup->SetSize(200, 500);
+	bank_ctrl = new BankControl(bank_popup, wxID_ANY);
+	bank_ctrl->Bind(wxEVT_LIST_ITEM_SELECTED, &AdVisualToolBar::on_bank_selector_select_item, this, wxID_ANY);
+
+	wxBoxSizer* popup_sizer = new wxBoxSizer(wxHORIZONTAL);
+	popup_sizer->Add(bank_ctrl, 1, wxEXPAND);
+	bank_popup->SetSizerAndFit(popup_sizer);
 
 	SetToolBitmapSize(tool_size);
 
@@ -214,8 +231,11 @@ void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
 	// Start Composer ToolBar.
 	// We add to composer tools, so we can hide and show them at will.
 	AddSeparator();
-	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
-	instrument_select_field->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_select_instrument_enter, this, wxID_ANY);
+	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	instrument_select_field->Bind(wxEVT_SET_FOCUS, &AdVisualToolBar::on_select_instrument_set_focus, this, wxID_ANY);
+	instrument_select_field->Bind(wxEVT_KILL_FOCUS, &AdVisualToolBar::on_select_instrument_kill_focus, this, wxID_ANY);
+	instrument_select_field->Bind(wxEVT_TEXT, &AdVisualToolBar::on_select_instrument_text_changed, this, ID_INSTRUMENT_FIELD);
+	instrument_select_field->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_select_instrument_enter, this, ID_INSTRUMENT_FIELD);
 	insmaker_tools.push_back( AddControl(instrument_select_field, "Select Ins") );
 }
 
@@ -245,8 +265,8 @@ public:
 	ComposerPanel* composer_panel;
 	InsmakerPanel* insmaker_panel;
 	AdVisualToolBar* toolbar;
-	wxMenu *file_menu;
-	wxMenu *help_menu;
+	wxMenu* file_menu;
+	wxMenu* help_menu;
 private:
 	void on_resize(wxSizeEvent& event);
 	void on_show_composer_panel(wxCommandEvent& event);
@@ -386,6 +406,7 @@ void MainFrame::on_load_bank(wxCommandEvent &event) {
 	}
 	char new_name[9] = "ACCORDN";
 	insmaker_panel->SetInstrumentByName(new_name);
+	toolbar->bank_ctrl->SetBank(insmaker_panel->GetBank().get());
 	Refresh();
 	Update();
 }
@@ -413,13 +434,44 @@ void AdVisualToolBar::on_preview_channels_checked(wxCommandEvent& event) {
 	Update();
 }
 
+void AdVisualToolBar::on_select_instrument_set_focus(wxFocusEvent& event) {
+	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
+	wxSize popup_size = wxSize(100, 100);
+	wxPoint popup_pos = text_tool->GetPosition();
+	popup_pos.y += text_tool->GetSize().y;
+	bank_popup->Position(popup_pos - popup_size, popup_size);
+	bank_popup->Show(true);
+}
+void AdVisualToolBar::on_select_instrument_kill_focus(wxFocusEvent& event) {
+	bank_popup->Show(false);
+}
+
+void AdVisualToolBar::on_select_instrument_text_changed(wxCommandEvent& event) {
+	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
+	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
+	char ins_name[9];
+	wxString evt_str = event.GetString().MakeUpper();
+	evt_str.resize(8);
+	memcpy(&ins_name, evt_str.c_str(), 9);
+	bank_ctrl->FilterString(ins_name);
+}
+
 void AdVisualToolBar::on_select_instrument_enter(wxCommandEvent& event) {
 	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
+	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
 	char ins_name[9];
 	wxString evt_str = event.GetString().MakeUpper();
 	evt_str.resize(8);
 	memcpy(&ins_name, evt_str.c_str(), 9);
 	insmaker_panel->SetInstrumentByName(ins_name);
+	event.Skip();
 }
 
-
+void AdVisualToolBar::on_bank_selector_select_item(wxListEvent& event) {
+	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(ID_INSTRUMENT_FIELD));
+	char ins_name[9];
+	wxString evt_str = wxString(event.GetText()).MakeUpper();
+	evt_str.resize(8);
+	memcpy(&ins_name, evt_str.c_str(), 9);
+	text_tool->ChangeValue(ins_name);
+}
