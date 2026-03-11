@@ -42,34 +42,38 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-/////// Autocomplete for filtering and selecting bank instruments //////////////////
+// Autocomplete for filtering and selecting bank instruments ///////////////////////
+////////////////////////////////////////////////////////////////////////////////////
 class BankControl : public wxControl {
 private:
-	wxListCtrl* list_ctrl;
+	wxListBox* list_box;
 	char filter_str[9];
-	void on_list_item_selected(wxListEvent& event) {
+	void on_item_selected(wxCommandEvent& event) {
 		ProcessEvent(event); // Forward it.
 	}
 	Bank* current_bank = nullptr;
 public:
-	BankControl(wxWindow* parent, int id = wxID_ANY) : wxControl(parent, id) {
-		list_ctrl = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxLC_REPORT | wxLC_NO_HEADER | wxLC_SINGLE_SEL);
-		list_ctrl->AppendColumn("Instruments");
-		list_ctrl->Bind(wxEVT_LIST_ITEM_SELECTED, &BankControl::on_list_item_selected, this, wxID_ANY);
+	BankControl(wxWindow* parent, int id = wxID_ANY, wxPoint pos = wxDefaultPosition, wxSize size = wxDefaultSize) :
+			wxControl(parent, id, pos, size) {
+		list_box = new wxListBox(this, wxID_ANY, wxPoint(0, 0), size, 0, NULL, wxBORDER_NONE | wxLB_SINGLE);
+		list_box->Bind(wxEVT_LISTBOX, &BankControl::on_item_selected, this, wxID_ANY);
 		SetWindowStyle(wxBORDER_NONE);
+		wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+		sizer->Add(list_box, 1, wxEXPAND);
+		SetSizerAndFit(sizer);
 	}
 	void SetBank(Bank* bank) {
 		if (current_bank == bank) return;
 		current_bank = bank;
-		list_ctrl->DeleteAllItems();
+		list_box->Clear();
 		if (bank != nullptr) {
 			for (int insi = 0; insi < current_bank->instruments.size(); insi++) {
-				list_ctrl->InsertItem(insi, wxString(current_bank->instruments.at(insi).name));
+				list_box->Append(wxString(current_bank->instruments.at(insi).name));
 			}
 		}
 	}
 	void FilterString(const char new_filter[9]) {
-		if (list_ctrl->GetItemCount() == 0 || current_bank == nullptr) {
+		if (list_box->GetCount() == 0 || current_bank == nullptr) {
 			return;
 		}
 		memcpy(filter_str, new_filter, 9);
@@ -94,14 +98,10 @@ public:
 				}
 			}
 		}
-		list_ctrl->EnsureVisible(list_ctrl->GetItemCount() - 1); // Ensure visible the final item,
-		list_ctrl->EnsureVisible(greatest_match_idx); // so the greatest match item will be at the top of the list!
+		list_box->EnsureVisible(list_box->GetCount() - 1); // Ensure visible the final item,
+		list_box->EnsureVisible(greatest_match_idx); // so the greatest match item will be at the top of the list!
 	}
 };
-
-
-
-
 
 
 

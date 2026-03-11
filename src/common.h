@@ -52,3 +52,6 @@ enum
 	ID_INSMAKER_START, // INSMAKER specific enums start here.
 	ID_INSTRUMENT_FIELD
 };
+
+
+

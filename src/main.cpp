@@ -160,7 +160,7 @@ private:
 	void on_select_instrument_kill_focus(wxFocusEvent& event);
 	void on_select_instrument_text_changed(wxCommandEvent& event);
 	void on_select_instrument_enter(wxCommandEvent& event);
-	void on_bank_selector_select_item(wxListEvent& event);
+	void on_bank_selector_select_item(wxCommandEvent& event);
 	
 	vector<wxToolBarToolBase*> composer_tools;
 	vector<wxToolBarToolBase*> insmaker_tools;
@@ -177,8 +177,8 @@ AdVisualToolBar::AdVisualToolBar(wxWindow* parent, int id, wxPoint position, wxS
 
 	bank_popup = new wxPopupWindow(this);
 	bank_popup->SetSize(200, 500);
-	bank_ctrl = new BankControl(bank_popup, wxID_ANY);
-	bank_ctrl->Bind(wxEVT_LIST_ITEM_SELECTED, &AdVisualToolBar::on_bank_selector_select_item, this, wxID_ANY);
+	bank_ctrl = new BankControl(bank_popup, wxID_ANY, wxPoint(0, 0), wxSize(200, 200));
+	bank_ctrl->Bind(wxEVT_LISTBOX, &AdVisualToolBar::on_bank_selector_select_item, this, wxID_ANY);
 
 	wxBoxSizer* popup_sizer = new wxBoxSizer(wxHORIZONTAL);
 	popup_sizer->Add(bank_ctrl, 1, wxEXPAND);
@@ -231,12 +231,12 @@ void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
 	// Start Composer ToolBar.
 	// We add to composer tools, so we can hide and show them at will.
 	AddSeparator();
-	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxSize(125, 1), wxTE_PROCESS_ENTER);
 	instrument_select_field->Bind(wxEVT_SET_FOCUS, &AdVisualToolBar::on_select_instrument_set_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_KILL_FOCUS, &AdVisualToolBar::on_select_instrument_kill_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_TEXT, &AdVisualToolBar::on_select_instrument_text_changed, this, ID_INSTRUMENT_FIELD);
 	instrument_select_field->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_select_instrument_enter, this, ID_INSTRUMENT_FIELD);
-	insmaker_tools.push_back( AddControl(instrument_select_field, "Select Ins") );
+	insmaker_tools.push_back(AddControl(instrument_select_field, "Select Ins"));
 }
 
 void AdVisualToolBar::show_tools(bool show, vector<wxToolBarToolBase*> tools) {
@@ -374,11 +374,8 @@ void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 	toolbar->ShowInsmakerTools(true);
 }
 
-void MainFrame::on_play_track(wxCommandEvent &event) {
-	wxString filename = wxFileSelector("Select file to play", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
-	if (!filename.empty()) {
-		adplayer->play((string)filename);
-	}
+void MainFrame::on_play_track(wxCommandEvent& event) {
+	
 }
 
 void MainFrame::on_load_track(wxCommandEvent &event) {
@@ -407,6 +404,7 @@ void MainFrame::on_load_bank(wxCommandEvent &event) {
 	char new_name[9] = "ACCORDN";
 	insmaker_panel->SetInstrumentByName(new_name);
 	toolbar->bank_ctrl->SetBank(insmaker_panel->GetBank().get());
+	composer_panel->event_popup->bank_ctrl->SetBank(insmaker_panel->GetBank().get());
 	Refresh();
 	Update();
 }
@@ -414,7 +412,7 @@ void MainFrame::on_load_bank(wxCommandEvent &event) {
 void MainFrame::on_save_bank(wxCommandEvent &event) {
 	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		FileAccess::SaveBank((string)filename, *(insmaker_panel->GetBank().get()));
+		insmaker_panel->SaveToFile(filename);
 	}
 	Refresh();
 	Update();
@@ -467,10 +465,10 @@ void AdVisualToolBar::on_select_instrument_enter(wxCommandEvent& event) {
 	event.Skip();
 }
 
-void AdVisualToolBar::on_bank_selector_select_item(wxListEvent& event) {
+void AdVisualToolBar::on_bank_selector_select_item(wxCommandEvent& event) {
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(ID_INSTRUMENT_FIELD));
 	char ins_name[9];
-	wxString evt_str = wxString(event.GetText()).MakeUpper();
+	wxString evt_str = wxString(event.GetString()).MakeUpper();
 	evt_str.resize(8);
 	memcpy(&ins_name, evt_str.c_str(), 9);
 	text_tool->ChangeValue(ins_name);

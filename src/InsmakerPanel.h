@@ -37,7 +37,11 @@ public:
 		Update();
 	}
 	int GetNewValue() const { return control_value; }
-	void SaveCurrentValue() { *value_ptr = control_value; }
+	void SaveCurrentValue() {
+		if (value_ptr != nullptr) {
+			*value_ptr = control_value;
+		}
+	}
 	uint8_t LoadFromValue(uint8_t* new_value_ptr) { // Returns the potentially unsaved control_value, for later.
 		if (new_value_ptr == nullptr) {
 			Show(false);
@@ -299,8 +303,6 @@ public:
 	InsmakerPanel(wxWindow* parent, int id = wxID_ANY);
 	shared_ptr<Bank> GetBank() const { return current_bank; }
 	void SetBank(shared_ptr<Bank> new_bank) {
-		//delete current_instrument; // TODO: Should check we own this ins.
-		//current_instrument = nullptr;
 		current_bank = new_bank;
 	}
 	void SetInstrumentByName(char name[9]) {
@@ -319,8 +321,11 @@ public:
 			else {
 				update_oplfm_editor(nullptr, &(current_instrument->modulator));
 			}
+			number_of_unsaved_changes = 0;
 		}
 	}
+	void SaveToFile(wxString filename);
+	void LoadFromFile(wxString filename);
 private:
 	void create_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
 	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
@@ -330,7 +335,7 @@ private:
 	void add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
 	void on_slider_event(wxCommandEvent& event);
 	void on_checkbox_event(wxCommandEvent& event);
-	void SaveChanges();
+	void save_properties_to_opl();
 	//void add_radio_property();
 	int16_t music_mode = 0;
 	Instrument* current_instrument;

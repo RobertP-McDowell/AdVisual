@@ -25,7 +25,8 @@ public:
 	shared_ptr<Track> current_track;
 	wxString current_track_file_path = wxEmptyString;
 	void Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel);
-private:
+	BankControl* bank_ctrl;
+protected:
 	void init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID);
 	void on_show(wxShowEvent& event);
 	void on_text_entered(wxCommandEvent& event);
@@ -33,7 +34,6 @@ private:
 	wxTextCtrl* instrument_field;
 	wxTextCtrl* pitch_field;
 	wxTextCtrl* volume_field;
-	BankControl* bank_ctrl;
 };
 
 class ComposerPanel : public wxPanel {
@@ -43,7 +43,8 @@ public:
 	void SetPreviewChannels(bool value);
 	void SetChannelIndex(int value);
 	int GetChannelIndex() const { return current_channel_idx; }
-private:
+	unique_ptr<EventPopup> event_popup;
+protected:
 	// grid _panelfunctions and events.
 	void on_paint_grid(wxPaintEvent& event);
 	void on_scroll_grid(wxScrollWinEvent& event);
@@ -68,11 +69,11 @@ private:
 	wxSize note_size;
 	double zoom = 1.0;
 	wxPoint2DDouble mouse_down_start;
+	int editing_event_tick = -1;
 	bool preview_channels = false;
 	unique_ptr<Note> editing_note;
 	shared_ptr<Channel> current_channel;
 	int current_channel_idx = 0;
 	unique_ptr<wxPanel> event_header;
 	unique_ptr<wxScrolledWindow> grid_panel;
-	unique_ptr<EventPopup> event_popup;
 };

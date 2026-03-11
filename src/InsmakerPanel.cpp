@@ -38,6 +38,7 @@ void InsmakerPanel::update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8
 	carrier_properties.at(idx)->LoadFromValue(car_value_ptr);
 	modulator_properties.at(idx)->LoadFromValue(mod_value_ptr);
 }
+
 void InsmakerPanel::update_oplfm_editor(OPLFM* car, OPLFM* mod) {
 	update_oplfm_property(ATTACK_RATE, get_opl_prop(car, attack_rate), get_opl_prop(mod, attack_rate));
 	update_oplfm_property(DECAY_RATE, get_opl_prop(car, decay_rate), get_opl_prop(mod, decay_rate));
@@ -55,7 +56,6 @@ void InsmakerPanel::update_oplfm_editor(OPLFM* car, OPLFM* mod) {
 }
 
 InsmakerPanel::InsmakerPanel(wxWindow* parent, int id) : wxScrolledWindow(parent, id) {
-	//SetBackgroundColour(*wxBLACK);
 	current_bank = make_unique<Bank>();
 	current_instrument = new Instrument;
 	property_sizer = new wxFlexGridSizer(3, 10, 10);
@@ -74,9 +74,6 @@ InsmakerPanel::InsmakerPanel(wxWindow* parent, int id) : wxScrolledWindow(parent
 	SetSizerAndFit(property_sizer);
 }
 
-void InsmakerPanel::SaveChanges() {
-	
-}
 
 void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
 		uint8_t p_min_value, uint8_t p_max_value) {
@@ -112,6 +109,24 @@ void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr,
 	modulator_properties.push_back(mod_checkbox);
 }
 
+void InsmakerPanel::LoadFromFile(wxString filename) {
+	
+}
+
+void InsmakerPanel::SaveToFile(wxString filename) {
+	save_properties_to_opl();
+	FileAccess::SaveBank((string)filename, *(current_bank.get()));
+}
+
+void InsmakerPanel::save_properties_to_opl() {
+	for (OPLFMPropertyControl*& prop_ctrl : carrier_properties) {
+		prop_ctrl->SaveCurrentValue();
+	}
+	for (OPLFMPropertyControl*& prop_ctrl : modulator_properties) {
+		prop_ctrl->SaveCurrentValue();
+	}
+}
+
 void InsmakerPanel::on_slider_event(wxCommandEvent& event) {
 	number_of_unsaved_changes += event.GetInt();
 }
@@ -119,13 +134,13 @@ void InsmakerPanel::on_checkbox_event(wxCommandEvent& event) {
 	cout << event.IsChecked() << "\n";
 }
 
+
 wxDEFINE_EVENT(EVT_SPIN_BOX_SLIDER, wxCommandEvent);
 
 SpinBoxSlider::SpinBoxSlider(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t p_min_value, uint8_t p_max_value) :
 		OPLFMPropertyControl(parent, id, p_value_ptr), min_value(p_min_value), max_value(p_max_value) {
 	Init();
 }
-
 
 void SpinBoxSlider::SetControlValue(int new_control_value) {
 	uint8_t new_value = (new_control_value < 0 ? uint8_t(0) : uint8_t(new_control_value)); // First we need to check that this uint isn't negative.

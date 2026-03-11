@@ -254,6 +254,11 @@ void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {
 		gc->DrawRectangle(event_on_grid, event_bar_size.y * 3, event_bar_size.x, event_bar_size.y);
 		event_ticks.push_back(event->first);
 	}
+	if (editing_event_tick != -1) {
+		gc->SetBrush(wxColour(200, 200, 255, 100));
+		int event_on_grid = (editing_event_tick * note_size.x) - grid_offset.x;
+		gc->DrawRectangle(event_on_grid, 0, event_bar_size.x, event_header_height);
+	}
 	delete gc;
 }
 
@@ -266,15 +271,12 @@ void ComposerPanel::on_lmb_down_event_header(wxMouseEvent& event) {
 }
 
 void ComposerPanel::on_lmb_up_event_header(wxMouseEvent& event) {
-	int mouse_tick = (event.GetPosition().x + grid_offset.x) / note_size.x;
-	for (auto event = current_track->tempo_events.begin(); event != current_track->tempo_events.end(); event++) {
-		if (event->first == mouse_tick) {
-			
-		}
-		else if (event->first > mouse_tick) break;
-	}
-	event_popup->Position(ClientToScreen(wxPoint(0, 0)), (GetSize() / 2.0) - (event_popup->GetSize() / 2.0));
-	event_popup->Popup(mouse_tick, current_track, current_channel);
+	editing_event_tick = (event.GetPosition().x + grid_offset.x) / note_size.x;
+	wxPoint popup_pos = wxPoint(editing_event_tick * note_size.x, event_header->GetSize().y) + event_header->GetPosition();
+	event_popup->Position(ClientToScreen(popup_pos) - event_popup->GetSize(), event_popup->GetSize());
+	event_popup->Popup(editing_event_tick, current_track, current_channel);
+	event_header->Refresh();
+	event_header->Update();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -302,24 +304,33 @@ float get_float_from_string(string str_val, float min = 0.0, float max = 1.0) {
 void EventPopup::init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID) {
 	event_field = new wxTextCtrl(this, ID);
 	const string field_names[4] = {"Tempo", "Instrument", "Pitch", "Volume"};
+	wxStaticText* field_name = new wxStaticText(this, ID, field_names[ID-ID_TEMPO_EVENT]);
+	sizer->Add(field_name, 0, wxEXPAND | wxLEFT, 12);
 	event_field->SetHint(field_names[ID-ID_TEMPO_EVENT]);
 	event_field->SetWindowStyle(wxTE_PROCESS_ENTER);
 	event_field->Bind(wxEVT_TEXT_ENTER, &EventPopup::on_text_entered, this, ID);
-	sizer->Add(event_field, 0, wxEXPAND | wxLEFT, 10);
-	wxStaticText* field_name = new wxStaticText(this, ID, field_names[ID-ID_TEMPO_EVENT]);
-	sizer->Add(field_name, 0, wxEXPAND | wxRIGHT, 10);
+	sizer->Add(event_field, 0, wxEXPAND);
 }
 
 EventPopup::EventPopup(wxWindow* parent, shared_ptr<Track> track, shared_ptr<Channel> channel) : 
-	wxPopupTransientWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS), current_track(track), current_channel(channel)
+	wxPopupTransientWindow(parent, wxBORDER_DEFAULT | wxPU_CONTAINS_CONTROLS), current_track(track), current_channel(channel)
 {
 	Bind(wxEVT_SHOW, &EventPopup::on_show, this);
-	wxGridSizer* sizer = new wxGridSizer(2);
-	init_event_field(sizer, tempo_field, ID_TEMPO_EVENT);
-	init_event_field(sizer, instrument_field, ID_INSTRUMENT_EVENT);
-	init_event_field(sizer, pitch_field, ID_PITCH_EVENT);
-	init_event_field(sizer, volume_field, ID_VOLUME_EVENT);
-	SetSizerAndFit(sizer);
+	wxGridSizer* field_sizer = new wxGridSizer(2);
+	
+	wxStaticText* popup_header = new wxStaticText(this, wxID_ANY, "Set Events");
+	field_sizer->Add(popup_header, 0, wxLEFT, 6); // Add Event Header.
+	field_sizer->Add(1, 1, wxEXPAND); // Add Spacer.
+	
+	init_event_field(field_sizer, tempo_field, ID_TEMPO_EVENT);
+	init_event_field(field_sizer, instrument_field, ID_INSTRUMENT_EVENT);
+	init_event_field(field_sizer, pitch_field, ID_PITCH_EVENT);
+	init_event_field(field_sizer, volume_field, ID_VOLUME_EVENT);
+	wxBoxSizer* main_sizer = new wxBoxSizer(wxHORIZONTAL);
+	main_sizer->Add(field_sizer, 0);
+	bank_ctrl = new BankControl(this, wxID_ANY, wxDefaultPosition, wxSize(200, 200));
+	main_sizer->Add(bank_ctrl, 1, wxEXPAND);
+	SetSizerAndFit(main_sizer);
 }
 
 #define update_event_field(event_field, get_last_event_callable, t_type, type_conversion_func, max_text_length) do { \
