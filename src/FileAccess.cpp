@@ -14,10 +14,6 @@ namespace FileAccess {
 	bool writing = false;
 };
 
-void FileAccess::SetFileStream(fstream from_fstream) {
-	//file = from_fstream;
-}
-
 void FileAccess::fieldcpy_write(void* object, int field_size) {
 	file.write(static_cast<char*>(object), field_size);
 	file_pos += field_size;

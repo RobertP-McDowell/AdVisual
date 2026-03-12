@@ -14,8 +14,6 @@ using namespace std;
 
 
 namespace FileAccess {
-	extern void SetFileStream(fstream from_stream);
-
 	extern void fieldcpy_write(void* object, int field_size);
 	extern void fieldcpy_read(void* object, int field_size);
 	// Checks and calls fieldcpy_read or write
