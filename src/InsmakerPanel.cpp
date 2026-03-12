@@ -109,15 +109,6 @@ void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr,
 	modulator_properties.push_back(mod_checkbox);
 }
 
-void InsmakerPanel::LoadFromFile(wxString filename) {
-	
-}
-
-void InsmakerPanel::SaveToFile(wxString filename) {
-	save_properties_to_opl();
-	FileAccess::SaveBank((string)filename, *(current_bank.get()));
-}
-
 void InsmakerPanel::save_properties_to_opl() {
 	for (OPLFMPropertyControl*& prop_ctrl : carrier_properties) {
 		prop_ctrl->SaveCurrentValue();

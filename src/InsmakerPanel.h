@@ -324,8 +324,6 @@ public:
 			number_of_unsaved_changes = 0;
 		}
 	}
-	void SaveToFile(wxString filename);
-	void LoadFromFile(wxString filename);
 private:
 	void create_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
 	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
@@ -340,7 +338,6 @@ private:
 	int16_t music_mode = 0;
 	Instrument* current_instrument;
 	shared_ptr<Bank> current_bank;
-	wxString current_bank_file_path = wxEmptyString;
 	wxFlexGridSizer* property_sizer;
 	vector<OPLFMPropertyControl*> carrier_properties;
 	vector<OPLFMPropertyControl*> modulator_properties;

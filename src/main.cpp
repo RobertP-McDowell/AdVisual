@@ -381,7 +381,7 @@ void MainFrame::on_play_track(wxCommandEvent& event) {
 void MainFrame::on_load_track(wxCommandEvent &event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
 	if (!filename.empty()) {
-		FileAccess::LoadTrack((string)filename, *(composer_panel->current_track.get()));
+		composer_panel->current_track->LoadFromFile(filename);
 	}
 	Refresh();
 	Update();
@@ -390,7 +390,7 @@ void MainFrame::on_load_track(wxCommandEvent &event) {
 void MainFrame::on_save_track(wxCommandEvent &event) {
 	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
 	if (!filename.empty()) {
-		FileAccess::SaveTrack((string)filename, *(composer_panel->current_track.get()));
+		composer_panel->current_track->SaveToFile(filename);
 	}
 	Refresh();
 	Update();
@@ -399,7 +399,7 @@ void MainFrame::on_save_track(wxCommandEvent &event) {
 void MainFrame::on_load_bank(wxCommandEvent &event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		insmaker_panel->SetBank(make_shared<Bank>(FileAccess::LoadBank((string)filename)));
+		insmaker_panel->GetBank()->LoadFromFile(filename);
 	}
 	char new_name[9] = "ACCORDN";
 	insmaker_panel->SetInstrumentByName(new_name);
@@ -412,7 +412,7 @@ void MainFrame::on_load_bank(wxCommandEvent &event) {
 void MainFrame::on_save_bank(wxCommandEvent &event) {
 	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		insmaker_panel->SaveToFile(filename);
+		insmaker_panel->GetBank()->SaveToFile(filename);
 	}
 	Refresh();
 	Update();

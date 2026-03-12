@@ -51,4 +51,8 @@ struct Track {
 	void get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value);
 	void set_events(shared_ptr<Channel> on_channel, int at_tick, float tempo_event, string instrument_event, float pitch_event, float volume_event);
 	void clear_track_data(); // Clears all events of track and channel, and notes.
+	void SaveToFile(wxString filename);
+	void LoadFromFile(wxString filename);
+protected:
+	void rol_move_fields();
 };

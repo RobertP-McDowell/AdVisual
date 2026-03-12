@@ -34,11 +34,16 @@ public:
 
 class Bank {
 public:
+	void LoadFromFile(wxString filename);
+	void SaveToFile(wxString filename);
 	uint8_t file_version_major = 0;
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
 	void clear_bank_data() { instruments.clear(); }
 	Instrument* GetInstrumentByName(char name[9]);
+	wxString last_file_path = wxEmptyString;
+protected:
+	void bnk_move_fields();
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
