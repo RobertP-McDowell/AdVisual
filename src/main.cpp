@@ -186,14 +186,14 @@ AdVisualToolBar::AdVisualToolBar(wxWindow* parent, int id, wxPoint position, wxS
 
 	SetToolBitmapSize(tool_size);
 
-	AddTool(ID_FILE_MENU, "File Menu", wxArtProvider::GetBitmapBundle(wxART_FLOPPY, wxART_TOOLBAR, square_size), wxNullBitmap, wxITEM_NORMAL,
+	AddTool(ID_FILE_MENU, "File Menu", GetAsset("FloppyDisk.svg", square_size), wxNullBitmap, wxITEM_NORMAL,
 		"File", "Show File Menu");
-	AddTool(ID_HELP_MENU, "Help Menu", wxArtProvider::GetBitmapBundle(wxART_HELP_BOOK, wxART_TOOLBAR, square_size), wxNullBitmap, wxITEM_NORMAL,
+	AddTool(ID_HELP_MENU, "Help Menu", GetAsset("HelpBook.svg", square_size), wxNullBitmap, wxITEM_NORMAL,
 		"Help", "Show Help Menu");
 
-	AddRadioTool(ID_COMPOSER, "Composer Panel", wxBitmapBundle::FromSVGFile(ASSETS_PATH + "ComposerIcon.svg", tool_size),
+	AddRadioTool(ID_COMPOSER, "Composer Panel", GetAsset("ComposerIcon.svg", tool_size),
 		wxNullBitmap, "COMPOSER", "Edit Track in the COMPOSER panel.");
-	AddRadioTool(ID_INSMAKER, "Insmaker Panel", wxBitmapBundle::FromSVGFile(ASSETS_PATH + "InsmakerIcon.svg", tool_size),
+	AddRadioTool(ID_INSMAKER, "Insmaker Panel", GetAsset("InsmakerIcon.svg", tool_size),
 		wxNullBitmap, "INSMAKER", "Edit Instrument in the INSMAKER panel.");
 	// Start Playback options.
 	AddSeparator();
@@ -223,6 +223,9 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
 	
 	composer_tools.push_back( AddTool(ID_TRACK_OPTIONS, "Options", GetAsset("Cassete.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
 		"Track Options", "Change base Track settings.") );
+	AddSeparator();
+	composer_tools.push_back( AddTool(ID_PIANO_GUIDE, "PianoGuide", GetAsset("PianoGuideButton.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
+		"Piano Guide", "Show a piano on the grid.") );
 }
 
 void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
@@ -307,11 +310,15 @@ MainFrame::MainFrame() :
 	toolbar->CreateComposerTools(composer_panel);
 
 	insmaker_panel = new InsmakerPanel(this);
-	toolbar->CreateInsmakerTools(insmaker_panel);
 	insmaker_panel->Show(false);
+	toolbar->CreateInsmakerTools(insmaker_panel);
 	toolbar->ShowInsmakerTools(false);
 
-	Bind(wxEVT_SIZE, &MainFrame::on_resize, this, wxID_ANY);
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(composer_panel, 1, wxEXPAND);
+	sizer->Add(insmaker_panel, 1, wxEXPAND);
+	SetSizer(sizer);
+
 	Bind(wxEVT_MENU, &MainFrame::on_exit, this, wxID_EXIT);
 	Bind(wxEVT_MENU, &MainFrame::on_about, this, wxID_ABOUT);
 	Bind(wxEVT_MENU, &MainFrame::on_show_composer_panel, this, ID_COMPOSER);
@@ -319,15 +326,19 @@ MainFrame::MainFrame() :
 	Bind(wxEVT_MENU, &MainFrame::on_play_track, this, ID_PLAY_TRACK);
 	Bind(wxEVT_MENU, &MainFrame::on_load_track, this, ID_LOAD_TRACK);
 	Bind(wxEVT_MENU, &MainFrame::on_save_track, this, ID_SAVE_TRACK);
+	Bind(wxEVT_MENU, &MainFrame::on_save_track, this, ID_SAVE_TRACK_AS);
 	Bind(wxEVT_MENU, &MainFrame::on_load_bank, this, ID_LOAD_BANK);
 	Bind(wxEVT_MENU, &MainFrame::on_save_bank, this, ID_SAVE_BANK);
 	Bind(wxEVT_MENU, &MainFrame::on_popup_file_menu, this, ID_FILE_MENU);
 	Bind(wxEVT_MENU, &MainFrame::on_popup_help_menu, this, ID_HELP_MENU);
 
 	file_menu = new wxMenu("File");
-	file_menu->Append(ID_PLAY_TRACK, "&Play Track...\tCtrl-P", "Play any Adlib song.");
 	file_menu->Append(ID_LOAD_TRACK, "&Load Track...\tCtrl-L", "Load ROL files");
-	file_menu->Append(ID_SAVE_TRACK, "&Save Track As...\tCtrl-S", "Save ROL file to location");
+	file_menu->Append(ID_SAVE_TRACK, "&Save Track...\tCtrl-S", "Save ROL file to location");
+	file_menu->Append(ID_SAVE_TRACK_AS, "&Save Track As...\tShift-Ctrl-S", "Save ROL file to location");
+	file_menu->AppendSeparator();
+	file_menu->Append(ID_PLAY_TRACK, "&Play Track...\tCtrl-P", "Play any Adlib song.");
+	file_menu->AppendSeparator();
 	file_menu->Append(ID_LOAD_BANK, "&Load Bank", "Load BNK file");
 	file_menu->Append(ID_SAVE_BANK, "&Save Bank As", "Save BNK file to location");
 	file_menu->AppendSeparator();
@@ -342,12 +353,6 @@ void MainFrame::on_popup_file_menu(wxCommandEvent& event) {
 }
 void MainFrame::on_popup_help_menu(wxCommandEvent& event) {
 	PopupMenu(help_menu);
-}
-
-void MainFrame::on_resize(wxSizeEvent &event) {
-	composer_panel->SetSize(GetSize());
-	insmaker_panel->SetSize(GetSize());
-	
 }
 
 void MainFrame::on_exit(wxCommandEvent &event) {
@@ -375,10 +380,15 @@ void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 }
 
 void MainFrame::on_play_track(wxCommandEvent& event) {
-	
+	if (event.IsChecked()) {
+		adplayer->play((string)composer_panel->current_track->file_path);
+	}
+	else {
+		adplayer->stop();
+	}
 }
 
-void MainFrame::on_load_track(wxCommandEvent &event) {
+void MainFrame::on_load_track(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
 	if (!filename.empty()) {
 		composer_panel->current_track->LoadFromFile(filename);
@@ -387,16 +397,21 @@ void MainFrame::on_load_track(wxCommandEvent &event) {
 	Update();
 }
 
-void MainFrame::on_save_track(wxCommandEvent &event) {
-	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
-	if (!filename.empty()) {
-		composer_panel->current_track->SaveToFile(filename);
+void MainFrame::on_save_track(wxCommandEvent& event) {
+	if (event.GetId() != ID_SAVE_TRACK_AS && composer_panel->current_track->file_path != wxEmptyString) {
+		composer_panel->current_track->SaveToFile(wxEmptyString);
+	}
+	else {
+		wxString new_path = wxSaveFileSelector("~/Desktop", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
+		if (!new_path.empty()) {
+			composer_panel->current_track->SaveToFile(new_path);
+		}
 	}
 	Refresh();
 	Update();
 }
 
-void MainFrame::on_load_bank(wxCommandEvent &event) {
+void MainFrame::on_load_bank(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
 		insmaker_panel->GetBank()->LoadFromFile(filename);
@@ -409,7 +424,7 @@ void MainFrame::on_load_bank(wxCommandEvent &event) {
 	Update();
 }
 
-void MainFrame::on_save_bank(wxCommandEvent &event) {
+void MainFrame::on_save_bank(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
 		insmaker_panel->GetBank()->SaveToFile(filename);
@@ -466,10 +481,12 @@ void AdVisualToolBar::on_select_instrument_enter(wxCommandEvent& event) {
 }
 
 void AdVisualToolBar::on_bank_selector_select_item(wxCommandEvent& event) {
+	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(ID_INSTRUMENT_FIELD));
 	char ins_name[9];
 	wxString evt_str = wxString(event.GetString()).MakeUpper();
 	evt_str.resize(8);
 	memcpy(&ins_name, evt_str.c_str(), 9);
 	text_tool->ChangeValue(ins_name);
+	insmaker_panel->SetInstrumentByName(ins_name);
 }

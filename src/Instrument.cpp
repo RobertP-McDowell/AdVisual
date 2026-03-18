@@ -95,17 +95,17 @@ void Bank::bnk_move_fields() {
 
 void Bank::SaveToFile(wxString save_path) {
 	cout << "Saving Bank File: " << save_path << "\n";
-	access_file(save_path, true);
+	if (!access_file(save_path, true)) return;
 	bnk_move_fields();
-	last_file_path = save_path;
+	file_path = save_path;
 	file.close();
 }
 
 void Bank::LoadFromFile(wxString load_path) {
 	cout << "Loading Bank File: " << load_path << "\n";
-	access_file(load_path, false);
+	if (!access_file(load_path, false)) return;
 	bnk_move_fields();
-	last_file_path = load_path;
+	file_path = load_path;
 	file.close();
 	return;
 }

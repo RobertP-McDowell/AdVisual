@@ -40,19 +40,28 @@ struct Track {
 	vector<shared_ptr<Channel>> channels = {};
 	shared_ptr<Channel> GetChannel(int idx) const {return channels[idx];}
 	int get_channel_count() const {return channels.size();}
-	short file_version_major, file_version_minor, ticks_per_beat = 4, beats_per_measure = 4;
-	wxSize editor_scale;
-	int8_t music_mode = 0; // 0 = percussive, 1 = melodic.
-	float basic_tempo = 120;
-	// Every event key == time of event in Ticks.
-	map<int, float> tempo_events = {{0, 1.0f}}; // Value = Tempo multipler (0.01 - 10.0).
-	//get_last_events(int start_tick, float& tempo_event, string& instrument_event, float& pitch_event, float& volume_event);
+	
 	void set_tempo_event(int at_tick, float value);
 	void get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value);
 	void set_events(shared_ptr<Channel> on_channel, int at_tick, float tempo_event, string instrument_event, float pitch_event, float volume_event);
 	void clear_track_data(); // Clears all events of track and channel, and notes.
 	void SaveToFile(wxString filename);
 	void LoadFromFile(wxString filename);
+	int get_tick_count() const {
+		int highest_tick_count = 0;
+		for (shared_ptr<Channel> channel : channels) {
+			if (channel->get_tick_count() > highest_tick_count) highest_tick_count = channel->get_tick_count();
+		}
+		return highest_tick_count;
+	}
+	
+	short file_version_major, file_version_minor, ticks_per_beat = 4, beats_per_measure = 4;
+	wxSize editor_scale;
+	int8_t music_mode = 0; // 0 = percussive, 1 = melodic.
+	float basic_tempo = 120;
+	// Every event, key == time of event in Ticks. for tempo_events, Value = Tempo multipler (0.01 - 10.0).
+	map<int, float> tempo_events = {{0, 1.0f}};
+	wxString file_path = wxEmptyString;
 protected:
 	void rol_move_fields();
 };

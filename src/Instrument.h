@@ -41,7 +41,7 @@ public:
 	vector<Instrument> instruments = {};
 	void clear_bank_data() { instruments.clear(); }
 	Instrument* GetInstrumentByName(char name[9]);
-	wxString last_file_path = wxEmptyString;
+	wxString file_path = wxEmptyString;
 protected:
 	void bnk_move_fields();
 };

@@ -108,6 +108,9 @@ void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_posi
 			}
 			notes.erase(notes.begin() + i);
 		}
+		else if (note.offset > eraser_offset) {
+			insert_position = i;
+		}
 	}
 }
 
@@ -126,21 +129,22 @@ void Track::clear_track_data() {
 }
 
 void Track::SaveToFile(wxString save_path) {
-	cout << "Saving Track File: " << save_path << "\n";
-
-	clear_track_data();
-	access_file(save_path, true);
+	wxString try_path = (!save_path.empty() ? save_path : file_path);
+	cout << "Saving Track File: " << try_path << "\n";
+	if (!access_file(try_path, true)) return;
 	rol_move_fields();
+	file_path = try_path;
 
 	file.close();
 }
 
 void Track::LoadFromFile(wxString load_path) {
-	cout << "Load Track File: " << load_path << "\n";
-
+	wxString try_path = (!load_path.empty() ? load_path : file_path);
+	cout << "Load Track File: " << try_path << "\n";
+	if (!access_file(try_path, false)) return;
 	clear_track_data();
-	access_file(load_path, false);
 	rol_move_fields();
+	file_path = try_path;
 
 	file.close();
 }
@@ -172,7 +176,7 @@ void Track::rol_move_fields() {
 					int16_t empty_note_length = (note.offset - note_end);
 					fieldcpy_write(&empty_note_length, 2); // Empty note length.
 				}
-				int16_t note_number = int16_t(-((note.pitch+12) - 107));
+				int16_t note_number = int16_t(-(note.pitch - 107));
 				int16_t note_length = int16_t(note.length);
 				fieldcpy_write(&note_number, 2);
 				fieldcpy_write(&note_length, 2);

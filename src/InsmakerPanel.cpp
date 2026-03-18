@@ -71,21 +71,34 @@ InsmakerPanel::InsmakerPanel(wxWindow* parent, int id) : wxScrolledWindow(parent
 
 	create_oplfm_editor(&(current_instrument->carrier), &(current_instrument->modulator));
 
-	SetSizerAndFit(property_sizer);
+	// Create Piano and ScrollBar.
+	piano_ctrl = new PianoControl(this, wxID_ANY, wxVERTICAL);
+	piano_ctrl->Bind(wxEVT_SIZE, &InsmakerPanel::on_resize_piano, this);
+	h_scroll_bar = new wxScrollBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSB_HORIZONTAL);
+	int scroll_thumb_size = (piano_ctrl->GetSize().x / piano_ctrl->GetKeyWidth());
+	h_scroll_bar->SetScrollbar(middle_c, scroll_thumb_size, pitch_range, scroll_thumb_size);
+	h_scroll_bar->Bind(wxEVT_SCROLL_THUMBTRACK, &InsmakerPanel::on_scroll_piano, this);
+
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(property_sizer, 1, wxEXPAND);
+	sizer->Add(piano_ctrl, 0, wxEXPAND);
+	sizer->Add(h_scroll_bar, 0, wxEXPAND);
+	SetSizerAndFit(sizer);
 }
 
 
 void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
 		uint8_t p_min_value, uint8_t p_max_value) {
-	// Property name:
+	// Property name.
 	wxStaticText* property_name = new wxStaticText(this, wxID_ANY, name);
 	property_name->SetWindowStyle(wxALIGN_LEFT);
 	property_sizer->Add(property_name, 0, wxALIGN_LEFT);
+	// Carrier.
 	SpinBoxSlider* car_slider = new SpinBoxSlider(this, wxID_ANY, p_car_value_ptr, p_min_value, p_max_value);
 	car_slider->Bind(EVT_SPIN_BOX_SLIDER, &InsmakerPanel::on_slider_event, this, wxID_ANY);
 	property_sizer->Add(car_slider, 1, wxEXPAND | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 	carrier_properties.push_back(car_slider);
-	// Modulator: // Same as last time.
+	// Modulator.
 	SpinBoxSlider* mod_slider = new SpinBoxSlider(this, wxID_ANY, p_mod_value_ptr, p_min_value, p_max_value);
 	mod_slider->Bind(EVT_SPIN_BOX_SLIDER, &InsmakerPanel::on_slider_event, this, wxID_ANY);
 	property_sizer->Add(mod_slider, 1, wxEXPAND | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
@@ -93,16 +106,16 @@ void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, u
 }
 
 void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr) {
-	// Property name:
+	// Property name.
 	wxStaticText* property_name = new wxStaticText(this, wxID_ANY, name);
 	property_name->SetWindowStyle(wxALIGN_LEFT);
 	property_sizer->Add(property_name, 0, wxALIGN_LEFT);
-
+	// Carrier.
 	OPLFMCheckbox* car_checkbox = new OPLFMCheckbox(this, wxID_ANY, p_car_value_ptr);
 	car_checkbox->Bind(wxEVT_CHECKBOX, &InsmakerPanel::on_checkbox_event, this, wxID_ANY);
 	property_sizer->Add(car_checkbox, 0, wxALIGN_CENTER | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 	carrier_properties.push_back(car_checkbox);
-
+	// Modulator.
 	OPLFMCheckbox* mod_checkbox = new OPLFMCheckbox(this, wxID_ANY, p_mod_value_ptr);
 	mod_checkbox->Bind(wxEVT_CHECKBOX, &InsmakerPanel::on_checkbox_event, this, wxID_ANY);
 	property_sizer->Add(mod_checkbox, 0, wxALIGN_CENTER | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
@@ -125,6 +138,14 @@ void InsmakerPanel::on_checkbox_event(wxCommandEvent& event) {
 	cout << event.IsChecked() << "\n";
 }
 
+void InsmakerPanel::on_resize_piano(wxSizeEvent& event) {
+	int scroll_thumb_size = (piano_ctrl->GetSize().x / piano_ctrl->GetKeyWidth());
+	h_scroll_bar->SetScrollbar(piano_ctrl->GetScrollOffset() / piano_ctrl->GetKeyWidth(), scroll_thumb_size, pitch_range, scroll_thumb_size);
+}
+
+void InsmakerPanel::on_scroll_piano(wxScrollEvent& event) {
+	piano_ctrl->SetScrollOffset(piano_ctrl->GetKeyWidth() * event.GetPosition());
+}
 
 wxDEFINE_EVENT(EVT_SPIN_BOX_SLIDER, wxCommandEvent);
 

@@ -10,37 +10,49 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	wxColour bg_colour = wxColour(40, 40, 40);
 	SetBackgroundColour(*wxBLACK);
 	event_font = wxFont(wxFontInfo(10).Bold());
-	note_size = wxSize(20.0, 20.0);
+	note_size = wxSize(20.0 / zoom, 19.0 / zoom);
+	cell_size = wxSize(20.0 / zoom, 20.0 / zoom);
 	
-	event_header = make_unique<wxPanel>(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
+	event_header = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
 	event_header->SetBackgroundColour(bg_colour);
 	event_header->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_event_header, this);
 	event_header->Bind(wxEVT_MOTION, &ComposerPanel::on_mouse_motion_event_header, this);
 	event_header->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down_event_header, this);
 	event_header->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up_event_header, this);
 	
-	grid_panel = make_unique<wxScrolledWindow>(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
+	grid_panel = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
 	grid_panel->SetBackgroundColour(bg_colour);
 	grid_panel->EnableScrolling(true, true);
 	grid_panel->ShowScrollbars(wxSHOW_SB_ALWAYS, wxSHOW_SB_ALWAYS);
-	grid_panel->SetScrollbars(note_size.x, note_size.y, 0, pitch_range, 0, pitch_range/2.0);
+	grid_panel->SetScrollbars(cell_size.x, cell_size.y, 0, pitch_range, 0, pitch_range/2.0);
 	
 	grid_panel->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_grid, this);
 	grid_panel->Bind(wxEVT_SCROLLWIN_THUMBTRACK, &ComposerPanel::on_scroll_grid, this);
 	grid_panel->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down, this);
 	grid_panel->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up, this);
+	grid_panel->Bind(wxEVT_RIGHT_DOWN, &ComposerPanel::on_rmb_down, this);
+	grid_panel->Bind(wxEVT_RIGHT_UP, &ComposerPanel::on_rmb_up, this);
 	grid_panel->Bind(wxEVT_MOTION, &ComposerPanel::on_mouse_motion, this);
 
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-	sizer->Add(event_header.get(), 0, wxEXPAND | wxBOTTOM, 4);
-	sizer->Add(grid_panel.get(), 1, wxEXPAND);
+	wxFlexGridSizer* sizer = new wxFlexGridSizer(2, 2, wxSize(0, 0));
+	sizer->SetFlexibleDirection(wxBOTH);
+	sizer->AddGrowableCol(0, 0);
+	sizer->AddGrowableCol(1, 1);
+	sizer->AddGrowableRow(0, 0);
+	sizer->AddGrowableRow(1, 1);
+	sizer->Add(1, 1, wxEXPAND);
+	sizer->Add(event_header, 0, wxEXPAND | wxBOTTOM, 4);
+	piano_ctrl = new PianoControl(this, wxID_ANY, wxHORIZONTAL);
+	sizer->Add(piano_ctrl, 1, wxEXPAND);
+	sizer->Add(grid_panel, 1, wxEXPAND);
 	SetSizerAndFit(sizer);
+	sizer->FitInside(GetParent());
 	current_channel_idx = 0;
 	current_track = make_shared<Track>();
 	current_channel = (current_track->channels[0]);
 	wxPoint control_offset(30, 0);
 	
-	event_popup = make_unique<EventPopup>(this, current_track, current_channel);
+	event_popup = new EventPopup(this, current_track, current_channel);
 }
 
 void ComposerPanel::SetPreviewChannels(bool value) {
@@ -58,11 +70,12 @@ void ComposerPanel::SetChannelIndex(int value) {
 
 void ComposerPanel::on_scroll_grid(wxScrollWinEvent& event) {
 	if (event.GetOrientation() == wxHORIZONTAL) {
-		grid_offset.x = note_size.x * event.GetPosition();
+		grid_offset.x = cell_size.x * event.GetPosition();
 	}
 	else {
-		grid_offset.y = note_size.x * event.GetPosition();
+		grid_offset.y = cell_size.y * event.GetPosition();
 	}
+	piano_ctrl->SetScrollOffset(grid_offset.y);
 	Refresh();
 	Update();
 }
@@ -73,70 +86,83 @@ void ComposerPanel::on_paint_grid(wxPaintEvent& event) {
 }
 
 void ComposerPanel::draw_grid() {
-	wxPaintDC dc(grid_panel.get());
+	wxPaintDC dc(grid_panel);
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 	if (gc == nullptr) return;
-	wxGraphicsPen heavy_grid_pen = gc->CreatePen(wxGraphicsPenInfo(*wxColour(190, 190, 190)).Width(3.5).Style(wxPENSTYLE_SOLID));
-	wxGraphicsPen dashed_grid_pen = gc->CreatePen(wxGraphicsPenInfo(*wxColour(140, 140, 140)).Width(2.5).Style(wxPENSTYLE_SHORT_DASH));
-	wxGraphicsPen dotted_grid_pen = gc->CreatePen(wxGraphicsPenInfo(*wxColour(140, 140, 140)).Width(2.5).Style(wxPENSTYLE_DOT));
+// Create grid pens.
+	double pen_width = 2.5;
+	wxColour grid_color = wxColour(140, 140, 140);
+	wxColour measure_colour = wxColour(190, 190, 190);
+	wxDash vertical_dash = wxDash((((cell_size.y / 3.0) * 2.0) - pen_width) / 2.0); // Subtract pen_width because the rounded cap protrudes
+	wxDash vertical_dashes[2] = {vertical_dash, wxDash(((cell_size.y / 2.0) - (vertical_dash)) - (pen_width / 2.0))};
+	wxDash horizontal_dash = wxDash((((cell_size.x / 3.0) * 2.0) - pen_width) / 2.0); // Subtract pen_width because the rounded cap protrudes
+	wxDash horizontal_dashes[2] = {horizontal_dash, wxDash(((cell_size.x / 2.0) - (horizontal_dash)) - (pen_width / 2.0))};
+	wxGraphicsPen heavy_grid_pen = gc->CreatePen(wxGraphicsPenInfo(measure_colour).Width(3.5).Style(wxPENSTYLE_SOLID));
+	wxGraphicsPen vgrid_pen = gc->CreatePen(wxGraphicsPenInfo(grid_color).Width(pen_width).Style(wxPENSTYLE_USER_DASH).Dashes(2, &vertical_dashes[0]));
+	wxGraphicsPen hgrid_pen = gc->CreatePen(wxGraphicsPenInfo(grid_color).Width(pen_width).Style(wxPENSTYLE_USER_DASH).Dashes(2, &horizontal_dashes[0]));
+// Specify for loop/grid measurements.
 	int ticks_per_measure = current_track->beats_per_measure * current_track->ticks_per_beat;
-	wxPoint draw_offstep = wxPoint(grid_offset.x % (note_size.x * ticks_per_measure),
-			(grid_offset.y % (note_size.y * 11)));
+	wxPoint max_offstep = wxPoint(cell_size.x * ticks_per_measure, cell_size.y * full_octave);
+	wxPoint draw_offstep = wxPoint(grid_offset.x % max_offstep.x, grid_offset.y % max_offstep.y);
 	int panel_width;
 	int panel_height;
 	GetSize(&panel_width, &panel_height);
-	wxSize cell_size(note_size.x / zoom, (note_size.y) / zoom);
 	int columns = (panel_width / cell_size.x);
 	int rows = min(pitch_range, panel_height / cell_size.y);
 	int grid_sub = 0;
-	gc->SetPen(dotted_grid_pen);
+	double middle_c_y = cell_size.y * 50;
+// Horizontal grid.
+	gc->SetPen(hgrid_pen);
 	for (int i = 0; i <= rows; i++) {
 		if (i % 7 == 4 || i % 7 == 0)  {
 			grid_sub++;
 			continue;
 		}
-		double y = (cell_size.y * 2.0 * (i-(grid_sub/2.0)));
-		gc->StrokeLine(0, y - draw_offstep.y, panel_width, y - draw_offstep.y);
+		double y = (cell_size.y * 2.0 * (i-(grid_sub/2.0))) + (cell_size.y / 2.0);
+		gc->StrokeLine(horizontal_dash - (pen_width / 2.0), y - draw_offstep.y, panel_width, y - draw_offstep.y);
 	}
 	gc->SetPen(heavy_grid_pen);
-	double middle_c_y = cell_size.y * 50;
 	gc->StrokeLine(0, grid_offset.y + middle_c_y, panel_width, grid_offset.y + middle_c_y);
 	for (int measure = 0; measure <= columns; measure += ticks_per_measure) {
+		// Draw solid line per measure.
 		gc->SetPen(heavy_grid_pen);
 		double x = cell_size.x * measure;
 		gc->StrokeLine(x - draw_offstep.x, 0, x - draw_offstep.x, panel_height);
+		// Draw dashed line per beat.
 		for (int beat = current_track->ticks_per_beat; beat < ticks_per_measure; beat += current_track->ticks_per_beat) {
-			gc->SetPen(dashed_grid_pen);
+			gc->SetPen(vgrid_pen);
 			x = cell_size.x * (measure + beat);
-			gc->StrokeLine(x - draw_offstep.x, -panel_height - draw_offstep.y, x - draw_offstep.x, panel_height);
+			gc->StrokeLine(	x - draw_offstep.x, (vertical_dash - (pen_width / 2.0)) - draw_offstep.y,
+							x - draw_offstep.x, (panel_height + max_offstep.y) - draw_offstep.y);
 		}
 	}
 	delete gc;
 }
 
 void ComposerPanel::draw_notes() {
-	wxPaintDC dc(grid_panel.get());
+	wxPaintDC dc(grid_panel);
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 	if (gc == nullptr) return;
 	int ticks_per_measure = current_track->beats_per_measure * current_track->ticks_per_beat;
 	int panel_width;
 	int panel_height;
-	wxSize middle_of_cell = note_size / 2;
+	wxSize middle_of_cell = cell_size / 2;
 	double note_pen_width = note_size.y / 4.0;
+	wxSize size_diff = cell_size - note_size;
 	wxGraphicsPen note_pen = gc->CreatePen(wxGraphicsPenInfo(
 	current_channel->colour).Width(note_pen_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
 	gc->SetPen(note_pen);
 	gc->SetBrush(*wxBLACK_BRUSH);
 	for (Note& note : current_channel->notes) {
-		gc->DrawRoundedRectangle((note.offset * note_size.x) + 1 - grid_offset.x, (note.pitch * note_size.y) + 2 - grid_offset.y,
-			(note.length * note_size.x) - 2, note_size.y - 4, note_size.y / 4.0);
+		gc->DrawRoundedRectangle((note.offset * cell_size.x) + 1 - grid_offset.x, ((note.pitch * cell_size.y) + 1) - grid_offset.y,
+			(note.length * note_size.x) - 2, note_size.y, note_size.y / 4.0);
 	}
 	wxGraphicsPen ghost_pen = gc->CreatePen(wxGraphicsPenInfo(
-	*wxColour(215, 200, 255, 100)).Width(note_size.y - 2).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
+	*wxColour(215, 200, 255, 100)).Width(note_size.y + note_pen_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
 	if (editing_note != nullptr) {
 		gc->SetPen(ghost_pen);
-		gc->StrokeLine((editing_note->offset * note_size.x) - grid_offset.x, (editing_note->pitch * note_size.y) + middle_of_cell.y - grid_offset.y,
-		((editing_note->offset + editing_note->length) * note_size.x) - grid_offset.x, (editing_note->pitch * note_size.y) + middle_of_cell.y - grid_offset.y);
+		gc->StrokeLine((editing_note->offset * cell_size.x) - grid_offset.x, (editing_note->pitch * cell_size.y) + middle_of_cell.y - grid_offset.y,
+		((editing_note->offset + editing_note->length) * cell_size.x) - grid_offset.x, (editing_note->pitch * cell_size.y) + middle_of_cell.y - grid_offset.y);
 	}
 
 	if (preview_channels) {
@@ -149,8 +175,8 @@ void ComposerPanel::draw_notes() {
 			channel->colour).Width(note_size.y / 8.0).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL)));
 			int line_y_offset = ((note_size.y / 8.0) * i) + note_pen_width + 1;
 			for (Note& note : channel->notes) {
-				gc->StrokeLine((note.offset * note_size.x) + note_pen_width - grid_offset.x, (note.pitch * note_size.y) + line_y_offset - grid_offset.y,
-				((note.offset + note.length) * note_size.x) - note_pen_width - grid_offset.x, (note.pitch * note_size.y) + line_y_offset - grid_offset.y);
+				gc->StrokeLine((note.offset * cell_size.x) + note_pen_width, (note.pitch * cell_size.y) + line_y_offset - grid_offset.y,
+				((note.offset + note.length) * cell_size.x) - note_pen_width, (note.pitch * cell_size.y) + line_y_offset - grid_offset.y);
 			}
 		}
 	}
@@ -161,9 +187,11 @@ void ComposerPanel::draw_notes() {
 void ComposerPanel::on_lmb_down(wxMouseEvent& event) {
 	mouse_down_start = event.GetPosition() + grid_offset;
 	editing_note = make_unique<Note>();
-	editing_note->offset = mouse_down_start.m_x / note_size.x;
-	editing_note->pitch = mouse_down_start.m_y / note_size.y;
+	editing_note->offset = mouse_down_start.m_x / cell_size.x;
+	editing_note->pitch = mouse_down_start.m_y / cell_size.y;
 	editing_note->length = 1;
+	Refresh();
+	Update();
 }
 
 void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
@@ -171,16 +199,37 @@ void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
 		current_channel->add_note(*editing_note);
 	}
 	editing_note = nullptr;
-	grid_panel->SetVirtualSize((current_channel->get_tick_count() * note_size.x) + grid_panel->GetSize().x, note_size.y * pitch_range);
+	grid_panel->SetVirtualSize((current_track->get_tick_count() * cell_size.x) + grid_panel->GetSize().x, cell_size.y * pitch_range);
+	Refresh();
+	Update();
+}
+
+void ComposerPanel::on_rmb_down(wxMouseEvent& event) {
+	mouse_down_start = event.GetPosition() + grid_offset;
+	editing_note = make_unique<Note>();
+	editing_note->offset = mouse_down_start.m_x / cell_size.x;
+	editing_note->pitch = mouse_down_start.m_y / cell_size.y;
+	editing_note->length = 1;
+	Refresh();
+	Update();
+}
+
+void ComposerPanel::on_rmb_up(wxMouseEvent& event) {
+	if (editing_note != nullptr) {
+		int ins_pos;
+		current_channel->erase_notes(editing_note->offset, editing_note->length, ins_pos);
+	}
+	editing_note = nullptr;
+	grid_panel->SetVirtualSize((current_track->get_tick_count() * cell_size.x) + grid_panel->GetSize().x, cell_size.y * pitch_range);
 	Refresh();
 	Update();
 }
 
 void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
-	if (event.LeftIsDown() && editing_note != nullptr) {
+	if ((event.LeftIsDown() || event.RightIsDown()) && editing_note != nullptr) {
 		wxPoint2DDouble local_mouse_position = event.GetPosition() + grid_offset;
-		int start_offset = (mouse_down_start.m_x / note_size.x);
-		int end_offset = (local_mouse_position.m_x / note_size.x);
+		int start_offset = (mouse_down_start.m_x / cell_size.x);
+		int end_offset = (local_mouse_position.m_x / cell_size.x);
 		if (end_offset >= start_offset) {
 			editing_note->length = (end_offset - start_offset) + 1;
 			editing_note->offset = start_offset;
@@ -195,7 +244,7 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 }
 
 void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {
-	wxPaintDC dc(event_header.get());
+	wxPaintDC dc(event_header);
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 	if (gc == nullptr) return;
 	int panel_width;
@@ -205,7 +254,7 @@ void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {
 	int event_header_height;
 	int draw_offstep = grid_offset.x % note_size.x;
 	event_header->GetSize(&event_header_width, &event_header_height);
-	wxSize event_bar_size = wxSize(note_size.x, event_header_height / 4.0);
+	wxSize event_bar_size = wxSize(cell_size.x, event_header_height / 4.0);
 	vector<int16_t> event_ticks;
 	wxGraphicsPen grid_pen = gc->CreatePen(wxGraphicsPenInfo(
 	wxColour(100, 100, 100)).Width(1.25).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
@@ -271,8 +320,8 @@ void ComposerPanel::on_lmb_down_event_header(wxMouseEvent& event) {
 }
 
 void ComposerPanel::on_lmb_up_event_header(wxMouseEvent& event) {
-	editing_event_tick = (event.GetPosition().x + grid_offset.x) / note_size.x;
-	wxPoint popup_pos = wxPoint(editing_event_tick * note_size.x, event_header->GetSize().y) + event_header->GetPosition();
+	editing_event_tick = (event.GetPosition().x + grid_offset.x) / cell_size.x;
+	wxPoint popup_pos = wxPoint(editing_event_tick * cell_size.x, event_header->GetSize().y) + event_header->GetPosition();
 	event_popup->Position(ClientToScreen(popup_pos) - event_popup->GetSize(), event_popup->GetSize());
 	event_popup->Popup(editing_event_tick, current_track, current_channel);
 	event_header->Refresh();

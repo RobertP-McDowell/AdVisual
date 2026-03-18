@@ -43,7 +43,8 @@ public:
 	void SetPreviewChannels(bool value);
 	void SetChannelIndex(int value);
 	int GetChannelIndex() const { return current_channel_idx; }
-	unique_ptr<EventPopup> event_popup;
+	EventPopup* event_popup;
+	PianoControl* piano_ctrl;
 protected:
 	// grid _panelfunctions and events.
 	void on_paint_grid(wxPaintEvent& event);
@@ -52,8 +53,8 @@ protected:
 	void draw_grid();
 	void on_lmb_down(wxMouseEvent& event);
 	void on_lmb_up(wxMouseEvent& event);
-//	void on_rmb_down();
-//	void on_rmb_up();
+	void on_rmb_down(wxMouseEvent& event);
+	void on_rmb_up(wxMouseEvent& event);
 	void on_mouse_motion(wxMouseEvent& event);
 	// header functions and events.
 	void on_channel_button_pressed(wxCommandEvent& event);
@@ -67,6 +68,7 @@ protected:
 
 	wxPoint grid_offset = wxPoint(0, 0);
 	wxSize note_size;
+	wxSize cell_size;
 	double zoom = 1.0;
 	wxPoint2DDouble mouse_down_start;
 	int editing_event_tick = -1;
@@ -74,6 +76,6 @@ protected:
 	unique_ptr<Note> editing_note;
 	shared_ptr<Channel> current_channel;
 	int current_channel_idx = 0;
-	unique_ptr<wxPanel> event_header;
-	unique_ptr<wxScrolledWindow> grid_panel;
+	wxPanel* event_header;
+	wxScrolledWindow* grid_panel;
 };

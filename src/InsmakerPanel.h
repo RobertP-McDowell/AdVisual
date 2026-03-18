@@ -101,7 +101,7 @@ protected:
 	}
 	void on_paint(wxPaintEvent& event) {
 		wxPaintDC dc(this);
-		wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
+		wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
 		wxSize bitmap_size = wxSize(32, 32);
 		if (control_value == 1) {
 			wxBitmap checked_bitmap = GetAsset((HasFocus() ? "CheckboxCheckedFocused.svg" : "CheckboxChecked.svg"), GetSize()).GetBitmap(bitmap_size);
@@ -334,13 +334,17 @@ private:
 	void on_slider_event(wxCommandEvent& event);
 	void on_checkbox_event(wxCommandEvent& event);
 	void save_properties_to_opl();
+	void on_resize_piano(wxSizeEvent& event);
+	void on_scroll_piano(wxScrollEvent& event);
 	//void add_radio_property();
 	int16_t music_mode = 0;
 	Instrument* current_instrument;
 	shared_ptr<Bank> current_bank;
-	wxFlexGridSizer* property_sizer;
 	vector<OPLFMPropertyControl*> carrier_properties;
 	vector<OPLFMPropertyControl*> modulator_properties;
+	wxFlexGridSizer* property_sizer;
+	PianoControl* piano_ctrl;
+	wxScrollBar* h_scroll_bar;
 	//map<string, variant> unsaved_properties;
 	int number_of_unsaved_changes = 0; // Is more than 0 if a Slider or Checkbox is not their saved value.
 };

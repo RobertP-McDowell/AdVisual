@@ -43,7 +43,6 @@ void FileAccess::fieldcpyLE32(uint32_t* object, int field_size) {
 	native_to_little(*object);
 }
 
-
 void FileAccess::fieldzero(int field_size) {
 	if (writing == true) {
 		vector<char> buffer = {};
@@ -64,7 +63,6 @@ void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spac
 			fieldcpy_write(&event_tick, 2);
 			fieldcpy_write(&event_value, 4);
 			fieldzero(loop_spacing);
-			//cout << "Tempo event at: " << it->first << ", Tempo multiplier: " << it->second << ".\n";
 		}
 	}
 	else {
@@ -77,13 +75,11 @@ void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spac
 			fieldcpy_read(&event_value, 4);
 			event_map.insert({event_tick, event_value});
 			fieldzero(loop_spacing);
-			//cout << "Tempo event at: " << event_tick << ", Tempo multiplier: " << event_value << ".\n";
 		}
 	}
 }
 
-
-void FileAccess::access_file(wxString file_path, bool write) {
+bool FileAccess::access_file(wxString file_path, bool write) {
 	writing = write;
 	if (writing) {
 		file = fstream(file_path, ios::out);
@@ -92,11 +88,12 @@ void FileAccess::access_file(wxString file_path, bool write) {
 		file = fstream(file_path, ios::in);
 	}
 	if (!file.is_open()) {
-		cerr << "Could not open file: " << file_path << "\n";
+		cerr << "Could not open file for " << (writing ? "write" : "read") << " operation: " << file_path << "\n";
 		if (file.bad()) cerr << "Fatal error: badbit is set.\n";
 		if (file.fail()) cerr << strerror(errno) << "\n";
-		return;
+		return false;
 	}
 	file.seekg(0); // Initializing.
 	file_pos = 0;
+	return true;
 }
