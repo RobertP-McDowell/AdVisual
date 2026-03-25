@@ -5,7 +5,23 @@
 #include <wx/graphics.h>
 #include <wx/dcbuffer.h>
 #include <wx/artprov.h>
+#include <memory>
+class AdPlayer; // Declare these, since they're mutually dependant!
+class Track;
+class Channel;
+class Bank;
+class Instrument;
+struct OPLFM;
+#include <AdPlayer.h>
+#include <Track.h>
+#include <Instrument.h>
 
+using namespace std;
+extern unique_ptr<AdPlayer> adplayer;
+extern unique_ptr<Track> current_track;
+extern unique_ptr<Bank> current_bank;
+extern Channel* current_channel;
+extern int current_channel_idx;
 
 #define DEBUG_MODE
 
@@ -24,7 +40,6 @@
 } while(0)
 #endif
 
-using namespace std;
 
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
@@ -57,9 +72,11 @@ enum
 	ID_PREVIEW_CHANNELS,
 	ID_TRACK_OPTIONS,
 	ID_PIANO_GUIDE,
+	ID_FOLLOW_CURSOR,
 	ID_INSMAKER_START, // INSMAKER specific enums start here.
 	ID_INSTRUMENT_FIELD
 };
+
 
 
 class PianoControl : public wxControl {
@@ -68,6 +85,7 @@ private:
 	int deepness = 80;
 	int scroll_offset = 0;
 	int orientation;
+	Instrument* instrument;
 	void on_lmb_down(wxMouseEvent& event);
 	void on_mouse_motion(wxMouseEvent& event);
 	void on_rmb_down(wxMouseEvent& event); // when rmb is clicked, it instantly stops the note.
@@ -124,6 +142,7 @@ private:
 public:
 	PianoControl(wxWindow* parent, int id = wxID_ANY, int orient = wxHORIZONTAL) : wxControl(parent, id), orientation(orient) {
 		Bind(wxEVT_PAINT, &PianoControl::on_paint, this);
+		Bind(wxEVT_LEFT_DOWN, &PianoControl::on_lmb_down, this);
 		if (orientation == wxHORIZONTAL) {
 			SetMinSize(wxSize(deepness, key_width));
 		}
@@ -136,9 +155,11 @@ public:
 	void SetKeyWidth(int value) { key_width = value; Refresh(); Update(); }
 	void SetDeepness(int value) { deepness = value; Refresh(); Update(); }
 	void SetScrollOffset(int value) { scroll_offset = value; Refresh(); Update(); }
+	void SetInstrument(Instrument* value) { instrument = value; }
 	int GetKeyWidth() const { return key_width; }
 	int GetDeepness() const { return deepness; }
 	int GetScrollOffset() const { return scroll_offset; }
+	Instrument* GetInstrument() const { return instrument; }
 };
 
 

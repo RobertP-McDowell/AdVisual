@@ -301,13 +301,10 @@ public:
 class InsmakerPanel : public wxScrolledWindow {
 public:
 	InsmakerPanel(wxWindow* parent, int id = wxID_ANY);
-	shared_ptr<Bank> GetBank() const { return current_bank; }
-	void SetBank(shared_ptr<Bank> new_bank) {
-		current_bank = new_bank;
-	}
+	void save_properties_to_opl();
 	void SetInstrumentByName(char name[9]) {
 		if (current_bank) {
-			current_instrument = current_bank->GetInstrumentByName(name);
+			current_instrument = current_bank->find_instrument(name);
 			if (current_instrument == nullptr) {
 				DBPRINT("Instrument of name " << name << " Could not be found, using generic instrument");
 				current_instrument = new Instrument;
@@ -333,13 +330,11 @@ private:
 	void add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
 	void on_slider_event(wxCommandEvent& event);
 	void on_checkbox_event(wxCommandEvent& event);
-	void save_properties_to_opl();
 	void on_resize_piano(wxSizeEvent& event);
 	void on_scroll_piano(wxScrollEvent& event);
 	//void add_radio_property();
 	int16_t music_mode = 0;
 	Instrument* current_instrument;
-	shared_ptr<Bank> current_bank;
 	vector<OPLFMPropertyControl*> carrier_properties;
 	vector<OPLFMPropertyControl*> modulator_properties;
 	wxFlexGridSizer* property_sizer;

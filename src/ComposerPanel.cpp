@@ -12,20 +12,20 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	event_font = wxFont(wxFontInfo(10).Bold());
 	note_size = wxSize(20.0 / zoom, 19.0 / zoom);
 	cell_size = wxSize(20.0 / zoom, 20.0 / zoom);
-	
+
 	event_header = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
 	event_header->SetBackgroundColour(bg_colour);
 	event_header->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_event_header, this);
 	event_header->Bind(wxEVT_MOTION, &ComposerPanel::on_mouse_motion_event_header, this);
 	event_header->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down_event_header, this);
 	event_header->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up_event_header, this);
-	
+
 	grid_panel = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
 	grid_panel->SetBackgroundColour(bg_colour);
 	grid_panel->EnableScrolling(true, true);
 	grid_panel->ShowScrollbars(wxSHOW_SB_ALWAYS, wxSHOW_SB_ALWAYS);
 	grid_panel->SetScrollbars(cell_size.x, cell_size.y, 0, pitch_range, 0, pitch_range/2.0);
-	
+
 	grid_panel->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_grid, this);
 	grid_panel->Bind(wxEVT_SCROLLWIN_THUMBTRACK, &ComposerPanel::on_scroll_grid, this);
 	grid_panel->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down, this);
@@ -48,11 +48,12 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	SetSizerAndFit(sizer);
 	sizer->FitInside(GetParent());
 	current_channel_idx = 0;
-	current_track = make_shared<Track>();
-	current_channel = (current_track->channels[0]);
+	current_track = make_unique<Track>();
+	current_channel = &(current_track->channels[0]);
 	wxPoint control_offset(30, 0);
-	
-	event_popup = new EventPopup(this, current_track, current_channel);
+
+	event_popup = new EventPopup(this);
+	enabled_channels.resize(11, true);
 }
 
 void ComposerPanel::SetPreviewChannels(bool value) {
@@ -61,8 +62,12 @@ void ComposerPanel::SetPreviewChannels(bool value) {
 	Update();
 }
 
-void ComposerPanel::SetChannelIndex(int value) {
-	current_channel_idx = value;
+void ComposerPanel::SetChannelEnable(int channel, bool enable) {
+	enabled_channels[channel] = enable; // Toggle.
+}
+
+void ComposerPanel::SetChannelIndex(int channel) {
+	current_channel_idx = channel;
 	current_channel = current_track->GetChannel(current_channel_idx);
 	Refresh();
 	Update();
@@ -71,11 +76,16 @@ void ComposerPanel::SetChannelIndex(int value) {
 void ComposerPanel::on_scroll_grid(wxScrollWinEvent& event) {
 	if (event.GetOrientation() == wxHORIZONTAL) {
 		grid_offset.x = cell_size.x * event.GetPosition();
+		// Update Piano to play current instrument:
+		int last_ins_event_tick = 0;
+		string last_ins_event_value;
+		current_channel->get_last_instrument_event(grid_offset.x, last_ins_event_tick, last_ins_event_value);
+		piano_ctrl->SetInstrument(current_bank->find_instrument(wxString(last_ins_event_value)));
 	}
 	else {
 		grid_offset.y = cell_size.y * event.GetPosition();
+		piano_ctrl->SetScrollOffset(grid_offset.y);
 	}
-	piano_ctrl->SetScrollOffset(grid_offset.y);
 	Refresh();
 	Update();
 }
@@ -170,7 +180,7 @@ void ComposerPanel::draw_notes() {
 			if (i == current_channel_idx) {
 				continue;
 			}
-			shared_ptr<Channel> channel = current_track->GetChannel(i);
+			Channel* channel = current_track->GetChannel(i);
 			gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(
 			channel->colour).Width(note_size.y / 8.0).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL)));
 			int line_y_offset = ((note_size.y / 8.0) * i) + note_pen_width + 1;
@@ -323,7 +333,7 @@ void ComposerPanel::on_lmb_up_event_header(wxMouseEvent& event) {
 	editing_event_tick = (event.GetPosition().x + grid_offset.x) / cell_size.x;
 	wxPoint popup_pos = wxPoint(editing_event_tick * cell_size.x, event_header->GetSize().y) + event_header->GetPosition();
 	event_popup->Position(ClientToScreen(popup_pos) - event_popup->GetSize(), event_popup->GetSize());
-	event_popup->Popup(editing_event_tick, current_track, current_channel);
+	event_popup->Popup(editing_event_tick);
 	event_header->Refresh();
 	event_header->Update();
 }
@@ -361,9 +371,8 @@ void EventPopup::init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, 
 	sizer->Add(event_field, 0, wxEXPAND);
 }
 
-EventPopup::EventPopup(wxWindow* parent, shared_ptr<Track> track, shared_ptr<Channel> channel) : 
-	wxPopupTransientWindow(parent, wxBORDER_DEFAULT | wxPU_CONTAINS_CONTROLS), current_track(track), current_channel(channel)
-{
+EventPopup::EventPopup(wxWindow* parent) : 
+		wxPopupTransientWindow(parent, wxBORDER_DEFAULT | wxPU_CONTAINS_CONTROLS) {
 	Bind(wxEVT_SHOW, &EventPopup::on_show, this);
 	wxGridSizer* field_sizer = new wxGridSizer(2);
 	
@@ -400,9 +409,7 @@ EventPopup::EventPopup(wxWindow* parent, shared_ptr<Track> track, shared_ptr<Cha
 	event_field->SetHint( new_hint ); \
 } while(0)
 
-void EventPopup::Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel) {
-	current_track = track;
-	current_channel = channel;
+void EventPopup::Popup(int at_tick) {
 	editing_event_tick = at_tick;
 	update_event_field(tempo_field, current_track->get_last_tempo_event, float, to_string, 4);
 	update_event_field(instrument_field, current_channel->get_last_instrument_event, string, , 9);

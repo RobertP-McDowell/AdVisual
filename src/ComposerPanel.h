@@ -19,13 +19,11 @@ using namespace std;
 
 class EventPopup : public wxPopupTransientWindow {
 public:
-	EventPopup(wxWindow* parent, shared_ptr<Track> track, shared_ptr<Channel> channel);
 	int editing_event_tick;
-	shared_ptr<Channel> current_channel;
-	shared_ptr<Track> current_track;
 	wxString current_track_file_path = wxEmptyString;
-	void Popup(int at_tick, shared_ptr<Track> track, shared_ptr<Channel> channel);
 	BankControl* bank_ctrl;
+	EventPopup(wxWindow* parent);
+	void Popup(int at_tick);
 protected:
 	void init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID);
 	void on_show(wxShowEvent& event);
@@ -39,9 +37,9 @@ protected:
 class ComposerPanel : public wxPanel {
 public:
 	ComposerPanel(wxWindow *parent);
-	shared_ptr<Track> current_track;
 	void SetPreviewChannels(bool value);
-	void SetChannelIndex(int value);
+	void SetChannelEnable(int channel, bool enable);
+	void SetChannelIndex(int channel);
 	int GetChannelIndex() const { return current_channel_idx; }
 	EventPopup* event_popup;
 	PianoControl* piano_ctrl;
@@ -65,6 +63,7 @@ protected:
 	void on_lmb_down_event_header(wxMouseEvent& event);
 	void on_lmb_up_event_header(wxMouseEvent& event);
 	wxFont event_font;
+	vector<bool> enabled_channels;
 
 	wxPoint grid_offset = wxPoint(0, 0);
 	wxSize note_size;
@@ -74,8 +73,6 @@ protected:
 	int editing_event_tick = -1;
 	bool preview_channels = false;
 	unique_ptr<Note> editing_note;
-	shared_ptr<Channel> current_channel;
-	int current_channel_idx = 0;
 	wxPanel* event_header;
 	wxScrolledWindow* grid_panel;
 };

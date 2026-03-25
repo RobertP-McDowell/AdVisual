@@ -12,7 +12,6 @@
 #include <Track.h>
 #include <Instrument.h>
 #include <FileAccess.h>
-#include <AdPlayer.h>
 #include <ComposerPanel.h>
 #include <InsmakerPanel.h>
 #include <iostream>
@@ -22,8 +21,6 @@
 
 
 using namespace std;
-
-unique_ptr<AdPlayer> adplayer = nullptr;
 
 #ifndef wxHAS_SVG
 #define HAS_SVG false
@@ -39,10 +36,10 @@ public:
 
 wxIMPLEMENT_APP(MainApp);
 
-wxDECLARE_EVENT(EVT_PRESSED, wxCommandEvent);
-wxDECLARE_EVENT(EVT_UNPRESSED, wxCommandEvent);
-wxDEFINE_EVENT(EVT_PRESSED, wxCommandEvent);
-wxDEFINE_EVENT(EVT_UNPRESSED, wxCommandEvent);
+wxDECLARE_EVENT(EVT_TOGGLED, wxCommandEvent);
+wxDEFINE_EVENT(EVT_TOGGLED, wxCommandEvent);
+wxDECLARE_EVENT(EVT_TOGGLED_ENABLE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_TOGGLED_ENABLE, wxCommandEvent);
 
 class AdVisualArtProvider : public wxArtProvider {
 protected:
@@ -59,9 +56,16 @@ private:
 	wxColour button_colour = *wxBLACK;
 	bool pressed = false;
 	bool hovered = false;
+	bool enabled = true;
 	void on_pressed(wxMouseEvent& event) {
-		SendPressedEvent();
-		pressed = true;
+		if (event.ShiftDown()) {
+			enabled = !enabled;
+			SendEnabledEvent();
+		}
+		else {
+			pressed = true;
+			SendToggledEvent();
+		}
 		Refresh();
 		Update();
 	}
@@ -83,14 +87,23 @@ private:
 		wxPoint2DDouble center = (wxPoint2DDouble(GetSize().y, GetSize().y) / 2.0) - wxPoint2DDouble(outline_width / 2.0, outline_width / 2.0);
 		double outline_radius = (GetSize().y / 2.0) - outline_width;
 		double fill_radius = outline_radius - (outline_width * 2.0);
-		wxGraphicsPen solid_pen = gc->CreatePen(wxGraphicsPenInfo(button_colour).Width(outline_width).Style(wxPENSTYLE_SOLID));
-		gc->SetPen(solid_pen);
+		wxGraphicsPen colored_pen = gc->CreatePen(wxGraphicsPenInfo(button_colour).Width(outline_width).Style(wxPENSTYLE_SOLID));
+		wxGraphicsPen disabled_pen = gc->CreatePen(wxGraphicsPenInfo(wxColour(50, 50, 50)).Width(outline_width).Style(wxPENSTYLE_SOLID));
+		gc->SetPen(enabled ? colored_pen : disabled_pen);
 		wxGraphicsPath outline_path = gc->CreatePath();
 		outline_path.AddCircle(center.m_x, center.m_y, outline_radius);
 		outline_path.CloseSubpath();
 		gc->StrokePath(outline_path);
 		if (pressed || hovered) {
-			wxColour fill_colour = (pressed ? button_colour : *wxLIGHT_GREY);
+			wxColour fill_colour;
+			if (pressed) {
+				gc->SetPen(colored_pen);
+				fill_colour = button_colour;
+			}
+			else { // TODO: decide if channels buttons look better without showing hover.
+				gc->SetPen(wxNullPen);
+				fill_colour = wxColour(button_colour.Red(), button_colour.Green(), button_colour.Blue(), 100);
+			}
 			gc->SetBrush(*wxTheBrushList->FindOrCreateBrush(fill_colour));
 			wxGraphicsPath fill_path = gc->CreatePath();
 			fill_path.AddCircle(center.m_x, center.m_y, fill_radius);
@@ -119,18 +132,21 @@ public:
 		Init();
 		SetLabel(label);
 	}
-	void SetPressed(bool value) { // Won't trigger event.
-		pressed = value;
-	}
+	void SetPressed(bool value) { pressed = value; } // Won't trigger event.
+	void SetEnabled(bool value) { enabled = value; }
+	bool GetPressed() { return pressed; }
+	bool GetEnabled() const { return enabled; }
 protected:
 	virtual wxSize DoGetBestSize() const { return wxSize(20.0, 20.0); }
-	void SendPressedEvent() {
-		wxCommandEvent event(EVT_PRESSED, GetId());
+	void SendToggledEvent() {
+		wxCommandEvent event(EVT_TOGGLED, GetId());
+		event.SetInt(pressed);
 		event.SetEventObject(this);
 		ProcessWindowEvent(event);
 	}
-	void SendUnpressedEvent() {
-		wxCommandEvent event(EVT_UNPRESSED, GetId());
+	void SendEnabledEvent() {
+		wxCommandEvent event(EVT_TOGGLED_ENABLE, GetId());
+		event.SetInt(enabled);
 		event.SetEventObject(this);
 		ProcessWindowEvent(event);
 	}
@@ -154,6 +170,7 @@ private:
 	void show_tools(bool show, vector<wxToolBarToolBase*> tools);
 	// Composer events:
 	void on_channel_button_pressed(wxCommandEvent& event);
+	void on_channel_button_enabled(wxCommandEvent& event);
 	void on_preview_channels_checked(wxCommandEvent& event);
 	// Insmaker events:
 	void on_select_instrument_set_focus(wxFocusEvent& event);
@@ -210,8 +227,9 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
 
 	for (int i = ID_VOICE_START; i < ID_VOICE_END; i++) {
 		ChannelButton* new_button = new ChannelButton(this, i, to_string(i + 1 - ID_VOICE_START),
-			composer_panel->current_track->channels[i - ID_VOICE_START]->colour, wxDefaultPosition, wxSize(62, 36));
-		new_button->Bind(EVT_PRESSED, &AdVisualToolBar::on_channel_button_pressed, this, i);
+			current_track->channels[i - ID_VOICE_START].colour, wxDefaultPosition, wxSize(62, 36));
+		new_button->Bind(EVT_TOGGLED, &AdVisualToolBar::on_channel_button_pressed, this, i);
+		new_button->Bind(EVT_TOGGLED_ENABLE, &AdVisualToolBar::on_channel_button_enabled, this, i);
 		composer_tools.push_back(AddControl(new_button, "CH" + to_string(i)));
 		channel_buttons.push_back(new_button);
 	}
@@ -226,6 +244,8 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
 	AddSeparator();
 	composer_tools.push_back( AddTool(ID_PIANO_GUIDE, "PianoGuide", GetAsset("PianoGuideButton.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
 		"Piano Guide", "Show a piano on the grid.") );
+	composer_tools.push_back( AddTool(ID_FOLLOW_CURSOR, "FollowCursor", GetAsset("SheetMusicBox.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
+		"Follow Cursor", "Follow the cursor during playback.") );
 }
 
 void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
@@ -381,7 +401,7 @@ void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 
 void MainFrame::on_play_track(wxCommandEvent& event) {
 	if (event.IsChecked()) {
-		adplayer->play((string)composer_panel->current_track->file_path);
+		adplayer->play((string)current_track->file_path);
 	}
 	else {
 		adplayer->stop();
@@ -391,20 +411,20 @@ void MainFrame::on_play_track(wxCommandEvent& event) {
 void MainFrame::on_load_track(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
 	if (!filename.empty()) {
-		composer_panel->current_track->LoadFromFile(filename);
+		current_track->load_file(filename);
 	}
 	Refresh();
 	Update();
 }
 
 void MainFrame::on_save_track(wxCommandEvent& event) {
-	if (event.GetId() != ID_SAVE_TRACK_AS && composer_panel->current_track->file_path != wxEmptyString) {
-		composer_panel->current_track->SaveToFile(wxEmptyString);
+	if (event.GetId() != ID_SAVE_TRACK_AS && current_track->file_path != wxEmptyString) {
+		current_track->save_file(wxEmptyString);
 	}
 	else {
 		wxString new_path = wxSaveFileSelector("~/Desktop", "ROL Files(*.ROL)|*.ROL|Reality Adlib(*.RAD)|*.RAD");
 		if (!new_path.empty()) {
-			composer_panel->current_track->SaveToFile(new_path);
+			current_track->save_file(new_path);
 		}
 	}
 	Refresh();
@@ -414,20 +434,21 @@ void MainFrame::on_save_track(wxCommandEvent& event) {
 void MainFrame::on_load_bank(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to load", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
 	if (!filename.empty()) {
-		insmaker_panel->GetBank()->LoadFromFile(filename);
+		current_bank->load_file(filename);
 	}
 	char new_name[9] = "ACCORDN";
 	insmaker_panel->SetInstrumentByName(new_name);
-	toolbar->bank_ctrl->SetBank(insmaker_panel->GetBank().get());
-	composer_panel->event_popup->bank_ctrl->SetBank(insmaker_panel->GetBank().get());
+	toolbar->bank_ctrl->SetBank(current_bank.get());
+	composer_panel->event_popup->bank_ctrl->SetBank(current_bank.get());
 	Refresh();
 	Update();
 }
 
 void MainFrame::on_save_bank(wxCommandEvent& event) {
 	wxString filename = wxFileSelector("Select file to Save as", "~/Desktop", "", "", "BNK Files(*.BNK)|*.bnk;*.BNK|Instrument Files(*.INS)|*.ins;*.INS");
+	insmaker_panel->save_properties_to_opl();
 	if (!filename.empty()) {
-		insmaker_panel->GetBank()->SaveToFile(filename);
+		current_bank->save_file(filename);
 	}
 	Refresh();
 	Update();
@@ -440,6 +461,13 @@ void AdVisualToolBar::on_channel_button_pressed(wxCommandEvent& event) {
 	Refresh();
 	Update();
 }
+void AdVisualToolBar::on_channel_button_enabled(wxCommandEvent& event) {
+	ComposerPanel* composer_panel = static_cast<MainFrame*>(GetParent())->composer_panel;
+	composer_panel->SetChannelEnable(event.GetId() - ID_VOICE_START, (bool)event.GetInt());
+	Refresh();
+	Update();
+}
+
 void AdVisualToolBar::on_preview_channels_checked(wxCommandEvent& event) {
 	ComposerPanel* composer_panel = static_cast<MainFrame*>(GetParent())->composer_panel;
 	composer_panel->SetPreviewChannels(event.IsChecked());

@@ -24,9 +24,9 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="9.6453784"
-     inkscape:cx="2.4882383"
-     inkscape:cy="7.5165532"
+     inkscape:zoom="19.290757"
+     inkscape:cx="19.750392"
+     inkscape:cy="9.4086511"
      inkscape:window-width="2048"
      inkscape:window-height="1124"
      inkscape:window-x="0"
@@ -55,7 +55,8 @@
        y1="15.859736"
        x2="31.853264"
        y2="15.859736"
-       gradientUnits="userSpaceOnUse" />
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(0.12931301,-0.19752866)" />
   </defs>
   <g
      inkscape:label="Layer 1"
@@ -63,11 +64,11 @@
      id="layer1">
     <path
        id="rect1"
-       style="fill:#000000;fill-rule:evenodd;stroke:#4d4d4d;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;fill-opacity:1;stroke-opacity:1"
-       d="M 1.9610538,1.9610538 H 30.038946 V 30.038946 H 1.9610538 Z" />
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#4d4d4d;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 1.9610539,1.961054 H 30.038946 V 30.038946 H 1.9610539 Z" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:url(#linearGradient4);stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
-       d="M 1.6861397,16.641466 14.002291,28.444444 29.715878,1.7735543"
+       d="M 1.8154527,16.443937 14.131604,28.246915 29.845191,1.5760256"
        id="path1"
        sodipodi:nodetypes="ccc" />
   </g>

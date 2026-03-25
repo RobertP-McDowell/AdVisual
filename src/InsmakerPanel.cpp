@@ -6,12 +6,12 @@ enum {
 	SUSTAIN_LEVEL,
 	RELEASE_RATE,
 	SUSTAIN_SOUND,
-	ENVELOPE_SCALING,
+	KEY_SCALING_RATE,
 	FREQUENCY_MULTIPLIER,
 	MODULATION_FEEDBACK,
 	VIBRATO,
 	OUTPUT_LEVEL,
-	LEVEL_SCALING,
+	KEY_SCALING_LEVEL,
 	TREMELO,
 	WAVEFORM
 };
@@ -24,12 +24,12 @@ void InsmakerPanel::create_oplfm_editor(OPLFM* car, OPLFM* mod) {
 	add_slider_property("Sustain Level", get_opl_prop(car, sustain_level), get_opl_prop(mod, sustain_level), 0, 15);
 	add_slider_property("Release Rate", get_opl_prop(car,release_rate), get_opl_prop(mod, release_rate), 0, 15);
 	add_checkbox_property("Sustain Sound", get_opl_prop(car, sustain_sound), get_opl_prop(mod, sustain_sound));
-	add_checkbox_property("Envelope Scaling", get_opl_prop(car,envelope_scaling), get_opl_prop(mod,envelope_scaling));
+	add_checkbox_property("Envelope Scaling", get_opl_prop(car, ksr), get_opl_prop(mod, ksr));
 	add_slider_property("Frequency Multiplier", get_opl_prop(car, frequency_multiplier), get_opl_prop(mod, frequency_multiplier), 0, 15); // 0.5
 	add_slider_property("Modulation Feedback", nullptr, get_opl_prop(mod, feedback), 0, 7);
 	add_checkbox_property("Pitch Vibrato", get_opl_prop(car, vibrato), get_opl_prop(mod, vibrato));
 	add_slider_property("Output Level", get_opl_prop(car, output_level), get_opl_prop(mod, output_level), 0, 63);
-	add_slider_property("Level Scaling", get_opl_prop(car, level_scaling), get_opl_prop(mod, level_scaling), 0, 3);
+	add_slider_property("Level Scaling", get_opl_prop(car, ksl), get_opl_prop(mod, ksl), 0, 3);
 	add_checkbox_property("Amplitude Tremelo", get_opl_prop(car, tremelo), get_opl_prop(mod, tremelo));
 	add_slider_property("Wave Form", get_opl_prop(car, waveform), get_opl_prop(mod, waveform), 0, 3);
 }
@@ -45,12 +45,12 @@ void InsmakerPanel::update_oplfm_editor(OPLFM* car, OPLFM* mod) {
 	update_oplfm_property(SUSTAIN_LEVEL, get_opl_prop(car, sustain_level), get_opl_prop(mod, sustain_level));
 	update_oplfm_property(RELEASE_RATE, get_opl_prop(car,release_rate), get_opl_prop(mod, release_rate));
 	update_oplfm_property(SUSTAIN_SOUND, get_opl_prop(car, sustain_sound), get_opl_prop(mod, sustain_sound));
-	update_oplfm_property(ENVELOPE_SCALING, get_opl_prop(car,envelope_scaling), get_opl_prop(mod,envelope_scaling));
+	update_oplfm_property(KEY_SCALING_RATE, get_opl_prop(car, ksr), get_opl_prop(mod, ksr));
 	update_oplfm_property(FREQUENCY_MULTIPLIER, get_opl_prop(car, frequency_multiplier), get_opl_prop(mod, frequency_multiplier));
 	update_oplfm_property(MODULATION_FEEDBACK, nullptr, get_opl_prop(mod, feedback));
 	update_oplfm_property(VIBRATO, get_opl_prop(car, vibrato), get_opl_prop(mod, vibrato));
 	update_oplfm_property(OUTPUT_LEVEL, get_opl_prop(car, output_level), get_opl_prop(mod, output_level));
-	update_oplfm_property(LEVEL_SCALING, get_opl_prop(car, level_scaling), get_opl_prop(mod, level_scaling));
+	update_oplfm_property(KEY_SCALING_LEVEL, get_opl_prop(car, ksl), get_opl_prop(mod, ksl));
 	update_oplfm_property(TREMELO, get_opl_prop(car, tremelo), get_opl_prop(mod, tremelo));
 	update_oplfm_property(WAVEFORM, get_opl_prop(car, waveform), get_opl_prop(mod, waveform));
 }
@@ -81,7 +81,7 @@ InsmakerPanel::InsmakerPanel(wxWindow* parent, int id) : wxScrolledWindow(parent
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(property_sizer, 1, wxEXPAND);
-	sizer->Add(piano_ctrl, 0, wxEXPAND);
+	sizer->Add(piano_ctrl, 0, wxEXPAND | wxUP, 2);
 	sizer->Add(h_scroll_bar, 0, wxEXPAND);
 	SetSizerAndFit(sizer);
 }

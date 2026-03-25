@@ -13,34 +13,68 @@
 #include <vector>
 #include <map>
 #include <common.h>
+#include <AdPlayer.h>
 
 using namespace std;
 
 struct OPLFM {
+	OPLFM() {}
+	OPLFM(uint8_t atrt, uint8_t dcrt, uint8_t stlvl, uint8_t rsrt, uint8_t frqmul, uint8_t fdbk, uint8_t outlvl,
+		uint8_t p_ksl, uint8_t wave, uint8_t stbool, uint8_t p_ksr, uint8_t vib, uint8_t trem) : 
+		attack_rate(atrt), decay_rate(dcrt), sustain_level(stlvl), release_rate(rsrt), frequency_multiplier(frqmul), feedback(fdbk),
+		output_level(outlvl), ksl(p_ksl), waveform(wave), ksr(p_ksr), vibrato(vib), tremelo(trem) {}
+	
 	uint8_t attack_rate = 0, decay_rate = 0, sustain_level = 0, release_rate = 0;
-	uint8_t frequency_multiplier = 0, feedback = 0, output_level = 0, level_scaling = 0, waveform = 0;
-	uint8_t sustain_sound = false, envelope_scaling = false, vibrato = false, tremelo = false;
+	uint8_t frequency_multiplier = 0, feedback = 0, output_level = 0, ksl = 0, waveform = 0;
+	uint8_t sustain_sound = false, ksr = false, vibrato = false, tremelo = false;
+	
+	// the number at the end of these function is in hex!
+	uint8_t reg20()  const {
+		return tremelo << 7 | vibrato << 6 | ksr << 5 | sustain_sound << 4 | frequency_multiplier;
+	}
+	uint8_t reg40() const {
+		return ksl << 6 | output_level;
+	}
+	uint8_t reg60() const {
+		return attack_rate << 4 | decay_rate;
+	}
+	uint8_t reg80() const {
+		return sustain_level << 4 | release_rate;
+	}
+	uint8_t regE0() const {
+		return 0 << 3 | waveform;
+	}
 };
+
 
 class Instrument {
 public:
+	Instrument() {}
+	Instrument(OPLFM p_carrier, OPLFM p_modulator) : carrier(p_carrier), modulator(p_modulator) {}
 	uint8_t percussion_mode = 0, voice_number = 0;
 	bool additive_synth = false;
 	OPLFM carrier;
 	OPLFM modulator;
+	uint8_t synth_type = 0;
+	uint8_t regC0() const {
+		return modulator.feedback << 1 | (synth_type ^ 1);
+	}
 	uint8_t flags = 0; // 0 unused "record", 1 otherwise.
 	char name[9] = {'\0'};
+	void write_to_opl(Copl* opl_ptr, int channel);
 };
+
 
 class Bank {
 public:
-	void LoadFromFile(wxString filename);
-	void SaveToFile(wxString filename);
+	void load_file(wxString filename);
+	void save_file(wxString filename);
 	uint8_t file_version_major = 0;
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
 	void clear_bank_data() { instruments.clear(); }
-	Instrument* GetInstrumentByName(char name[9]);
+	Instrument* find_instrument(wxString name);
+	Instrument* find_instrument(char name[9]);
 	wxString file_path = wxEmptyString;
 protected:
 	void bnk_move_fields();

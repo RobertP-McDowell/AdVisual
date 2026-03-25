@@ -11,8 +11,8 @@ Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch
 
 Track::Track() {
 	for (int i = 0; i < 11; i++) {
-		shared_ptr<Channel> new_channel = make_shared<Channel>();
-		new_channel->colour = ChannelColours[i];
+		Channel new_channel;
+		new_channel.colour = ChannelColours[i];
 		channels.push_back(new_channel);
 	}
 }
@@ -74,7 +74,6 @@ void Channel::set_volume_event(int at_tick, float value) {
 	ret_value = event_map.begin()->second; \
 } while(0)
 
-// Note that the 'return 1.0f' and 'return ""' should never happen, see the cerr in the 'get_last_event' macro.
 void Track::get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value)
 		{ get_last_event(start_tick, tempo_events, ret_tick, ret_value); }
 void Channel::get_last_instrument_event(int start_tick, int& ret_tick, string& ret_value)
@@ -122,13 +121,13 @@ void Channel::add_note(Note new_note) {
 
 void Track::clear_track_data() {
 	tempo_events.clear();
-	for (shared_ptr<Channel>& channel : channels) {
-		channel->clear_channel_data();
+	for (Channel& channel : channels) {
+		channel.clear_channel_data();
 	}
-	music_mode = 0;
+	rhythm_mode = 0;
 }
 
-void Track::SaveToFile(wxString save_path) {
+void Track::save_file(wxString save_path) {
 	wxString try_path = (!save_path.empty() ? save_path : file_path);
 	cout << "Saving Track File: " << try_path << "\n";
 	if (!access_file(try_path, true)) return;
@@ -138,7 +137,7 @@ void Track::SaveToFile(wxString save_path) {
 	file.close();
 }
 
-void Track::LoadFromFile(wxString load_path) {
+void Track::load_file(wxString load_path) {
 	wxString try_path = (!load_path.empty() ? load_path : file_path);
 	cout << "Load Track File: " << try_path << "\n";
 	if (!access_file(try_path, false)) return;
@@ -158,13 +157,13 @@ void Track::rol_move_fields() {
 	fieldcpy(&editor_scale.y, 2);
 	fieldcpy(&editor_scale.x, 2);
 	fieldzero(1);            // unused.
-	fieldcpy(&music_mode, 1);
+	fieldcpy(&rhythm_mode, 1);
 	fieldzero(90 + 38 + 15); // unused, filler, filler. Specs don't specify why.
 	fieldcpy(&basic_tempo, 4);
 	
 	fieldcpy_float_events(tempo_events, 0);
 	for (int voice_idx = 0; voice_idx < 11; voice_idx++) {
-		Channel& voice = *(GetChannel(voice_idx).get());
+		Channel& voice = *GetChannel(voice_idx);
 		fieldzero(15); // filler.
 		if (writing == true) {
 			int16_t tick_count = voice.get_tick_count();
