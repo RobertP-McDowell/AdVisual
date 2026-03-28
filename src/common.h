@@ -6,15 +6,15 @@
 #include <wx/dcbuffer.h>
 #include <wx/artprov.h>
 #include <memory>
-class AdPlayer; // Declare these, since they're mutually dependant!
-class Track;
-class Channel;
-class Bank;
-class Instrument;
-struct OPLFM;
-#include <AdPlayer.h>
+//class AdPlayer; // Declare these, since they're mutually dependant!
+//class Track;
+//class Channel;
+//class Bank;
+//class Instrument;
+//struct OPLFM;
 #include <Track.h>
 #include <Instrument.h>
+#include <AdPlayer.h>
 
 using namespace std;
 extern unique_ptr<AdPlayer> adplayer;
@@ -22,6 +22,7 @@ extern unique_ptr<Track> current_track;
 extern unique_ptr<Bank> current_bank;
 extern Channel* current_channel;
 extern int current_channel_idx;
+extern int cursor_tick;
 
 #define DEBUG_MODE
 
@@ -81,10 +82,7 @@ enum
 
 class PianoControl : public wxControl {
 private:
-	int key_width = 20;
-	int deepness = 80;
-	int scroll_offset = 0;
-	int orientation;
+	int key_width = 20, deepness = 80, scroll_offset = 0, playing_note = 0, orientation;
 	Instrument* instrument;
 	void on_lmb_down(wxMouseEvent& event);
 	void on_mouse_motion(wxMouseEvent& event);
@@ -140,9 +138,11 @@ private:
 		delete gc;
 	}
 public:
-	PianoControl(wxWindow* parent, int id = wxID_ANY, int orient = wxHORIZONTAL) : wxControl(parent, id), orientation(orient) {
+	PianoControl(wxWindow* parent, int id = wxID_ANY, int orient = wxHORIZONTAL) :
+			instrument(&Instrument::default_instrument), wxControl(parent, id), orientation(orient) {
 		Bind(wxEVT_PAINT, &PianoControl::on_paint, this);
 		Bind(wxEVT_LEFT_DOWN, &PianoControl::on_lmb_down, this);
+		Bind(wxEVT_MOTION, &PianoControl::on_mouse_motion, this);
 		if (orientation == wxHORIZONTAL) {
 			SetMinSize(wxSize(deepness, key_width));
 		}

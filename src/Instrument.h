@@ -12,17 +12,16 @@
 #include <deque>
 #include <vector>
 #include <map>
-#include <common.h>
-#include <AdPlayer.h>
+//#include <common.h>
 
 using namespace std;
 
 struct OPLFM {
 	OPLFM() {}
-	OPLFM(uint8_t atrt, uint8_t dcrt, uint8_t stlvl, uint8_t rsrt, uint8_t frqmul, uint8_t fdbk, uint8_t outlvl,
-		uint8_t p_ksl, uint8_t wave, uint8_t stbool, uint8_t p_ksr, uint8_t vib, uint8_t trem) : 
-		attack_rate(atrt), decay_rate(dcrt), sustain_level(stlvl), release_rate(rsrt), frequency_multiplier(frqmul), feedback(fdbk),
-		output_level(outlvl), ksl(p_ksl), waveform(wave), ksr(p_ksr), vibrato(vib), tremelo(trem) {}
+	OPLFM(uint8_t atrt, uint8_t dcrt, uint8_t stlvl, uint8_t rsrt, bool stbool, bool p_ksr,
+		uint8_t frqmul, uint8_t fdbk, bool vib, uint8_t outlvl, uint8_t p_ksl, bool trem, uint8_t wave) : 
+		attack_rate(atrt), decay_rate(dcrt), sustain_level(stlvl), release_rate(rsrt), sustain_sound(stbool), ksr(p_ksr),
+		frequency_multiplier(frqmul), feedback(fdbk), vibrato(vib), output_level(outlvl), ksl(p_ksl), tremelo(trem), waveform(wave) {}
 	
 	uint8_t attack_rate = 0, decay_rate = 0, sustain_level = 0, release_rate = 0;
 	uint8_t frequency_multiplier = 0, feedback = 0, output_level = 0, ksl = 0, waveform = 0;
@@ -30,7 +29,7 @@ struct OPLFM {
 	
 	// the number at the end of these function is in hex!
 	uint8_t reg20()  const {
-		return tremelo << 7 | vibrato << 6 | ksr << 5 | sustain_sound << 4 | frequency_multiplier;
+		return tremelo << 7 | vibrato << 6 | sustain_sound << 5 | ksr << 4 | frequency_multiplier;
 	}
 	uint8_t reg40() const {
 		return ksl << 6 | output_level;
@@ -55,13 +54,17 @@ public:
 	bool additive_synth = false;
 	OPLFM carrier;
 	OPLFM modulator;
-	uint8_t synth_type = 0;
+	uint8_t synth_type = 1;
 	uint8_t regC0() const {
 		return modulator.feedback << 1 | (synth_type ^ 1);
 	}
 	uint8_t flags = 0; // 0 unused "record", 1 otherwise.
 	char name[9] = {'\0'};
-	void write_to_opl(Copl* opl_ptr, int channel);
+	
+	static OPLFM default_carrier;
+	static OPLFM default_modulator;
+	static Instrument default_instrument;
+
 };
 
 
@@ -90,7 +93,7 @@ private:
 	void on_item_selected(wxCommandEvent& event) {
 		ProcessEvent(event); // Forward it.
 	}
-	Bank* current_bank = nullptr;
+	Bank* bank;
 public:
 	BankControl(wxWindow* parent, int id = wxID_ANY, wxPoint pos = wxDefaultPosition, wxSize size = wxDefaultSize) :
 			wxControl(parent, id, pos, size) {
@@ -101,25 +104,26 @@ public:
 		sizer->Add(list_box, 1, wxEXPAND);
 		SetSizerAndFit(sizer);
 	}
-	void SetBank(Bank* bank) {
-		if (current_bank == bank) return;
-		current_bank = bank;
+	void SetBank(Bank* new_bank) {
+		bank = new_bank;
 		list_box->Clear();
 		if (bank != nullptr) {
-			for (int insi = 0; insi < current_bank->instruments.size(); insi++) {
-				list_box->Append(wxString(current_bank->instruments.at(insi).name));
+			for (int insi = 0; insi < bank->instruments.size(); insi++) {
+				list_box->Append(wxString(bank->instruments.at(insi).name));
 			}
 		}
+		Refresh();
+		Update();
 	}
 	void FilterString(const char new_filter[9]) {
-		if (list_box->GetCount() == 0 || current_bank == nullptr) {
+		if (list_box->GetCount() == 0 || bank == nullptr) {
 			return;
 		}
 		memcpy(filter_str, new_filter, 9);
 		int greatest_match_len = 0;
 		int greatest_match_idx = 0;
-		for (int insi = 0; insi < current_bank->instruments.size(); insi++) {
-			Instrument& ins = current_bank->instruments.at(insi);
+		for (int insi = 0; insi < bank->instruments.size(); insi++) {
+			Instrument& ins = bank->instruments.at(insi);
 			for (int i = 0; i <= 9; i++) {
 				if (filter_str[i] == '\0') {
 					if (greatest_match_len < i) {

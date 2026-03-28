@@ -401,7 +401,7 @@ void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 
 void MainFrame::on_play_track(wxCommandEvent& event) {
 	if (event.IsChecked()) {
-		adplayer->play((string)current_track->file_path);
+		adplayer->play((string)current_track->file_path, cursor_tick);
 	}
 	else {
 		adplayer->stop();

@@ -34,7 +34,7 @@ protected:
 	wxTextCtrl* volume_field;
 };
 
-class ComposerPanel : public wxPanel {
+class ComposerPanel : public wxWindow {
 public:
 	ComposerPanel(wxWindow *parent);
 	void SetPreviewChannels(bool value);
@@ -54,6 +54,7 @@ protected:
 	void on_rmb_down(wxMouseEvent& event);
 	void on_rmb_up(wxMouseEvent& event);
 	void on_mouse_motion(wxMouseEvent& event);
+	void on_key_down(wxKeyEvent& event);
 	// header functions and events.
 	void on_channel_button_pressed(wxCommandEvent& event);
 	void on_preview_channels_checked(wxCommandEvent& event);
@@ -68,6 +69,7 @@ protected:
 	wxPoint grid_offset = wxPoint(0, 0);
 	wxSize note_size;
 	wxSize cell_size;
+	int cursor_end = -1; // Start of selection is cursor_tick in common.h
 	double zoom = 1.0;
 	wxPoint2DDouble mouse_down_start;
 	int editing_event_tick = -1;

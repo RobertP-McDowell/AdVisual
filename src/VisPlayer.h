@@ -30,7 +30,8 @@
 #include <string>
 
 #include <adplug/player.h>
-#include <common.h>
+#include <Track.h>
+#include <Instrument.h>
 
 // These are here since Visual C 6 doesn't support statics declared and defined in class.
 #define INS_MAX_NAME_SIZE  9U
@@ -80,19 +81,26 @@ public:
 
 	void SetBank(Bank* p_bank) { bank = p_bank; }
 	void SetTrack(Track* p_track) { track = p_track; }
-	void NoteOn(const int voice, const int note);
-	void NoteOff(const int voice);
+	void EnableChannel(int channel);
+	void DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument = nullptr, float pitch_mult = 1.0, float volume_mult = 1.0);
+	void EnableAllChannels();
+	void DisableAllChannels();
 	void SetRhythmMode(const int mode);
 	void SetPitchRange(uint8_t pitchRange);
 	void ChangePitch(int voice, const uint16_t pitchBend);
 	uint8_t GetKSLTL(const int voice, const uint8_t volume, const int carrier_ksltl);
 	void SetVolume(const int voice, const uint8_t volume);
 protected:
+	void update_voice(int v);
+	bool update_track();
+	void NoteOn(const int voice, const int note);
+	void NoteOff(const int voice);
 	void SetNote(const int voice, const int note);
 	void SetNoteMelodic(const int voice, const int note);
 	void SetNotePercussive(const int voice, const int note);
 	void SetFreq(const int voice, const int note, const bool keyOn=false);
-	void send_operator(const int voice, const OPLFM& modulator, const OPLFM& carrier);
+	void SetInstrument(const int voice, const Instrument* instrument);
+	int get_channel_count() const;
 
 	typedef const uint16_t*              TUint16ConstPtr;
 	typedef std::vector<TUint16ConstPtr> TUint16PtrVector;
@@ -113,7 +121,8 @@ protected:
 		kTomtomChannel, kTomTomNote, kTomTomToSnare, kSnareNote;
 	Bank* bank;
 	Track* track;
-	//vector<Instrument> instruments; // 1 per channel.
+	vector<int> enabled_channels;
+	vector<int> dynamic_notes; // 1 per channel.
 	uint32_t tick;
 	float refresh_rate;
 };

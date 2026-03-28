@@ -1,14 +1,14 @@
 #include <Instrument.h>
 #include <FileAccess.h>
+#include <common.h>
 
 using namespace FileAccess;
 
-OPLFM default_carrier(15, 2, 8, 4, 0, 1, 1, 0, 0, 63, 0, 0, 0);
-OPLFM default_modulator(15, 1, 10, 3, 0, 0, 1, 3, 0, 48, 2, 0, 0);
-Instrument default_instrument(default_carrier, default_modulator);
 
-void Instrument::write_to_opl(Copl* opl, int opoff) {
-}
+OPLFM Instrument::default_carrier(  13, 2, 15-8 , 4, false, true,  1, 0, false, 63-63, 0, false, 0);
+OPLFM Instrument::default_modulator(15, 1, 15-10, 3, false, false, 1, 3, false, 63-48, 2, false, 0);
+
+Instrument Instrument::default_instrument(default_carrier, default_modulator);
 
 Instrument* Bank::find_instrument(wxString name) {
 	char char_name[9];
@@ -24,7 +24,7 @@ Instrument* Bank::find_instrument(char name[9]) {
 		}
 	}
 	DBPRINT("No instrument found by the name " << name << ", returning default instrument in its stead.");
-	return &default_instrument;
+	return &Instrument::default_instrument;
 }
 
 void Bank::save_file(wxString save_path) {
@@ -53,9 +53,7 @@ void bank_move_OPLFM_fields(OPLFM& opl) {
 	fieldcpy(&opl.frequency_multiplier, 1);
 	fieldcpy(&opl.feedback, 1);
 	fieldcpy(&opl.attack_rate, 1);
-	//opl.sustain_level = (15 - opl.sustain_level); // Invert write value so its correct.
 	fieldcpy(&opl.sustain_level, 1);
-	//opl.sustain_level = (15 - opl.sustain_level); // Invert again so read value "looks" correct in ui.
 	fieldcpy(&opl.sustain_sound, 1);
 	fieldcpy(&opl.decay_rate, 1);
 	fieldcpy(&opl.release_rate, 1);

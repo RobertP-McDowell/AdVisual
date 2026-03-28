@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include <adplug/fmopl.h>
+#include <common.h>
 
 #define RATE	44100   // Output frequency in Hz
 #define BIT16	true    // true when 16bit samples should be used
@@ -90,6 +91,7 @@ AdPlayer::AdPlayer() {
 		return;
 	}
 	opl_device->init();
+	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track.get(), current_bank.get() )));
 }
 
 AdPlayer::~AdPlayer() {
@@ -104,18 +106,19 @@ AdPlayer::~AdPlayer() {
 }
 
 void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
-	instrument->write_to_opl(opl_device.get(), channel);
-	// Per channel stuff:
-	//opl_device->write(0xB0, int(3));        // Frequency number.
-	opl_device->write(0xB0+2, note_number); // Note number.
-	int keyon = (channel>>5)&1;
-	//int block_fnum = ((v&0x1f)<<8) | (CH->block_fnum&0xff);
-	opl_device->write(keyon, 0);   // Note on.
-	//opl_device->write(0xB0+6, 1);   // Note on.
+	opl_playback->DisableChannelAndPlayNote(channel, note_number, instrument);
+
+	towrite = RATE / opl_playback->getrefresh();
+
+	ma_device_start(&mini_device);
+	active = true;
 }
 
-bool AdPlayer::play(string file_path) {
-	opl_playback.reset(CVisPlayer::factory(opl_device.get(), current_track.get(), current_bank.get()));
+bool AdPlayer::play(string file_path, int start_from) {
+	opl_playback->SetTrack(current_track.get());
+	opl_playback->SetBank(current_bank.get());
+	opl_playback->EnableAllChannels();
+	opl_playback->seek(start_from);
 
 	if (!opl_playback) {
 		cerr << "Couldn't create Adplug playback for file! " << file_path << "\n";
@@ -142,6 +145,7 @@ void AdPlayer::seek(unsigned long p_tick) {
 }
 
 void AdPlayer::stop() {
+	opl_playback->DisableAllChannels(); // So if we play a note in editor the song wont continue.
 	ma_device_stop(&mini_device);
 	towrite = 0;
 	active = false;
