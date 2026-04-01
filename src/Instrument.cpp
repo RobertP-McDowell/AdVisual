@@ -4,11 +4,44 @@
 
 using namespace FileAccess;
 
-
 OPLFM Instrument::default_carrier(  13, 2, 15-8 , 4, false, true,  1, 0, false, 63-63, 0, false, 0);
 OPLFM Instrument::default_modulator(15, 1, 15-10, 3, false, false, 1, 3, false, 63-48, 2, false, 0);
 
 Instrument Instrument::default_instrument(default_carrier, default_modulator);
+
+void Bank::add_instrument(Instrument new_instrument) {
+	if (strlen(new_instrument.name) == 0) {
+		cerr << "Assign a name to add instrument!\n";
+		return;
+	}
+	if (isspace(new_instrument.name[0]) == true) {
+		cerr << "Can't have preceeding space on name!\n";
+		return;
+	}
+	for (auto insit = instruments.begin(); insit != instruments.end(); insit++) {
+		int name_cmp = strcmp(new_instrument.name, insit->name);
+		if (name_cmp == 0) {
+			cerr << "Instrument name '" << new_instrument.name << "' Already taken.\n";
+			return;
+		}
+		if (name_cmp < 0) {
+			instruments.insert(insit, new_instrument);
+			return;
+		}
+	}
+	instruments.push_back(new_instrument);
+}
+
+void Bank::delete_instrument(char name[9]) {
+	for (auto insit = instruments.begin(); insit != instruments.end(); insit++) {
+		if (strcmp(insit->name, name) == 0) {
+			instruments.erase(insit);
+			cout << "Delete instrument '" << name << "'\n";
+			return;
+		}
+	}
+	cerr << "Could not find and delete instrument of name '" << name << "'\n";
+}
 
 Instrument* Bank::find_instrument(wxString name) {
 	char char_name[9];

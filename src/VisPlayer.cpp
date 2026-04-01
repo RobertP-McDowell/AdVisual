@@ -136,7 +136,7 @@ CVisPlayer::CVisPlayer(Copl* p_opl, Track* p_track, Bank* p_bank) : CPlayer(p_op
 		mOldPitchBendLength(~0), mPitchRangeStep(skNrStepPitch), mOldHalfToneOffset(0), mAMVibRhythmCache(0) {
 	refresh_rate = track->basic_tempo;
 	mRhythmMode = track->rhythm_mode;
-	dynamic_notes.resize(get_channel_count(), -1);
+	dynamic_notes.resize(kNumPercussiveVoices, -1);
 }
 //---------------------------------------------------------
 CPlayer* CVisPlayer::factory(Copl* p_opl, Track* p_track, Bank* p_bank) {
@@ -177,14 +177,14 @@ void CVisPlayer::DisableChannelAndPlayNote(int channel, int note_pitch, Instrume
 }
 //---------------------------------------------------------
 void CVisPlayer::EnableAllChannels() {
-	for (int v = 0; v < get_channel_count(); v++) {
+	for (int v = 0; v < kNumPercussiveVoices; v++) {
 		dynamic_notes[v] = -1;
 		NoteOff(v);
 	}
 }
 //---------------------------------------------------------
 void CVisPlayer::DisableAllChannels() {
-	for (int v = 0; v < get_channel_count(); v++) {
+	for (int v = 0; v < kNumPercussiveVoices; v++) {
 		dynamic_notes[v] = 0;
 		NoteOff(v);
 	}
@@ -467,6 +467,7 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 		opl->write(skOPL2_KSLTLBaseAddress    + op_offset, GetKSLTL(voice, 0, 0));
 		opl->write(skOPL2_ArDrBaseAddress     + op_offset, m.reg60());
 		opl->write(skOPL2_SlrrBaseAddress     + op_offset, m.reg80());
+		//opl->write(skOPL2_FeedConBaseAddress  + voice    , instrument->regC0()); // TODO: Check if this should be uncommented.
 		opl->write(skOPL2_WaveformBaseAddress + op_offset, m.regE0());
 	}
 }

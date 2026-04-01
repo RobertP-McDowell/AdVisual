@@ -1,4 +1,6 @@
 #include <ComposerPanel.h>
+#include <wx/scrolbar.h>
+#include <wx/gbsizer.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // ComposerPanel Functions /////////////////////////////////////////////////
@@ -13,6 +15,11 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	note_size = wxSize(20.0 / zoom, 19.0 / zoom);
 	cell_size = wxSize(20.0 / zoom, 20.0 / zoom);
 
+	current_channel_idx = 0;
+	current_track = make_unique<Track>();
+	current_channel = &(current_track->channels[0]);
+	enabled_channels.resize(11, true);
+
 	event_header = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
 	event_header->SetBackgroundColour(bg_colour);
 	event_header->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_event_header, this);
@@ -20,41 +27,96 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	event_header->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down_event_header, this);
 	event_header->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up_event_header, this);
 
-	grid_panel = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
+	grid_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
 	grid_panel->SetBackgroundColour(bg_colour);
-	grid_panel->EnableScrolling(true, true);
-	grid_panel->ShowScrollbars(wxSHOW_SB_ALWAYS, wxSHOW_SB_ALWAYS);
-	grid_panel->SetScrollbars(cell_size.x, cell_size.y, 0, pitch_range, 0, pitch_range/2.0);
 
 	grid_panel->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_grid, this);
-	grid_panel->Bind(wxEVT_SCROLLWIN_THUMBTRACK, &ComposerPanel::on_scroll_grid, this);
 	grid_panel->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down, this);
 	grid_panel->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up, this);
 	grid_panel->Bind(wxEVT_RIGHT_DOWN, &ComposerPanel::on_rmb_down, this);
 	grid_panel->Bind(wxEVT_RIGHT_UP, &ComposerPanel::on_rmb_up, this);
 	grid_panel->Bind(wxEVT_MOTION, &ComposerPanel::on_mouse_motion, this);
-	Bind(wxEVT_KEY_DOWN, &ComposerPanel::on_key_down, this);
 
-	wxFlexGridSizer* sizer = new wxFlexGridSizer(2, 2, wxSize(0, 0));
+	wxGridBagSizer* sizer = new wxGridBagSizer();
+	sizer->SetCols(3);
+	sizer->SetRows(3);
 	sizer->SetFlexibleDirection(wxBOTH);
 	sizer->AddGrowableCol(0, 0);
 	sizer->AddGrowableCol(1, 1);
 	sizer->AddGrowableRow(0, 0);
 	sizer->AddGrowableRow(1, 1);
-	sizer->Add(1, 1, wxEXPAND);
-	sizer->Add(event_header, 0, wxEXPAND | wxBOTTOM, 4);
+	sizer->Add(1, 1, wxGBPosition(0, 0), wxGBSpan(1, 1), wxEXPAND);
+	sizer->Add(event_header, wxGBPosition(0, 1), wxGBSpan(1, 1), wxEXPAND | wxBOTTOM, 4);
 	piano_ctrl = new PianoControl(this, wxID_ANY, wxHORIZONTAL);
-	sizer->Add(piano_ctrl, 1, wxEXPAND);
-	sizer->Add(grid_panel, 1, wxEXPAND);
+	sizer->Add(piano_ctrl, wxGBPosition(1, 0), wxGBSpan(1, 1), wxEXPAND);
+	sizer->Add(grid_panel, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND);
+
+	h_scrollbar = new wxScrollBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSB_HORIZONTAL);
+	v_scrollbar = new wxScrollBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL);
+	h_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_horizontal, this);
+	v_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_vertical, this);
+
+	sizer->Add(v_scrollbar, wxGBPosition(0, 2), wxGBSpan(2, 1), wxEXPAND);
+	sizer->Add(h_scrollbar, wxGBPosition(2, 0), wxGBSpan(1, 3), wxEXPAND); // h_scroll_bar gets the extra cell here.
+
+	Bind(wxEVT_SIZE, &ComposerPanel::on_resize, this);
+	Bind(wxEVT_MOUSEWHEEL, &ComposerPanel::on_mouse_wheel, this);
+	Bind(wxEVT_KEY_DOWN, &ComposerPanel::on_key_down, this);
+
 	SetSizerAndFit(sizer);
 	sizer->FitInside(GetParent());
-	current_channel_idx = 0;
-	current_track = make_unique<Track>();
-	current_channel = &(current_track->channels[0]);
-	wxPoint control_offset(30, 0);
 
 	event_popup = new EventPopup(this);
-	enabled_channels.resize(11, true);
+}
+
+void ComposerPanel::on_resize(wxSizeEvent& event) {
+	update_scrollbars();
+	event.Skip();
+}
+
+void ComposerPanel::on_scroll_grid_horizontal(wxScrollEvent& event) {
+	grid_offset.x = cell_size.x * event.GetPosition();
+	// Update piano_ctrl to play current instrument:
+	int last_ins_event_tick = 0;
+	string last_ins_event_value;
+	current_channel->get_last_instrument_event(grid_offset.x, last_ins_event_tick, last_ins_event_value);
+	piano_ctrl->SetInstrument(current_bank->find_instrument(wxString(last_ins_event_value)));
+	Refresh();
+	Update();
+}
+
+void ComposerPanel::on_scroll_grid_vertical(wxScrollEvent& event) {
+	grid_offset.y = cell_size.y * event.GetPosition();
+	piano_ctrl->SetScrollOffset(grid_offset.y);
+	Refresh();
+	Update();
+}
+
+void ComposerPanel::update_scrollbars() {
+	int h_thumbsize = GetSize().x / cell_size.x;
+	int h_range = current_track->get_tick_count() + (GetSize().x / cell_size.x);
+	h_scrollbar->SetScrollbar(h_scrollbar->GetThumbPosition(), h_thumbsize, h_range, h_thumbsize, true);
+	int v_thumbsize = grid_panel->GetSize().y / cell_size.y;
+	v_scrollbar->SetScrollbar(v_scrollbar->GetThumbPosition(), v_thumbsize, pitch_range, v_thumbsize);
+}
+void ComposerPanel::move_h_scrollbar(int new_pos) {
+	h_scrollbar->SetThumbPosition(new_pos);
+	wxScrollEvent event(wxEVT_SCROLL_THUMBTRACK, h_scrollbar->GetId(), h_scrollbar->GetThumbPosition(), wxHORIZONTAL);
+	on_scroll_grid_horizontal(event);
+}
+void ComposerPanel::move_v_scrollbar(int new_pos) {
+	v_scrollbar->SetThumbPosition(new_pos);
+	wxScrollEvent event(wxEVT_SCROLL_THUMBTRACK, v_scrollbar->GetId(), v_scrollbar->GetThumbPosition(), wxVERTICAL);
+	on_scroll_grid_vertical(event);
+}
+void ComposerPanel::on_mouse_wheel(wxMouseEvent& event) {
+	int wheel_difference = (event.GetWheelRotation() > 0 ? 1 : -1) * scroll_multiplier;
+	if (event.ShiftDown()) {
+		move_h_scrollbar(h_scrollbar->GetThumbPosition() - wheel_difference);
+	}
+	else {
+		move_v_scrollbar(v_scrollbar->GetThumbPosition() - wheel_difference);
+	}
 }
 
 void ComposerPanel::SetPreviewChannels(bool value) {
@@ -70,23 +132,6 @@ void ComposerPanel::SetChannelEnable(int channel, bool enable) {
 void ComposerPanel::SetChannelIndex(int channel) {
 	current_channel_idx = channel;
 	current_channel = current_track->GetChannel(current_channel_idx);
-	Refresh();
-	Update();
-}
-
-void ComposerPanel::on_scroll_grid(wxScrollWinEvent& event) {
-	if (event.GetOrientation() == wxHORIZONTAL) {
-		grid_offset.x = cell_size.x * event.GetPosition();
-		// Update Piano to play current instrument:
-		int last_ins_event_tick = 0;
-		string last_ins_event_value;
-		current_channel->get_last_instrument_event(grid_offset.x, last_ins_event_tick, last_ins_event_value);
-		piano_ctrl->SetInstrument(current_bank->find_instrument(wxString(last_ins_event_value)));
-	}
-	else {
-		grid_offset.y = cell_size.y * event.GetPosition();
-		piano_ctrl->SetScrollOffset(grid_offset.y);
-	}
 	Refresh();
 	Update();
 }
@@ -215,6 +260,7 @@ void ComposerPanel::on_lmb_down(wxMouseEvent& event) {
 	editing_note->offset = mouse_down_start.m_x / cell_size.x;
 	editing_note->pitch = mouse_down_start.m_y / cell_size.y;
 	editing_note->length = 1;
+	adplayer->play_note(editing_note->pitch, current_channel_idx, piano_ctrl->GetInstrument());
 	Refresh();
 	Update();
 }
@@ -224,7 +270,8 @@ void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
 		current_channel->add_note(*editing_note);
 	}
 	editing_note = nullptr;
-	grid_panel->SetVirtualSize((current_track->get_tick_count() * cell_size.x) + grid_panel->GetSize().x, cell_size.y * pitch_range);
+	update_scrollbars();
+	adplayer->play_note(0, current_channel_idx, piano_ctrl->GetInstrument());
 	Refresh();
 	Update();
 }
@@ -269,6 +316,7 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 		Refresh();
 		Update();
 	}
+	status_bar->SetStatusText(note_number_to_letter(local_mouse_position.m_y / cell_size.y));
 }
 
 void ComposerPanel::on_key_down(wxKeyEvent& event) {

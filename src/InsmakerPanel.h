@@ -29,40 +29,40 @@ wxDECLARE_EVENT(EVT_SPIN_BOX_SLIDER, wxCommandEvent);
 class OPLFMPropertyControl : public wxControl {
 protected:
 	uint8_t* value_ptr = nullptr;
-	uint8_t control_value = 0;
+	uint8_t* new_value_ptr = nullptr;
+	bool is_valid() const { return value_ptr != nullptr && new_value_ptr; }
 public:
-	virtual void SetControlValue(int new_control_value) {
-		control_value = (new_control_value < 0 ? uint8_t(0) : uint8_t(new_control_value));
+	virtual void SetNewValue(uint8_t new_value) {
+		if (new_value_ptr == nullptr) return;
+		*new_value_ptr = (new_value < 0 ? uint8_t(0) : uint8_t(new_value));
 		Refresh();
 		Update();
 	}
-	int GetNewValue() const { return control_value; }
+	int GetNewValue() const { return *new_value_ptr; }
 	void SaveCurrentValue() {
-		if (value_ptr != nullptr) {
-			*value_ptr = control_value;
+		if (is_valid()) {
+			*value_ptr = *new_value_ptr;
 		}
 	}
-	uint8_t LoadFromValue(uint8_t* new_value_ptr) { // Returns the potentially unsaved control_value, for later.
-		if (new_value_ptr == nullptr) {
-			Show(false);
-			return 0;
-		}
-		value_ptr = new_value_ptr;
-		uint8_t old_control_value = control_value;
-		control_value = *value_ptr;
-		Show(true);
-		Refresh();
-		Update();
-		return old_control_value;
-	}
-	bool HasUnsavedChange() const { return control_value != *value_ptr; }
-	OPLFMPropertyControl(wxWindow* parent, int id, uint8_t* p_value_ptr) : 
-			wxControl(parent, id), value_ptr(p_value_ptr) {
-		if (value_ptr == nullptr) {
+	void LoadFromValue(uint8_t* p_value_ptr, uint8_t* p_new_value_ptr) {
+		if (p_new_value_ptr == nullptr) {
 			Show(false);
 			return;
 		}
-		control_value = *p_value_ptr;
+		value_ptr = p_value_ptr;
+		new_value_ptr = p_new_value_ptr;
+		Show(true);
+		Refresh();
+		Update();
+	}
+	bool HasUnsavedChange() const { return is_valid() && *new_value_ptr != *value_ptr; }
+	OPLFMPropertyControl(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t* p_new_value_ptr) : 
+			wxControl(parent, id), value_ptr(p_value_ptr), new_value_ptr(p_value_ptr) {
+		if (!is_valid()) {
+			Show(false);
+			return;
+		}
+		*new_value_ptr = *value_ptr;
 	}
 };
 
@@ -80,10 +80,10 @@ protected:
 		if (event.IsKeyInCategory(WXK_CATEGORY_ARROW)) {
 			switch (event.GetKeyCode()) {
 			case WXK_LEFT:
-				SetControlValue(0);
+				SetNewValue(0);
 				return;
 			case WXK_RIGHT:
-				SetControlValue(1);
+				SetNewValue(1);
 				return;
 			}
 		}
@@ -95,7 +95,7 @@ protected:
 		Update();
 	}
 	void on_lmb_up(wxMouseEvent& event) {
-		SetControlValue(uint8_t(!control_value));
+		SetNewValue(uint8_t(!(*new_value_ptr)));
 		Refresh();
 		Update();
 	}
@@ -103,15 +103,15 @@ protected:
 		wxPaintDC dc(this);
 		wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
 		wxSize bitmap_size = wxSize(32, 32);
-		if (control_value == 1) {
+		if (*new_value_ptr == 1) {
 			wxBitmap checked_bitmap = GetAsset((HasFocus() ? "CheckboxCheckedFocused.svg" : "CheckboxChecked.svg"), GetSize()).GetBitmap(bitmap_size);
 			gc->DrawBitmap(checked_bitmap, 0, 0, bitmap_size.x, bitmap_size.y);
 		}
-		if (control_value == 0) {
+		if (*new_value_ptr == 0) {
 			wxBitmap checked_bitmap = GetAsset((HasFocus() ? "CheckboxUncheckedFocused.svg" : "CheckboxUnchecked.svg"), GetSize()).GetBitmap(bitmap_size);
 			gc->DrawBitmap(checked_bitmap, 0, 0, bitmap_size.x, bitmap_size.y);
 		}
-		if (control_value != *value_ptr) {
+		if (*new_value_ptr != *value_ptr) {
 			wxBitmap checked_bitmap = GetAsset("UnsavedAsterisk.svg", GetSize()).GetBitmap(bitmap_size);
 			gc->DrawBitmap(checked_bitmap, bitmap_size.x, 0, bitmap_size.x, bitmap_size.y);
 		}
@@ -134,7 +134,8 @@ protected:
 		return wxSize(66, 33);
 	}
 public:
-	OPLFMCheckbox(wxWindow* parent, int id, uint8_t* p_value_ptr) : OPLFMPropertyControl(parent, id, p_value_ptr) {
+	OPLFMCheckbox(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t* p_new_value_ptr) :
+			OPLFMPropertyControl(parent, id, p_value_ptr, p_new_value_ptr) {
 		Init();
 	}
 };
@@ -142,9 +143,9 @@ public:
 class SpinBoxSlider : public OPLFMPropertyControl {
 protected:
 	void on_increment_button_pressed(wxCommandEvent& event) {
-		int new_control_value = control_value + (event.GetId() == ID_PLUS ? 1 : -1);
+		int new_control_value = *new_value_ptr + (event.GetId() == ID_PLUS ? 1 : -1);
 		// Make sure unsigned int isn't negative.
-		SetControlValue(new_control_value);
+		SetNewValue(new_control_value);
 	}
 	void on_set_focus(wxFocusEvent& event) {
 		Refresh();
@@ -161,10 +162,10 @@ protected:
 		if (event.IsKeyInCategory(WXK_CATEGORY_ARROW)) {
 			switch (event.GetKeyCode()) {
 			case WXK_LEFT:
-				SetControlValue(control_value - 1);
+				SetNewValue(*new_value_ptr - 1);
 				return;
 			case WXK_RIGHT:
-				SetControlValue(control_value + 1);
+				SetNewValue(*new_value_ptr + 1);
 				return;
 			}
 		}
@@ -183,21 +184,21 @@ protected:
 			int int_new_slider_value = (new_slider_valuef > *value_ptr ? floor(new_slider_valuef) : ceil(new_slider_valuef));
 			int_new_slider_value = clamp(int_new_slider_value, int(min_value), int(max_value));
 			uint8_t new_slider_value = (int_new_slider_value < 0 ? uint8_t(0) : uint8_t(int_new_slider_value)); // Keep unsigned positive.
-			if (control_value != new_slider_value) {
-				SetControlValue(new_slider_value);
+			if (*new_value_ptr != new_slider_value) {
+				SetNewValue(new_slider_value);
 				Refresh();
 				Update();
 			}
 		}
 	}
 	void on_lmb_up(wxMouseEvent& event) {
-		SetControlValue(control_value);
+		SetNewValue(*new_value_ptr);
 		Refresh();
 		Update();
 	}
 	void paint_text_on_slider(wxGraphicsContext* gc, int slider_width, int slider_height, string text,
 			int offset, int offset_pad, bool draw_high = true, wxBrush bg_brush = wxNullBrush) {
-		// Just a helper function to keep value and control_value text within slider width bounds.
+		// Just a helper function to keep value_ptr and new_value_ptr text within slider width bounds.
 		wxDouble text_width, text_height, text_descent, text_leading_space;
 		gc->GetTextExtent(text, &text_width, &text_height, &text_descent, &text_leading_space);
 		int difference = (text_width + offset) - slider_width;
@@ -228,8 +229,8 @@ protected:
 		wxGraphicsFont number_font = gc->CreateFont(slider_height, wxEmptyString, wxFONTFLAG_DEFAULT, *wxWHITE);
 		gc->SetFont(number_font);
 		int current_tick_offset = *value_ptr * tick_spacing;
-		int slider_tick_offset = control_value * tick_spacing;
-		slider_tick_offset += (control_value > *value_ptr ? 0 : 1); // Consistently draw brush before ticks.
+		int slider_tick_offset = *new_value_ptr * tick_spacing;
+		slider_tick_offset += (*new_value_ptr > *value_ptr ? 0 : 1); // Consistently draw brush before ticks.
 		if (HasUnsavedChange()) { // Draw Slider Value and Text.
 			wxGraphicsBrush highlight_brush;
 			if (HasFocus()) {
@@ -241,7 +242,7 @@ protected:
 			gc->SetPen(wxNullPen);
 			gc->SetBrush(highlight_brush);
 			gc->DrawRectangle(current_tick_offset, 0, slider_tick_offset - current_tick_offset, slider_height);
-			paint_text_on_slider(gc, slider_width, slider_height, to_string(control_value), slider_tick_offset, bold_tick_width, false);
+			paint_text_on_slider(gc, slider_width, slider_height, to_string(*new_value_ptr), slider_tick_offset, bold_tick_width, false);
 			paint_text_on_slider(gc, slider_width, slider_height, to_string(*value_ptr), current_tick_offset, bold_tick_width, true);
 		}
 		else { // We draw text with a black background when not actively editing, for better text clarity.
@@ -294,37 +295,26 @@ protected:
 	uint8_t min_value = 0;
 	uint8_t max_value = 100;
 public:
-	void SetControlValue(int new_control_value) override;
-	SpinBoxSlider(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t p_min_value = 0, uint8_t p_max_value = 100);
+	void SetNewValue(uint8_t p_new_value) override;
+	SpinBoxSlider(wxWindow* parent, int id, uint8_t* p_value_ptr, uint8_t* p_new_value_ptr, uint8_t p_min_value = 0, uint8_t p_max_value = 100);
 };
 
 class InsmakerPanel : public wxScrolledWindow {
 public:
 	InsmakerPanel(wxWindow* parent, int id = wxID_ANY);
+	void SetAdditiveSynth(uint8_t value);
+	void SetPercussionMode(uint8_t value);
+	uint8_t GetAdditiveSynth() const { return new_additive_synth; }
+	uint8_t GetPercussionMode() const { return new_percussion_mode; }
 	void save_properties_to_opl();
-	void SetInstrumentByName(char name[9]) {
-		if (current_bank) {
-			current_instrument = current_bank->find_instrument(name);
-			if (current_instrument == nullptr) {
-				DBPRINT("Instrument of name " << name << " Could not be found, using generic instrument");
-				current_instrument = new Instrument;
-			}
-			else {
-				cout << "Editing Instrument: " << current_instrument->name << "\n";
-			}
-			if (current_instrument->percussion_mode == 0) {
-				update_oplfm_editor(&(current_instrument->carrier), &(current_instrument->modulator));
-			}
-			else {
-				update_oplfm_editor(nullptr, &(current_instrument->modulator));
-			}
-			number_of_unsaved_changes = 0;
-		}
-	}
+	void SetInstrumentByName(char name[9]);
 private:
+	Instrument* find_unsaved_instrument(char name[9]);
+	int get_number_of_unsaved_changes();
 	void create_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
-	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
-	void update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8_t* mod_value_ptr);
+	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod, OPLFM* n_car, OPLFM* n_mod);
+	void update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8_t* mod_value_ptr,
+		uint8_t* new_car_value_ptr, uint8_t* new_mod_value_ptr);
 	void add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
 		uint8_t p_min_value, uint8_t p_max_value);
 	void add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
@@ -333,10 +323,13 @@ private:
 	void on_resize_piano(wxSizeEvent& event);
 	void on_scroll_piano(wxScrollEvent& event);
 	//void add_radio_property();
-	int16_t music_mode = 0;
-	Instrument* current_instrument;
+	int8_t new_additive_synth = 0;
+	int8_t new_percussion_mode = 0;
+	Instrument* instrument_ptr = nullptr;
+	Instrument  new_instrument;
 	vector<OPLFMPropertyControl*> carrier_properties;
 	vector<OPLFMPropertyControl*> modulator_properties;
+	vector<Instrument> unsaved_instruments;
 	wxFlexGridSizer* property_sizer;
 	PianoControl* piano_ctrl;
 	wxScrollBar* h_scroll_bar;

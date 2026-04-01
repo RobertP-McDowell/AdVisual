@@ -12,7 +12,6 @@
 #include <deque>
 #include <vector>
 #include <map>
-//#include <common.h>
 
 using namespace std;
 
@@ -22,11 +21,11 @@ struct OPLFM {
 		uint8_t frqmul, uint8_t fdbk, bool vib, uint8_t outlvl, uint8_t p_ksl, bool trem, uint8_t wave) : 
 		attack_rate(atrt), decay_rate(dcrt), sustain_level(stlvl), release_rate(rsrt), sustain_sound(stbool), ksr(p_ksr),
 		frequency_multiplier(frqmul), feedback(fdbk), vibrato(vib), output_level(outlvl), ksl(p_ksl), tremelo(trem), waveform(wave) {}
-	
+
 	uint8_t attack_rate = 0, decay_rate = 0, sustain_level = 0, release_rate = 0;
 	uint8_t frequency_multiplier = 0, feedback = 0, output_level = 0, ksl = 0, waveform = 0;
 	uint8_t sustain_sound = false, ksr = false, vibrato = false, tremelo = false;
-	
+
 	// the number at the end of these function is in hex!
 	uint8_t reg20()  const {
 		return tremelo << 7 | vibrato << 6 | sustain_sound << 5 | ksr << 4 | frequency_multiplier;
@@ -45,7 +44,6 @@ struct OPLFM {
 	}
 };
 
-
 class Instrument {
 public:
 	Instrument() {}
@@ -54,19 +52,17 @@ public:
 	bool additive_synth = false;
 	OPLFM carrier;
 	OPLFM modulator;
-	uint8_t synth_type = 1;
+	uint8_t synth_type = 1; // 0 for Additive synth, 1 for Frequency modulation.
 	uint8_t regC0() const {
 		return modulator.feedback << 1 | (synth_type ^ 1);
 	}
 	uint8_t flags = 0; // 0 unused "record", 1 otherwise.
 	char name[9] = {'\0'};
-	
+
 	static OPLFM default_carrier;
 	static OPLFM default_modulator;
 	static Instrument default_instrument;
-
 };
-
 
 class Bank {
 public:
@@ -75,6 +71,8 @@ public:
 	uint8_t file_version_major = 0;
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
+	void add_instrument(Instrument new_instrument);
+	void delete_instrument(char name[9]);
 	void clear_bank_data() { instruments.clear(); }
 	Instrument* find_instrument(wxString name);
 	Instrument* find_instrument(char name[9]);
@@ -89,7 +87,7 @@ protected:
 class BankControl : public wxControl {
 private:
 	wxListBox* list_box;
-	char filter_str[9];
+	char filter_str[9] = "";
 	void on_item_selected(wxCommandEvent& event) {
 		ProcessEvent(event); // Forward it.
 	}
@@ -104,6 +102,7 @@ public:
 		sizer->Add(list_box, 1, wxEXPAND);
 		SetSizerAndFit(sizer);
 	}
+	char* GetText() { return filter_str; }
 	void SetBank(Bank* new_bank) {
 		bank = new_bank;
 		list_box->Clear();
@@ -116,10 +115,10 @@ public:
 		Update();
 	}
 	void FilterString(const char new_filter[9]) {
+		memcpy(filter_str, new_filter, 9);
 		if (list_box->GetCount() == 0 || bank == nullptr) {
 			return;
 		}
-		memcpy(filter_str, new_filter, 9);
 		int greatest_match_len = 0;
 		int greatest_match_idx = 0;
 		for (int insi = 0; insi < bank->instruments.size(); insi++) {

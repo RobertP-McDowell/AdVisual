@@ -106,6 +106,11 @@ AdPlayer::~AdPlayer() {
 }
 
 void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
+	if (instrument->percussion_mode != 0 || channel >= 9) {
+		opl_playback->SetRhythmMode(1);
+		channel = instrument->voice_number;
+	}
+	DBPRINT("Play dynamic note at channel: " << channel);
 	opl_playback->DisableChannelAndPlayNote(channel, note_number, instrument);
 
 	towrite = RATE / opl_playback->getrefresh();
@@ -118,6 +123,7 @@ bool AdPlayer::play(string file_path, int start_from) {
 	opl_playback->SetTrack(current_track.get());
 	opl_playback->SetBank(current_bank.get());
 	opl_playback->EnableAllChannels();
+	opl_playback->SetRhythmMode(current_track->rhythm_mode);
 	opl_playback->seek(start_from);
 
 	if (!opl_playback) {

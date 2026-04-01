@@ -21,6 +21,7 @@ extern unique_ptr<AdPlayer> adplayer;
 extern unique_ptr<Track> current_track;
 extern unique_ptr<Bank> current_bank;
 extern Channel* current_channel;
+extern wxStatusBar* status_bar;
 extern int current_channel_idx;
 extern int cursor_tick;
 
@@ -37,7 +38,7 @@ extern int cursor_tick;
 #else
 #define DBPRINT(p_output) do {} while(0)
 #define DBBREAKPOINT(p_output, p_name) do { \
-	cout << p_output << " This breakpoint shouldn't exist in release/shared builds, Breakpoint name: " << p_name << "\n"; \
+	cerr << p_output << " This breakpoint shouldn't exist in release/shared builds, Breakpoint name: " << p_name << "\n"; \
 } while(0)
 #endif
 
@@ -47,8 +48,6 @@ const int middle_c = pitch_range / 2;
 const int full_octave = 12;
 
 const wxString ASSETS_PATH = "/home/robert/Desktop/AdVisual/assets/";
-
-wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size);
 
 enum
 {
@@ -75,16 +74,25 @@ enum
 	ID_PIANO_GUIDE,
 	ID_FOLLOW_CURSOR,
 	ID_INSMAKER_START, // INSMAKER specific enums start here.
-	ID_INSTRUMENT_FIELD
+	ID_INSTRUMENT_FIELD,
+	ID_INSTRUMENT_MENU,
+	ID_CREATE_INSTRUMENT,
+	ID_DELETE_INSTRUMENT,
+	ID_COPY_INSTRUMENT,
+	ID_ADDITIVE_SYNTH,
+	ID_PERCUSSION_MODE
 };
 
-
+wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size);
+wxString note_number_to_letter(int note_number);
 
 class PianoControl : public wxControl {
 private:
 	int key_width = 20, deepness = 80, scroll_offset = 0, playing_note = 0, orientation;
 	Instrument* instrument;
+	int get_note_number_at_position(wxPoint pos);
 	void on_lmb_down(wxMouseEvent& event);
+	void on_lmb_up(wxMouseEvent& event);
 	void on_mouse_motion(wxMouseEvent& event);
 	void on_rmb_down(wxMouseEvent& event); // when rmb is clicked, it instantly stops the note.
 	void on_paint(wxPaintEvent& event) {
@@ -142,6 +150,7 @@ public:
 			instrument(&Instrument::default_instrument), wxControl(parent, id), orientation(orient) {
 		Bind(wxEVT_PAINT, &PianoControl::on_paint, this);
 		Bind(wxEVT_LEFT_DOWN, &PianoControl::on_lmb_down, this);
+		Bind(wxEVT_LEFT_UP, &PianoControl::on_lmb_up, this);
 		Bind(wxEVT_MOTION, &PianoControl::on_mouse_motion, this);
 		if (orientation == wxHORIZONTAL) {
 			SetMinSize(wxSize(deepness, key_width));
