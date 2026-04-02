@@ -94,6 +94,9 @@ void bank_move_OPLFM_fields(OPLFM& opl) {
 	fieldcpy(&opl.tremelo, 1);
 	fieldcpy(&opl.vibrato, 1);
 	fieldcpy(&opl.ksr, 1);
+	opl.additive_synth = (opl.additive_synth ^ 1);
+	fieldcpy(&opl.additive_synth, 1); // Connector modulator only.
+	opl.additive_synth = (opl.additive_synth ^ 1);
 	//DBPRINT("level_scaling: " << int(opl.level_scaling) << " freq_mul: " << int(opl.frequency_multiplier) <<
 	//	" feedback: " << int(opl.feedback) << " atk_rt: " << int(opl.attack_rate) << " sustain_lvl: " << int(opl.sustain_level) <<
 	//	" envelope_scaling: " << int(opl.envelope_scaling) << " decay_rt: " << int(opl.decay_rate) <<
@@ -145,9 +148,7 @@ void Bank::bnk_move_fields() {
 		fieldcpy(&ins.percussion_mode, 1);
 		fieldcpy(&ins.voice_number, 1);
 		bank_move_OPLFM_fields(ins.modulator);
-		fieldcpy(&ins.synth_type, 1); // Connector modulator only.
 		bank_move_OPLFM_fields(ins.carrier);
-		fieldzero(1); // Connector, carrier ignored.
 		fieldcpy(&ins.modulator.waveform, 1);
 		fieldcpy(&ins.carrier.waveform, 1);
 		DBPRINT("mWave: " << ins.modulator.waveform << " cWave: " << ins.carrier.waveform <<

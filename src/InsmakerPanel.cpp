@@ -139,9 +139,7 @@ void InsmakerPanel::SetInstrumentByName(char name[9])  {
 		else {
 			new_instrument = *instrument_ptr;
 		}
-		new_additive_synth = new_instrument.additive_synth;
-		new_percussion_mode = new_instrument.percussion_mode;
-		if (new_instrument.percussion_mode == 0) {
+		if (new_instrument.percussion_mode == 0 || new_instrument.voice_number == 6) {
 			update_oplfm_editor(&(instrument_ptr->carrier), &(instrument_ptr->modulator),
 				&(new_instrument.carrier), &(new_instrument.modulator));
 		}
@@ -153,20 +151,46 @@ void InsmakerPanel::SetInstrumentByName(char name[9])  {
 	}
 }
 
-void InsmakerPanel::SetAdditiveSynth(uint8_t value) {
-	if (new_additive_synth == value) {
+void InsmakerPanel::SetAdditiveSynth(bool value) {
+	if (new_instrument.modulator.additive_synth == value) {
 		return;
 	}
-	new_additive_synth = value;
-	number_of_unsaved_changes += (new_additive_synth != new_instrument.additive_synth ? 1 : -1);
+	new_instrument.modulator.additive_synth = (uint8_t)value;
+	if (instrument_ptr == nullptr) return;
+	number_of_unsaved_changes += (new_instrument.modulator.additive_synth != instrument_ptr->modulator.additive_synth ? 1 : -1);
 }
 
 void InsmakerPanel::SetPercussionMode(uint8_t value) {
-	if (new_percussion_mode == value) {
+	if (value == 0) {
+		new_instrument.percussion_mode = 0;
+		new_instrument.voice_number = 0;
+	}
+	else {
+		new_instrument.percussion_mode = 1;
+		new_instrument.voice_number = value + 5; // voice number starts at 6.
+	}
+
+	if (instrument_ptr == nullptr) {
+		update_oplfm_editor(nullptr, nullptr, nullptr, nullptr);
 		return;
 	}
-	new_percussion_mode = value;
-	number_of_unsaved_changes += (new_percussion_mode != new_instrument.percussion_mode ? 1 : -1);
+	if (new_instrument.percussion_mode == 0 || new_instrument.voice_number == 6) { // Bass Drum mode still has two operators.
+		update_oplfm_editor(&(instrument_ptr->carrier), &(instrument_ptr->modulator),
+			&(new_instrument.carrier), &(new_instrument.modulator));
+	}
+	else {
+		update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
+	}
+	// TODO: because we don't check if the value was already the same this won't work perfectly.
+	number_of_unsaved_changes += (new_instrument.percussion_mode != instrument_ptr->percussion_mode ? 1 : -1);
+	number_of_unsaved_changes += (new_instrument.voice_number != instrument_ptr->voice_number ? 1 : -1);
+}
+
+uint8_t InsmakerPanel::GetPercussionMode() const {
+	if (new_instrument.percussion_mode == 0) {
+		return 0;
+	}
+	return new_instrument.voice_number - 5; // 1 = BD, 2 = SD ...
 }
 
 void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
@@ -211,8 +235,6 @@ void InsmakerPanel::save_properties_to_opl() {
 	for (OPLFMPropertyControl*& prop_ctrl : modulator_properties) {
 		prop_ctrl->SaveCurrentValue();
 	}
-	new_instrument.additive_synth = new_additive_synth;
-	new_instrument.percussion_mode = new_percussion_mode;
 	unsaved_instruments.clear();
 }
 

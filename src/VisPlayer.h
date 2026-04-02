@@ -81,7 +81,7 @@ public:
 
 	void SetBank(Bank* p_bank) { bank = p_bank; }
 	void SetTrack(Track* p_track) { track = p_track; }
-	void EnableChannel(int channel);
+	void EnableChannel(int v);
 	void DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument = nullptr, float pitch_mult = 1.0, float volume_mult = 1.0);
 	void EnableAllChannels();
 	void DisableAllChannels();

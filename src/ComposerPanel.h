@@ -37,10 +37,10 @@ protected:
 class ComposerPanel : public wxWindow {
 public:
 	ComposerPanel(wxWindow *parent);
-	void SetPreviewChannels(bool value);
-	void SetChannelEnable(int channel, bool enable);
 	void SetChannelIndex(int channel);
 	int GetChannelIndex() const { return current_channel_idx; }
+	void SetPreviewChannels(bool value);
+	void SetAudioFeedback(bool value) { grid_audio_feedback = value; }
 	EventPopup* event_popup;
 	PianoControl* piano_ctrl;
 protected:
@@ -71,7 +71,6 @@ protected:
 	void move_h_scrollbar(int new_pos);
 	void move_v_scrollbar(int new_pos);
 	wxFont event_font;
-	vector<bool> enabled_channels;
 
 	wxPoint grid_offset = wxPoint(0, 0);
 	wxSize note_size;
@@ -81,8 +80,12 @@ protected:
 	double zoom = 1.0;
 	wxPoint2DDouble mouse_down_start;
 	int editing_event_tick = -1;
-	bool preview_channels = false;
+	bool preview_channels = false, grid_audio_feedback = false, follow_cursor = false;
 	unique_ptr<Note> editing_note;
+	void copy_notes();
+	void paste_notes();
+	vector<Note> copy_buffer;
+	int copy_buffer_start_offset = 0, copy_buffer_length = 0;
 	wxPanel* event_header;
 	wxPanel* grid_panel;
 	wxScrollBar* h_scrollbar;

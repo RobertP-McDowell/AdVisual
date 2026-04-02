@@ -302,10 +302,10 @@ public:
 class InsmakerPanel : public wxScrolledWindow {
 public:
 	InsmakerPanel(wxWindow* parent, int id = wxID_ANY);
-	void SetAdditiveSynth(uint8_t value);
-	void SetPercussionMode(uint8_t value);
-	uint8_t GetAdditiveSynth() const { return new_additive_synth; }
-	uint8_t GetPercussionMode() const { return new_percussion_mode; }
+	void SetAdditiveSynth(bool value);
+	void SetPercussionMode(uint8_t value); // 0 for melodic, 1 for bass, 2 for snare ...
+	bool GetAdditiveSynth() const { return new_instrument.modulator.additive_synth; }
+	uint8_t GetPercussionMode() const;
 	void save_properties_to_opl();
 	void SetInstrumentByName(char name[9]);
 private:
@@ -323,8 +323,6 @@ private:
 	void on_resize_piano(wxSizeEvent& event);
 	void on_scroll_piano(wxScrollEvent& event);
 	//void add_radio_property();
-	int8_t new_additive_synth = 0;
-	int8_t new_percussion_mode = 0;
 	Instrument* instrument_ptr = nullptr;
 	Instrument  new_instrument;
 	vector<OPLFMPropertyControl*> carrier_properties;

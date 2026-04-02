@@ -90,6 +90,7 @@ AdPlayer::AdPlayer() {
 		stop();
 		return;
 	}
+	enabled_channels.resize(11, true);
 	opl_device->init();
 	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track.get(), current_bank.get() )));
 }
@@ -119,10 +120,25 @@ void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 	active = true;
 }
 
+void AdPlayer::set_channel_enable(int channel, bool enable) {
+	enabled_channels[channel] = enable;
+	if (enable == true) {
+		opl_playback->EnableChannel(channel);
+	}
+	else {
+		opl_playback->DisableChannelAndPlayNote(channel, 0, nullptr);
+	}
+}
+
 bool AdPlayer::play(string file_path, int start_from) {
 	opl_playback->SetTrack(current_track.get());
 	opl_playback->SetBank(current_bank.get());
 	opl_playback->EnableAllChannels();
+	for (int v = 0; v < 11; v++) {
+		if (enabled_channels[v] == false) {
+			opl_playback->DisableChannelAndPlayNote(v, 0, nullptr);
+		}
+	}
 	opl_playback->SetRhythmMode(current_track->rhythm_mode);
 	opl_playback->seek(start_from);
 

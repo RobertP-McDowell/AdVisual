@@ -4,6 +4,7 @@ unique_ptr<AdPlayer> adplayer = nullptr;
 unique_ptr<Track> current_track = nullptr;
 unique_ptr<Bank> current_bank = nullptr;
 Channel* current_channel = nullptr;
+vector<bool> enabled_channels = {};
 wxStatusBar* status_bar;
 int current_channel_idx = 0;
 int cursor_tick = 0;
@@ -28,6 +29,24 @@ wxString note_number_to_letter(int note_number) {
 	note_symbol[1] = modifier;
 	note_symbol[2] = char(48 + (note_number / full_octave));
 	return note_symbol;
+}
+
+float get_float_from_string(string str_val, float min, float max) {
+	if (str_val.empty()) return -1.0;
+	float ret_float = 1.0;
+	try {
+		ret_float = stof(str_val);
+		ret_float = clamp(ret_float, min, max);
+	}
+	catch (invalid_argument e) {
+		cerr << str_val << " Not a float!\n";
+		ret_float = -1.0;
+	}
+	catch (out_of_range e) {
+		cerr << str_val << " Float out of range\n";
+		ret_float = -1.0;
+	}
+	return ret_float;
 }
 
 int PianoControl::get_note_number_at_position(wxPoint pos) {

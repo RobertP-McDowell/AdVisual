@@ -24,7 +24,7 @@ struct OPLFM {
 
 	uint8_t attack_rate = 0, decay_rate = 0, sustain_level = 0, release_rate = 0;
 	uint8_t frequency_multiplier = 0, feedback = 0, output_level = 0, ksl = 0, waveform = 0;
-	uint8_t sustain_sound = false, ksr = false, vibrato = false, tremelo = false;
+	uint8_t sustain_sound = false, ksr = false, vibrato = false, tremelo = false, additive_synth = false;
 
 	// the number at the end of these function is in hex!
 	uint8_t reg20()  const {
@@ -39,6 +39,9 @@ struct OPLFM {
 	uint8_t reg80() const {
 		return sustain_level << 4 | release_rate;
 	}
+	uint8_t regC0() const {
+		return feedback << 1 | additive_synth;
+	}
 	uint8_t regE0() const {
 		return 0 << 3 | waveform;
 	}
@@ -48,14 +51,10 @@ class Instrument {
 public:
 	Instrument() {}
 	Instrument(OPLFM p_carrier, OPLFM p_modulator) : carrier(p_carrier), modulator(p_modulator) {}
-	uint8_t percussion_mode = 0, voice_number = 0;
-	bool additive_synth = false;
+	uint8_t percussion_mode = 0; // 0=Melodic, 1=percussive.
+	uint8_t voice_number = 0; // Starts from 6 (percussive only).
 	OPLFM carrier;
 	OPLFM modulator;
-	uint8_t synth_type = 1; // 0 for Additive synth, 1 for Frequency modulation.
-	uint8_t regC0() const {
-		return modulator.feedback << 1 | (synth_type ^ 1);
-	}
 	uint8_t flags = 0; // 0 unused "record", 1 otherwise.
 	char name[9] = {'\0'};
 

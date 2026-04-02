@@ -20,7 +20,10 @@ public:
 	void stop();
 	void seek(unsigned long p_tick);
 	void mix_miniaudio(ma_device* p_device, void* p_output, const void* p_input, ma_uint32 frame_count);
+	void set_channel_enable(int channel, bool enable);
+	bool get_channel_enable(int channel) const { return enabled_channels[channel]; }
 protected:
+	vector<bool> enabled_channels;
 	long towrite;
 	ma_device mini_device;
 	unique_ptr<CVisPlayer> opl_playback;

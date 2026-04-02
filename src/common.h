@@ -47,7 +47,7 @@ const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
 const int full_octave = 12;
 
-const wxString ASSETS_PATH = "/home/robert/Desktop/AdVisual/assets/";
+const wxString ASSETS_PATH = "./assets/";
 
 enum
 {
@@ -70,8 +70,12 @@ enum
 	ID_VOICE_START, // Voices/Channel range.
 	ID_VOICE_END = ID_VOICE_START + 11,
 	ID_PREVIEW_CHANNELS,
-	ID_TRACK_OPTIONS,
-	ID_PIANO_GUIDE,
+	ID_TRACK_MENU,
+	ID_RHYTHM_MODE,
+	ID_BASIC_TEMPO,
+	ID_TICKS_PER_BEAT,
+	ID_BEATS_PER_MEASURE,
+	ID_AUDIO_FEEDBACK,
 	ID_FOLLOW_CURSOR,
 	ID_INSMAKER_START, // INSMAKER specific enums start here.
 	ID_INSTRUMENT_FIELD,
@@ -80,11 +84,18 @@ enum
 	ID_DELETE_INSTRUMENT,
 	ID_COPY_INSTRUMENT,
 	ID_ADDITIVE_SYNTH,
-	ID_PERCUSSION_MODE
+	ID_PERCUSSION_MODE,
+	ID_MELODIC_INSTRUMENT,
+	ID_BASS_INSTRUMENT,
+	ID_SNARE_INSTRUMENT,
+	ID_TOM_INSTRUMENT,
+	ID_CYMBAL_INSTRUMENT,
+	ID_HIHAT_INSTRUMENT
 };
 
 wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size);
 wxString note_number_to_letter(int note_number);
+float get_float_from_string(string str_val, float min = 0.0, float max = 1.0);
 
 class PianoControl : public wxControl {
 private:
@@ -170,7 +181,3 @@ public:
 	int GetScrollOffset() const { return scroll_offset; }
 	Instrument* GetInstrument() const { return instrument; }
 };
-
-
-
-

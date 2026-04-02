@@ -71,6 +71,7 @@ private:
 	}
 	void on_mouse_enter(wxMouseEvent& event) {
 		hovered = true;
+		status_bar->SetStatusText("Select channel, Shift+Left Click to enable/disable playback");
 		Refresh();
 		Update();
 	}
@@ -160,18 +161,29 @@ class AdVisualToolBar : public wxToolBar {
 public:
 	AdVisualToolBar(wxWindow* parent, int id = wxID_ANY, wxPoint position = wxDefaultPosition,
 		wxSize size = wxDefaultSize, long style = wxTB_HORIZONTAL, const wxString& name = wxToolBarNameStr);
-	void CreateComposerTools(ComposerPanel* composer_panel);
+	void CreateComposerTools(ComposerPanel* p_composer_panel);
 	void ShowComposerTools(bool show);
-	void CreateInsmakerTools(InsmakerPanel* insmaker_panel);
+	void CreateInsmakerTools(InsmakerPanel* p_insmaker_panel);
 	void ShowInsmakerTools(bool show);
+	void update_insmaker_toolbar();
 	wxPopupWindow* bank_popup;
 	BankControl* bank_ctrl;
+	wxMenu* instrument_edit_menu;
+	wxPopupTransientWindow* track_edit_popup;
 private:
 	void show_tools(bool show, vector<wxToolBarToolBase*> tools);
 	// Composer events:
 	void on_channel_button_pressed(wxCommandEvent& event);
 	void on_channel_button_enabled(wxCommandEvent& event);
 	void on_preview_channels_checked(wxCommandEvent& event);
+	void on_grid_feedback_checked(wxCommandEvent& event);
+	void on_follow_cursor_checked(wxCommandEvent& event);
+	// ^-Popup signals.
+	void on_popup_track_menu(wxCommandEvent& event);
+	void on_toggle_percussion(wxCommandEvent& event);
+	void on_enter_basic_tempo(wxCommandEvent& event);
+	void on_enter_ticks_per_beat(wxCommandEvent& event);
+	void on_enter_beats_per_measure(wxCommandEvent& event);
 	// Insmaker events:
 	void on_select_instrument_set_focus(wxFocusEvent& event);
 	void on_select_instrument_kill_focus(wxFocusEvent& event);
@@ -179,7 +191,15 @@ private:
 	void on_select_instrument_enter(wxCommandEvent& event);
 	void on_bank_selector_select_item(wxCommandEvent& event);
 	void on_toggle_additive_synth(wxCommandEvent& event);
+	// ^-Menu signals.
+	void on_popup_instrument_menu(wxCommandEvent& event);
+	void on_create_instrument(wxCommandEvent& event);
+	void on_copy_instrument(wxCommandEvent& event);
+	void on_delete_instrument(wxCommandEvent& event);
+	void on_set_instrument_percussion(wxCommandEvent& event);
 	
+	ComposerPanel* composer_panel;
+	InsmakerPanel* insmaker_panel;
 	vector<wxToolBarToolBase*> composer_tools;
 	vector<wxToolBarToolBase*> insmaker_tools;
 	vector<ChannelButton*> channel_buttons;
@@ -211,21 +231,22 @@ AdVisualToolBar::AdVisualToolBar(wxWindow* parent, int id, wxPoint position, wxS
 
 	AddRadioTool(ID_COMPOSER, "Composer Panel", GetAsset("ComposerIcon.svg", tool_size),
 		wxNullBitmap, "COMPOSER", "Edit Track in the COMPOSER panel.");
+
 	AddRadioTool(ID_INSMAKER, "Insmaker Panel", GetAsset("InsmakerIcon.svg", tool_size),
 		wxNullBitmap, "INSMAKER", "Edit Instrument in the INSMAKER panel.");
-	// Start Playback options.
+
 	AddSeparator();
 	AddTool(ID_PLAY_TRACK, "Play", GetAsset("PlayButton.svg", square_size), wxNullBitmap, wxITEM_CHECK,
 		"Start/Stop", "Start/Stop Track playback.");
+	AddSeparator();
 }
 
-void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
+void AdVisualToolBar::CreateComposerTools(ComposerPanel* p_composer_panel) {
 	tool_size = wxSize(54, 36) / 1.5;
 	square_size = wxSize(tool_size.y, tool_size.y);
+	composer_panel = p_composer_panel;
 	// Start Composer ToolBar.
 	// We add to composer tools, so we can hide and show them at will.
-	AddSeparator();
-
 	for (int i = ID_VOICE_START; i < ID_VOICE_END; i++) {
 		ChannelButton* new_button = new ChannelButton(this, i, to_string(i + 1 - ID_VOICE_START),
 			current_track->channels[i - ID_VOICE_START].colour, wxDefaultPosition, wxSize(62, 36));
@@ -240,27 +261,61 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* composer_panel) {
 		wxNullBitmap, wxITEM_CHECK, "Preview Channels", "Preview Notes from other Channels on the grid.") );
 	Bind(wxEVT_MENU, &AdVisualToolBar::on_preview_channels_checked, this, ID_PREVIEW_CHANNELS);
 
-	composer_tools.push_back( AddTool(ID_TRACK_OPTIONS, "Options", GetAsset("Cassete.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
+	composer_tools.push_back( AddTool(ID_TRACK_MENU, "Track Options", GetAsset("Cassete.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
 		"Track Options", "Change base Track settings.") );
-	AddSeparator();
-	composer_tools.push_back( AddTool(ID_PIANO_GUIDE, "Piano Guide", GetAsset("PianoGuideButton.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
-		"Piano Guide", "Show a piano on the grid.") );
-	composer_tools.push_back( AddTool(ID_FOLLOW_CURSOR, "Follow Cursor", GetAsset("SheetMusicBox.svg", tool_size), wxNullBitmap, wxITEM_NORMAL,
-		"Follow Cursor", "Follow the cursor during playback.") );
+
+	composer_tools.push_back( AddTool(ID_AUDIO_FEEDBACK, "Audio Feedback", GetAsset("AudioFeedback.svg", tool_size), wxNullBitmap, wxITEM_CHECK,
+		"Audio Feedback", "Sample newly created Notes on the grid.") );
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_grid_feedback_checked, this, ID_AUDIO_FEEDBACK);
+	//composer_tools.push_back( AddTool(ID_FOLLOW_CURSOR, "Follow Cursor", GetAsset("SheetMusicBox.svg", tool_size), wxNullBitmap, wxITEM_CHECK,
+	//	"Follow Cursor", "Follow the cursor during playback.") );
+	//Bind(wxEVT_MENU, &AdVisualToolBar::on_follow_cursor_checked, this, ID_FOLLOW_CURSOR);
+
+	// Track Popup.
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_popup_track_menu, this, ID_TRACK_MENU);
+
+	track_edit_popup = new wxPopupTransientWindow(this, wxBORDER_RAISED);
+	wxGridSizer* track_popup_sizer = new wxGridSizer(2, 10, 20);
+
+	wxStaticText* percussion_name = new wxStaticText(track_edit_popup, wxID_ANY, "With Percussion");
+	wxCheckBox* percussion_checkbox = new wxCheckBox(track_edit_popup, ID_RHYTHM_MODE, "");
+	percussion_checkbox->Bind(wxEVT_CHECKBOX, &AdVisualToolBar::on_toggle_percussion, this);
+
+	wxStaticText* tempo_name = new wxStaticText(track_edit_popup, wxID_ANY, "Basic Tempo");
+	wxTextCtrl* tempo_ctrl = new wxTextCtrl(track_edit_popup, wxID_ANY, "120", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	tempo_ctrl->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_enter_basic_tempo, this);
+
+	wxStaticText* beat_name = new wxStaticText(track_edit_popup, wxID_ANY, "Ticks per Beat");
+	wxTextCtrl* beat_ctrl = new wxTextCtrl(track_edit_popup, wxID_ANY, "4", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	beat_ctrl->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_enter_ticks_per_beat, this);
+
+	wxStaticText* measure_name = new wxStaticText(track_edit_popup, wxID_ANY, "Beats per Measure");
+	wxTextCtrl* measure_ctrl = new wxTextCtrl(track_edit_popup, wxID_ANY, "4", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	measure_ctrl->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_enter_beats_per_measure, this);
+
+	track_popup_sizer->Add(percussion_name, 1, wxEXPAND);
+	track_popup_sizer->Add(percussion_checkbox, 1, wxEXPAND);
+	track_popup_sizer->Add(tempo_name, 1, wxEXPAND);
+	track_popup_sizer->Add(tempo_ctrl, 1, wxEXPAND);
+	track_popup_sizer->Add(beat_name, 1, wxEXPAND);
+	track_popup_sizer->Add(beat_ctrl, 1, wxEXPAND);
+	track_popup_sizer->Add(measure_name, 1, wxEXPAND);
+	track_popup_sizer->Add(measure_ctrl, 1, wxEXPAND);
+	track_edit_popup->SetSizerAndFit(track_popup_sizer);
 }
 
-void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
+void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* p_insmaker_panel) {
 	wxSize tool_size = wxSize(54, 36) / 1.5;
 	wxSize square_size = wxSize(tool_size.y, tool_size.y);
+	insmaker_panel = p_insmaker_panel;
 	// Start Composer ToolBar.
 	// We add to composer tools, so we can hide and show them at will.
-	AddSeparator();
 	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxSize(125, 1), wxTE_PROCESS_ENTER);
 	instrument_select_field->Bind(wxEVT_SET_FOCUS, &AdVisualToolBar::on_select_instrument_set_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_KILL_FOCUS, &AdVisualToolBar::on_select_instrument_kill_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_TEXT, &AdVisualToolBar::on_select_instrument_text_changed, this, ID_INSTRUMENT_FIELD);
 	instrument_select_field->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_select_instrument_enter, this, ID_INSTRUMENT_FIELD);
-	
+
 	insmaker_tools.push_back(AddControl(instrument_select_field, "Select Instrument"));
 	insmaker_tools.push_back(AddTool(ID_INSTRUMENT_MENU, "Edit Instrument", GetAsset("DropdownButton.svg", tool_size),
 		wxNullBitmap, wxITEM_NORMAL, "Edit Bank", "Edit Instrument in Bank"));
@@ -269,6 +324,25 @@ void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* insmaker_panel) {
 
 	Bind(wxEVT_MENU, &AdVisualToolBar::on_toggle_additive_synth, this, ID_ADDITIVE_SYNTH);
 	//Bind(wxEVT_MENU, &MainFrame::on_change_percussion_mode, this, ID_PERCUSSION_MODE);
+
+	// Instrument Popup.
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_popup_instrument_menu, this, ID_INSTRUMENT_MENU);
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_create_instrument, this, ID_CREATE_INSTRUMENT);
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_copy_instrument, this, ID_COPY_INSTRUMENT);
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_delete_instrument, this, ID_DELETE_INSTRUMENT);
+	Bind(wxEVT_MENU, &AdVisualToolBar::on_set_instrument_percussion, this, wxID_ANY);
+
+	instrument_edit_menu = new wxMenu();
+	instrument_edit_menu->Append(ID_CREATE_INSTRUMENT, "Create", "Create a new Instrument", wxITEM_NORMAL);
+	// TODO: implement copying.
+	instrument_edit_menu->Append(ID_DELETE_INSTRUMENT, "Delete", "Delete the selected Instrument", wxITEM_NORMAL);
+	instrument_edit_menu->AppendSeparator();
+	instrument_edit_menu->AppendRadioItem(ID_MELODIC_INSTRUMENT, "Melodic mode", "Melodic instruments use two operators.");
+	instrument_edit_menu->AppendRadioItem(ID_BASS_INSTRUMENT, "Bass Drum mode", "Bass Drum instruments use one operator.");
+	instrument_edit_menu->AppendRadioItem(ID_SNARE_INSTRUMENT, "Snare Drum mode", "Snare Drum instruments use one operator.");
+	instrument_edit_menu->AppendRadioItem(ID_TOM_INSTRUMENT, "Tom mode", "Tom instruments use one operator.");
+	instrument_edit_menu->AppendRadioItem(ID_CYMBAL_INSTRUMENT, "Cymbal mode", "Cymbal instruments use one operator.");
+	instrument_edit_menu->AppendRadioItem(ID_HIHAT_INSTRUMENT, "Hi-Hat mode", "Hi-Hat instruments use one operator.");
 }
 
 void AdVisualToolBar::show_tools(bool show, vector<wxToolBarToolBase*> tools) {
@@ -288,6 +362,7 @@ void AdVisualToolBar::ShowComposerTools(bool show) {
 	show_tools(show, composer_tools);
 }
 void AdVisualToolBar::ShowInsmakerTools(bool show) {
+	update_insmaker_toolbar();
 	show_tools(show, insmaker_tools);
 }
 
@@ -299,8 +374,8 @@ public:
 	AdVisualToolBar* toolbar;
 	wxMenu* file_menu;
 	wxMenu* help_menu;
-	wxMenu* instrument_edit_menu;
 private:
+	// Main signals
 	void on_show_composer_panel(wxCommandEvent& event);
 	void on_show_insmaker_panel(wxCommandEvent& event);
 	void on_play_track(wxCommandEvent& event);
@@ -312,11 +387,6 @@ private:
 	void on_about(wxCommandEvent& event);
 	void on_popup_file_menu(wxCommandEvent& event);
 	void on_popup_help_menu(wxCommandEvent& event);
-	// Insmaker signals.
-	void on_popup_instrument_menu(wxCommandEvent& event);
-	void on_create_instrument(wxCommandEvent& event);
-	void on_copy_instrument(wxCommandEvent& event);
-	void on_delete_instrument(wxCommandEvent& event);
 };
 
 
@@ -366,7 +436,7 @@ MainFrame::MainFrame() :
 	Bind(wxEVT_MENU, &MainFrame::on_popup_file_menu, this, ID_FILE_MENU);
 	Bind(wxEVT_MENU, &MainFrame::on_popup_help_menu, this, ID_HELP_MENU);
 
-	file_menu = new wxMenu("File");
+	file_menu = new wxMenu();
 	file_menu->Append(ID_LOAD_TRACK, "&Load Track...\tCtrl-L", "Load ROL files");
 	file_menu->Append(ID_SAVE_TRACK, "&Save Track...\tCtrl-S", "Save ROL file to location");
 	file_menu->Append(ID_SAVE_TRACK_AS, "&Save Track As...\tShift-Ctrl-S", "Save ROL file to location");
@@ -378,19 +448,20 @@ MainFrame::MainFrame() :
 	file_menu->AppendSeparator();
 	file_menu->Append(wxID_EXIT);
 
-	help_menu = new wxMenu("Help");
+	help_menu = new wxMenu();
 	help_menu->Append(wxID_ABOUT);
+}
 
-	// Insmaker only.
-	Bind(wxEVT_MENU, &MainFrame::on_popup_instrument_menu, this, ID_INSTRUMENT_MENU);
-	Bind(wxEVT_MENU, &MainFrame::on_create_instrument, this, ID_CREATE_INSTRUMENT);
-	Bind(wxEVT_MENU, &MainFrame::on_copy_instrument, this, ID_COPY_INSTRUMENT);
-	Bind(wxEVT_MENU, &MainFrame::on_delete_instrument, this, ID_DELETE_INSTRUMENT);
-
-	instrument_edit_menu = new wxMenu();
-	instrument_edit_menu->Append(ID_CREATE_INSTRUMENT, "Create", "Create a new Instrument", wxITEM_NORMAL);
-	// TODO: implement copying.
-	instrument_edit_menu->Append(ID_DELETE_INSTRUMENT, "Delete", "Delete the selected Instrument", wxITEM_NORMAL);
+void AdVisualToolBar::update_insmaker_toolbar() {
+	ToggleTool(ID_ADDITIVE_SYNTH, insmaker_panel->GetAdditiveSynth());
+	if (insmaker_panel->GetAdditiveSynth()) {
+		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("AMSynth.svg", tool_size));
+	}
+	else {
+		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("FMSynth.svg", tool_size));
+	}
+	instrument_edit_menu->Check(ID_MELODIC_INSTRUMENT + insmaker_panel->GetPercussionMode(), true);
+	instrument_edit_menu->UpdateUI();
 }
 
 void MainFrame::on_popup_file_menu(wxCommandEvent& event) {
@@ -480,47 +551,96 @@ void MainFrame::on_save_bank(wxCommandEvent& event) {
 	Update();
 }
 
-void MainFrame::on_popup_instrument_menu(wxCommandEvent& event) {
-	toolbar->bank_popup->Show(false);
-	PopupMenu(instrument_edit_menu);
+// Track Popup.
+void AdVisualToolBar::on_popup_track_menu(wxCommandEvent& event) {
+	track_edit_popup->Position(ClientToScreen((wxPoint(GetSize().x, GetSize().y) / 2) - track_edit_popup->GetSize()),
+		track_edit_popup->GetSize());
+	track_edit_popup->Popup();
 }
-void MainFrame::on_create_instrument(wxCommandEvent& event) {
-	Instrument new_instrument = Instrument::default_instrument; // Copy the default instrument.
-	strcpy(new_instrument.name, toolbar->bank_ctrl->GetText());
-	current_bank->add_instrument(new_instrument);
-	toolbar->bank_ctrl->SetBank(current_bank.get()); // Update entries in bank control.
-	toolbar->bank_ctrl->FilterString(new_instrument.name); // Go to new entry in bank control.
+void AdVisualToolBar::on_toggle_percussion(wxCommandEvent& event) {
+	current_track->rhythm_mode = (event.IsChecked() ? 0 : 1);
+	Refresh();
+	Update();
 }
-void MainFrame::on_copy_instrument(wxCommandEvent& event) {
-	
+void AdVisualToolBar::on_enter_basic_tempo(wxCommandEvent& event) {
+	current_track->basic_tempo = get_float_from_string((string)event.GetString(), 0.01, 1000.0);
+	Refresh();
+	Update();
 }
-void MainFrame::on_delete_instrument(wxCommandEvent& event) {
-	current_bank->delete_instrument(toolbar->bank_ctrl->GetText());
-	toolbar->bank_ctrl->SetBank(current_bank.get()); // Update entries in bank control.
-	insmaker_panel->SetInstrumentByName(toolbar->bank_ctrl->GetText()); // Essentially clearing the insmaker editor.
+void AdVisualToolBar::on_enter_ticks_per_beat(wxCommandEvent& event) {
+	current_track->ticks_per_beat = (int)get_float_from_string((string)event.GetString(), 0.01, 1000.0);
+	Refresh();
+	Update();
+}
+void AdVisualToolBar::on_enter_beats_per_measure(wxCommandEvent& event) {
+	current_track->beats_per_measure = (int)get_float_from_string((string)event.GetString(), 0.01, 1000.0);
+	Refresh();
+	Update();
 }
 
+// Instrument menu.
+void AdVisualToolBar::on_popup_instrument_menu(wxCommandEvent& event) {
+	bank_popup->Show(false);
+	PopupMenu(instrument_edit_menu);
+}
+void AdVisualToolBar::on_create_instrument(wxCommandEvent& event) {
+	Instrument new_instrument = Instrument::default_instrument; // Copy the default instrument.
+	strcpy(new_instrument.name, bank_ctrl->GetText());
+	current_bank->add_instrument(new_instrument);
+	bank_ctrl->SetBank(current_bank.get()); // Update entries in bank control.
+	bank_ctrl->FilterString(new_instrument.name); // Go to new entry in bank control.
+	insmaker_panel->SetInstrumentByName(new_instrument.name); // Set it in the Insmaker panel.
+	update_insmaker_toolbar();
+}
+void AdVisualToolBar::on_copy_instrument(wxCommandEvent& event) {
+	
+}
+void AdVisualToolBar::on_delete_instrument(wxCommandEvent& event) {
+	current_bank->delete_instrument(bank_ctrl->GetText());
+	bank_ctrl->SetBank(current_bank.get()); // Update entries in bank control.
+	insmaker_panel->SetInstrumentByName(bank_ctrl->GetText()); // Essentially clearing the insmaker editor.
+	update_insmaker_toolbar();
+}
+void AdVisualToolBar::on_set_instrument_percussion(wxCommandEvent& event) {
+	if (event.GetId() < ID_MELODIC_INSTRUMENT || event.GetId() > ID_HIHAT_INSTRUMENT) {
+		event.Skip();
+		return;
+	}
+	insmaker_panel->SetPercussionMode(event.GetId() - ID_MELODIC_INSTRUMENT);
+}
+
+// Composer toolbar.
 void AdVisualToolBar::on_channel_button_pressed(wxCommandEvent& event) {
-	ComposerPanel* composer_panel = static_cast<MainFrame*>(GetParent())->composer_panel;
 	channel_buttons[composer_panel->GetChannelIndex()]->SetPressed(false);
 	composer_panel->SetChannelIndex(event.GetId() - ID_VOICE_START);
 	Refresh();
 	Update();
 }
 void AdVisualToolBar::on_channel_button_enabled(wxCommandEvent& event) {
-	ComposerPanel* composer_panel = static_cast<MainFrame*>(GetParent())->composer_panel;
-	composer_panel->SetChannelEnable(event.GetId() - ID_VOICE_START, (bool)event.GetInt());
+	adplayer->set_channel_enable(event.GetId() - ID_VOICE_START, (bool)event.GetInt());
 	Refresh();
 	Update();
 }
 
 void AdVisualToolBar::on_preview_channels_checked(wxCommandEvent& event) {
-	ComposerPanel* composer_panel = static_cast<MainFrame*>(GetParent())->composer_panel;
 	composer_panel->SetPreviewChannels(event.IsChecked());
 	Refresh();
 	Update();
 }
 
+void AdVisualToolBar::on_grid_feedback_checked(wxCommandEvent& event) {
+	composer_panel->SetAudioFeedback(event.IsChecked());
+	Refresh();
+	Update();
+}
+
+void AdVisualToolBar::on_follow_cursor_checked(wxCommandEvent& event) {
+	//composer_panel->follow_cursor = true;
+	Refresh();
+	Update();
+}
+
+// Insmaker toolbar.
 void AdVisualToolBar::on_select_instrument_set_focus(wxFocusEvent& event) {
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
 	wxSize popup_size = wxSize(100, 100);
@@ -529,12 +649,12 @@ void AdVisualToolBar::on_select_instrument_set_focus(wxFocusEvent& event) {
 	bank_popup->Position(popup_pos - popup_size, popup_size);
 	bank_popup->Show(true);
 }
+
 void AdVisualToolBar::on_select_instrument_kill_focus(wxFocusEvent& event) {
 	bank_popup->Show(false);
 }
 
 void AdVisualToolBar::on_select_instrument_text_changed(wxCommandEvent& event) {
-	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
 	char ins_name[9];
 	wxString evt_str = event.GetString().MakeUpper();
@@ -544,18 +664,17 @@ void AdVisualToolBar::on_select_instrument_text_changed(wxCommandEvent& event) {
 }
 
 void AdVisualToolBar::on_select_instrument_enter(wxCommandEvent& event) {
-	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(event.GetId()));
 	char ins_name[9];
 	wxString evt_str = event.GetString().MakeUpper();
 	evt_str.resize(8);
 	memcpy(&ins_name, evt_str.c_str(), 9);
 	insmaker_panel->SetInstrumentByName(ins_name);
+	update_insmaker_toolbar();
 	event.Skip();
 }
 
 void AdVisualToolBar::on_bank_selector_select_item(wxCommandEvent& event) {
-	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
 	wxTextCtrl* text_tool = static_cast<wxTextCtrl*>(FindControl(ID_INSTRUMENT_FIELD));
 	char ins_name[9];
 	wxString evt_str = wxString(event.GetString()).MakeUpper();
@@ -563,15 +682,10 @@ void AdVisualToolBar::on_bank_selector_select_item(wxCommandEvent& event) {
 	memcpy(&ins_name, evt_str.c_str(), 9);
 	text_tool->ChangeValue(ins_name);
 	insmaker_panel->SetInstrumentByName(ins_name);
+	update_insmaker_toolbar();
 }
 
 void AdVisualToolBar::on_toggle_additive_synth(wxCommandEvent& event) {
-	InsmakerPanel* insmaker_panel = static_cast<MainFrame*>(GetParent())->insmaker_panel;
-	insmaker_panel->SetAdditiveSynth(uint8_t(event.IsChecked()));
-	if (insmaker_panel->GetAdditiveSynth()) {
-		SetToolNormalBitmap(event.GetId(), GetAsset("AMSynth.svg", tool_size));
-	}
-	else {
-		SetToolNormalBitmap(event.GetId(), GetAsset("FMSynth.svg", tool_size));
-	}
+	insmaker_panel->SetAdditiveSynth(event.IsChecked());
+	update_insmaker_toolbar();
 }

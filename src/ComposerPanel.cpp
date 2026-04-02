@@ -18,7 +18,6 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	current_channel_idx = 0;
 	current_track = make_unique<Track>();
 	current_channel = &(current_track->channels[0]);
-	enabled_channels.resize(11, true);
 
 	event_header = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
 	event_header->SetBackgroundColour(bg_colour);
@@ -123,10 +122,6 @@ void ComposerPanel::SetPreviewChannels(bool value) {
 	preview_channels = value;
 	Refresh();
 	Update();
-}
-
-void ComposerPanel::SetChannelEnable(int channel, bool enable) {
-	enabled_channels[channel] = enable; // Toggle.
 }
 
 void ComposerPanel::SetChannelIndex(int channel) {
@@ -260,7 +255,9 @@ void ComposerPanel::on_lmb_down(wxMouseEvent& event) {
 	editing_note->offset = mouse_down_start.m_x / cell_size.x;
 	editing_note->pitch = mouse_down_start.m_y / cell_size.y;
 	editing_note->length = 1;
-	adplayer->play_note(editing_note->pitch, current_channel_idx, piano_ctrl->GetInstrument());
+	if (grid_audio_feedback) {
+		adplayer->play_note(editing_note->pitch, current_channel_idx, piano_ctrl->GetInstrument());
+	}
 	Refresh();
 	Update();
 }
@@ -319,14 +316,61 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 	status_bar->SetStatusText(note_number_to_letter(local_mouse_position.m_y / cell_size.y));
 }
 
+void ComposerPanel::copy_notes() {
+	copy_buffer.clear();
+	if (cursor_tick - cursor_end == 0) {
+		return; // Return if no range is selected.
+	}
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_end = (cursor_tick <= cursor_end ? cursor_end : cursor_tick);
+	for (int i = 0; i < current_channel->notes.size(); i++) {
+		Note& note = current_channel->notes[i];
+		if (note.offset < selection_end && note.offset + note.length > selection_start) {
+			Note copy_note = note;
+			copy_note.offset -= selection_start;
+			if (copy_note.offset < 0) {
+				copy_note.offset = 0;
+			}
+			if (copy_note.length > selection_end - selection_start) {
+				copy_note.length = selection_end - selection_start;
+			}
+			copy_buffer.push_back(copy_note);
+		}
+	}
+	if (!copy_buffer.empty()) {
+		copy_buffer_start_offset = selection_start - copy_buffer[0].offset;
+		copy_buffer_length = selection_end - selection_start;
+	}
+}
+
+void ComposerPanel::paste_notes() {
+	// Erase notes before pasting.
+	int ins_pos;
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_length = (cursor_tick <= cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end);
+	current_channel->erase_notes(selection_start, selection_length, ins_pos);
+	for (Note new_note : copy_buffer) {
+		new_note.offset += selection_start;
+		current_channel->add_note(new_note);
+	}
+}
+
 void ComposerPanel::on_key_down(wxKeyEvent& event) {
 	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
 	int selection_length = (cursor_tick <= cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end);
-	cout << event.GetKeyCode() << "\n";
+	int ins_pos; // generic used for erasing notes.
 	switch (event.GetKeyCode()) {
-	case 88: // TODO: Should equal 'x' keycode, temporary solution. I should later put this in a on_char_down function or something
+	case 67: // 'c' keycode. TODO: temporary solution, should be in on_char event function.
+		copy_notes();
+		break;
+	case 86: // 'v' keycode.
+		paste_notes();
+		break;
+	case 88: // 'x' keycode.
+		copy_notes();
+		current_channel->erase_notes(selection_start, selection_length, ins_pos);
+		break;
 	case WXK_BACK: // Erase contents of selection.
-		int ins_pos;
 		current_channel->erase_notes(selection_start, selection_length, ins_pos);
 		break;
 	case WXK_RETURN: // Chop selection (selection is erased, and everything past cursor end gets repositioned back to cursor start).
@@ -439,24 +483,6 @@ void ComposerPanel::on_lmb_up_event_header(wxMouseEvent& event) {
 ///////////////////////////////////////////////////////////////////////////////////
 // EventPopup Functions ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
-
-float get_float_from_string(string str_val, float min = 0.0, float max = 1.0) {
-	if (str_val.empty()) return -1.0;
-	float ret_float = 1.0;
-	try {
-		ret_float = stof(str_val);
-		ret_float = clamp(ret_float, min, max);
-	}
-	catch (invalid_argument e) {
-		cerr << str_val << " Not a float!\n";
-		ret_float = -1.0;
-	}
-	catch (out_of_range e) {
-		cerr << str_val << " Float out of range\n";
-		ret_float = -1.0;
-	}
-	return ret_float;
-}
 
 void EventPopup::init_event_field(wxGridSizer* sizer, wxTextCtrl*& event_field, int ID) {
 	event_field = new wxTextCtrl(this, ID);

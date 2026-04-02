@@ -151,12 +151,29 @@ CPlayer* CVisPlayer::factory(Copl* p_opl, Track* p_track, Bank* p_bank) {
 	return new CVisPlayer(p_opl, p_track, p_bank);
 }
 //---------------------------------------------------------
-void CVisPlayer::EnableChannel(int channel) {
-	NoteOff(channel);
-	dynamic_notes[channel] = -1;
+void CVisPlayer::EnableChannel(int v) {
+	if (v >= get_channel_count()) {
+		return;
+	}
+	NoteOff(v);
+	dynamic_notes[v] = -1;
+	int ins_tick, pitch_tick, volume_tick;
+	float pitch_value, volume_value;
+	string ins_value;
+	Channel* channel = track->GetChannel(v);
+	channel->get_last_instrument_event(tick, ins_tick, ins_value);
+	channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
+	channel->get_last_volume_event(tick, volume_tick, volume_value);
+	Instrument* instrument = bank->find_instrument(ins_value);
+	SetInstrument(v, instrument);
+	SetVolume(v, uint8_t(kMaxVolume * volume_value));
+	ChangePitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
 }
 //---------------------------------------------------------
 void CVisPlayer::DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument, float pitch_mult, float volume_mult) {
+	if (channel >= get_channel_count()) {
+		return;
+	}
 	if (note_pitch <= -1) { // Let the channel play as normal (if it's also enabled).
 		NoteOff(channel);
 		dynamic_notes[channel] = -1;
@@ -433,7 +450,6 @@ void CVisPlayer::SetVolume(int const voice, const uint8_t volume) {
 }
 //---------------------------------------------------------
 void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
-	opl->write(skOPL2_FeedConBaseAddress + voice, instrument->regC0());
 	const OPLFM& c = instrument->carrier;
 	const OPLFM& m = instrument->modulator;
 	if ((voice < kSnareDrumChannel) || !mRhythmMode) {
@@ -447,7 +463,7 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 		opl->write(skOPL2_KSLTLBaseAddress    + op_offset, m.reg40());
 		opl->write(skOPL2_ArDrBaseAddress     + op_offset, m.reg60());
 		opl->write(skOPL2_SlrrBaseAddress     + op_offset, m.reg80());
-        opl->write(skOPL2_FeedConBaseAddress  + voice    , instrument->regC0());
+		opl->write(skOPL2_FeedConBaseAddress  + voice    , m.regC0());
 		opl->write(skOPL2_WaveformBaseAddress + op_offset, m.regE0());
 
 		mKSLTLCache[voice] = c.reg40();
@@ -467,7 +483,7 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 		opl->write(skOPL2_KSLTLBaseAddress    + op_offset, GetKSLTL(voice, 0, 0));
 		opl->write(skOPL2_ArDrBaseAddress     + op_offset, m.reg60());
 		opl->write(skOPL2_SlrrBaseAddress     + op_offset, m.reg80());
-		//opl->write(skOPL2_FeedConBaseAddress  + voice    , instrument->regC0()); // TODO: Check if this should be uncommented.
+		//opl->write(skOPL2_FeedConBaseAddress  + voice    , m.regC0()); // TODO: Check if this should be uncommented.
 		opl->write(skOPL2_WaveformBaseAddress + op_offset, m.regE0());
 	}
 }
