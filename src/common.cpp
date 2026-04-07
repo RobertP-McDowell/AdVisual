@@ -12,6 +12,7 @@ int cursor_tick = 0;
 wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size) {
 	return wxBitmapBundle::FromSVGFile(ASSETS_PATH + asset_name, asset_size);
 }
+
 wxString note_number_to_letter(int note_number) {
 	wxString note_symbol = "--1";
 	// Add 3 to make up for the pitch start cuttof. Add an octave so it wraps from pitch start.

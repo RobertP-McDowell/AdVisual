@@ -47,7 +47,7 @@ const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
 const int full_octave = 12;
 
-const wxString ASSETS_PATH = "./assets/";
+// const wxString ASSETS_PATH = "../assets/";
 
 enum
 {

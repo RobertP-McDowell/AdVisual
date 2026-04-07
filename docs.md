@@ -4,9 +4,8 @@ AdVisual has two main panels where you will do your work. The one you start off 
 The Insmaker panel allows you to create and edit instruments, and manage your bnk files. Click the saxophone icon in the toolbar to switch to it.
 
 ## Compiling
-It can be compiled with g++, after downloading got to the main project directory and paste this snippet 
-`g++ -o ./bin/COMPOSER2 -g ./src/*.cpp ./src/*.c -I ./include/ -I ./src/ -L ./lib/ `wx-config --cxxflags` `wx-config --libs` -ladplug -llibbinio && g  
-db --quiet -ex 'run' ./bin/COMPOSER2`
+The project depends on wxWidgets, adplug and miniaudio.h. It can be compiled with CMake, tested with make (on arch) and ninja (on windows). Don't forget to install the binaries!
+
 ## Files.
  The .rol file format is the only song type supported, it contains the tracks note and event info. You can press load track to open one of the sample rol files, or start editing from scratch.
 The .bnk file format contains Instrument data, which can be edited in the Insmaker panel.
