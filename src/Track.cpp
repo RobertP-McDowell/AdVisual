@@ -1,5 +1,6 @@
 #include <Track.h>
 #include <FileAccess.h>
+#include <common.h>
 using namespace FileAccess;
 
 const wxColour ChannelColours[11] = { wxColour(255, 100, 100), wxColour(100, 255, 100), wxColour(100, 100, 255), wxColour(140, 40, 208),
@@ -134,7 +135,7 @@ void Track::save_file(wxString save_path) {
 	rol_move_fields();
 	file_path = try_path;
 
-	file.close();
+	ios_file.close();
 }
 
 void Track::load_file(wxString load_path) {
@@ -145,81 +146,84 @@ void Track::load_file(wxString load_path) {
 	rol_move_fields();
 	file_path = try_path;
 
-	file.close();
+	ios_file.close();
 }
 
 void Track::rol_move_fields() {
-	fieldcpy(&file_version_major, 2);
-	fieldcpy(&file_version_minor, 2);
+	fieldcpy_uint16(&file_version_major, 2);
+	fieldcpy_uint16(&file_version_minor, 2);
+	DBPRINT("File version " << int(file_version_major) << "." << int(file_version_minor));
 	fieldzero(40); // "Meta data".
-	fieldcpy(&ticks_per_beat, 2);
-	fieldcpy(&beats_per_measure, 2);
-	fieldcpy(&editor_scale.y, 2);
-	fieldcpy(&editor_scale.x, 2);
+	fieldcpy_uint16(&ticks_per_beat, 2);
+	fieldcpy_uint16(&beats_per_measure, 2);
+	fieldcpy_uint16(&editor_scale_y, 2);
+	fieldcpy_uint16(&editor_scale_x, 2);
 	fieldzero(1);            // unused.
-	fieldcpy(&rhythm_mode, 1);
-	fieldzero(90 + 38 + 15); // unused, filler, filler. Specs don't specify why.
-	fieldcpy(&basic_tempo, 4);
-	
+	fieldcpy_uint8(&rhythm_mode, 1);
+	fieldzero(90 + 38 + 15); // unused, filler, filler. Specs don't specify how they're different.
+	basic_tempo = 60.0f;
+	fieldcpy_float(&basic_tempo);
+	DBPRINT("basic_tempo " << basic_tempo << " pos " << file.pos());
 	fieldcpy_float_events(tempo_events, 0);
 	for (int voice_idx = 0; voice_idx < 11; voice_idx++) {
 		Channel& voice = *GetChannel(voice_idx);
 		fieldzero(15); // filler.
+		uint16_t tick_count = voice.get_tick_count();
+		fieldcpy_uint16(&tick_count, 2);
+		DBPRINT("process notes, " << tick_count << " ticks");
 		if (writing == true) {
-			int16_t tick_count = voice.get_tick_count();
-			fieldcpy_write(&tick_count, 2);
-			int16_t note_end = 0;
+			uint16_t note_end = 0;
 			for (Note& note : voice.notes) {
 				if (note_end < note.offset) {
+					uint16_t empty_note_length = (note.offset - note_end);
 					fieldzero(2); // Empty note number is 0, so simply fieldzero 2 bytes.
-					int16_t empty_note_length = (note.offset - note_end);
-					fieldcpy_write(&empty_note_length, 2); // Empty note length.
+					fieldcpy_uint16(&empty_note_length, 2); // Empty note length.
 				}
-				int16_t note_number = int16_t(-(note.pitch - 107));
-				int16_t note_length = int16_t(note.length);
-				fieldcpy_write(&note_number, 2);
-				fieldcpy_write(&note_length, 2);
+				uint16_t note_number = int16_t(-(note.pitch - 107));
+				uint16_t note_length = int16_t(note.length);
+				fieldcpy_uint16(&note_number, 2);
+				fieldcpy_uint16(&note_length, 2);
 				note_end = note.offset + note.length;
+				// DBPRINT("note_number " << note_number << ", duration " << note_length << ", tick " << note.offset);
 			}
 		}
 		else {
-			int16_t tick_count;
-			fieldcpy_read(&tick_count, 2);
-			int16_t note_number = 0;
-			int16_t note_duration = 0;
-			int16_t current_tick = 0;
+			uint16_t note_number = 0;
+			uint16_t note_duration = 0;
+			uint16_t current_tick = 0;
 			while(current_tick < tick_count) {
-				fieldcpy(&note_number, 2);
-				fieldcpy(&note_duration, 2);
+				fieldcpy_uint16(&note_number, 2);
+				fieldcpy_uint16(&note_duration, 2);
 				if (note_number != 0) {
 					Note new_note(current_tick, (107-note_number), note_duration);
 					voice.notes.push_back(new_note);
 				}
+				// DBPRINT("note_number " << note_number << ", duration " << note_duration << ", tick " << current_tick);
 				current_tick += note_duration;
 			}
 		}
 		fieldzero(15); // filler.
+		uint16_t ins_event_count = voice.instrument_events.size();
+		fieldcpy_uint16(&ins_event_count, 2);
+		DBPRINT("ins_event_count " << ins_event_count);
 		if (writing == true) {
-			int16_t ins_event_count = voice.instrument_events.size();
-			fieldcpy_write(&ins_event_count, 2);
 			for (auto it = voice.instrument_events.begin(); it != voice.instrument_events.end(); it++) {
-				int16_t event_tick = it->first;
+				uint16_t event_tick = it->first;
 				char ins_name[9];
 				memcpy(ins_name, it->second.c_str(), 9);
-				fieldcpy_write(&event_tick, 2);
-				fieldcpy_write(&ins_name, 9);
+				fieldcpy_uint16(&event_tick, 2);
+				fieldcpy_char(&ins_name[0], 9);
 				fieldzero(1 + 2); // filler, unused.
 			}
 		}
 		else {
-			int16_t ins_event_count;
-			fieldcpy_read(&ins_event_count, 2);
 			for (int i = 0; i < ins_event_count; i++) {
-				int16_t event_tick;
+				uint16_t event_tick;
 				char ins_name[9];
-				fieldcpy_read(&event_tick, 2);
-				fieldcpy_read(&ins_name, 9);
+				fieldcpy_uint16(&event_tick, 2);
+				fieldcpy_char(&ins_name[0], 9);
 				fieldzero(1 + 2); // filler, unused, filler.
+				DBPRINT("insi " << i << ", event_tick " << event_tick << ", ins_name " << ins_name);
 				voice.instrument_events.insert({event_tick, string(ins_name)});
 			}
 		}
@@ -227,5 +231,7 @@ void Track::rol_move_fields() {
 		fieldcpy_float_events(voice.volume_events, 0);
 		fieldzero(15); // filler
 		fieldcpy_float_events(voice.pitch_events, 0);
+		DBPRINT("Finished copying channel " << voice_idx << ", file position: " << file.pos());
 	}
+	DBPRINT("Finished moving rol file\n");
 }

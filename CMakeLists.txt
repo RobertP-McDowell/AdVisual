@@ -9,17 +9,20 @@ file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 target_sources(AdVisual PUBLIC ${src_files})
 target_include_directories(AdVisual PUBLIC "include")
 target_include_directories(AdVisual PUBLIC "src")
-link_directories(${CMAKE_SOURCE_DIR}/lib)
+target_link_directories(AdVisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
+message(STATUS "Adding ${CMAKE_SOURCE_DIR}/lib to library link path.")
 
 include(UsewxWidgets)
 target_link_libraries(AdVisual PRIVATE ${wxWidgets_LIBRARIES})
+target_link_libraries(AdVisual PRIVATE libbinio)
 target_link_libraries(AdVisual PRIVATE adplug)
 
 target_compile_definitions(AdVisual PUBLIC ASSETS_PATH="${CMAKE_INSTALL_PREFIX}/share/AdVisual/assets/")
 
-install(TARGETS AdVisual DESTINATION bin)
+install(TARGETS AdVisual DESTINATION bin
+	PERMISSIONS WORLD_READ OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_EXECUTE)
 
 install(DIRECTORY assets DESTINATION share/AdVisual
-	FILE_PERMISSIONS WORLD_READ OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE
-	DIRECTORY_PERMISSIONS WORLD_READ WORLD_EXECUTE OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE)
+	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ
+	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 

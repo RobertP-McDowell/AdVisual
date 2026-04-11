@@ -281,7 +281,7 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* p_composer_panel) {
 	wxCheckBox* percussion_checkbox = new wxCheckBox(track_edit_popup, ID_RHYTHM_MODE, "");
 	percussion_checkbox->Bind(wxEVT_CHECKBOX, &AdVisualToolBar::on_toggle_percussion, this);
 
-	wxStaticText* tempo_name = new wxStaticText(track_edit_popup, wxID_ANY, "Basic Tempo");
+	wxStaticText* tempo_name = new wxStaticText(track_edit_popup, wxID_ANY, "Beats per Minute");
 	wxTextCtrl* tempo_ctrl = new wxTextCtrl(track_edit_popup, wxID_ANY, "120", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
 	tempo_ctrl->Bind(wxEVT_TEXT_ENTER, &AdVisualToolBar::on_enter_basic_tempo, this);
 
@@ -476,9 +476,9 @@ void MainFrame::on_exit(wxCommandEvent &event) {
 }
 
 void MainFrame::on_about(wxCommandEvent &event) {
-	wxMessageBox("AdVisual is meant to be a remake of the original AdLib Visual Composer for AdLib Soundcards.\n\n \
+	wxMessageBox("AdVisual is meant to be a remake of the original AdLib Visual Composer packed with AdLib Soundcards.\n\n \
     Created and maintained by RobertP-McDowell, 2026.\n \
-    Depending on 'wxWidgets', 'AdPlug' & 'Libbinio', and miniaudio.h.",
+    Depending on 'wxWidgets', 'AdPlug', 'Libbinio', and miniaudio.h.",
 		"About AdVisual", wxOK | wxICON_INFORMATION);
 }
 

@@ -1,80 +1,109 @@
 #include <FileAccess.h>
 #include <cstring>
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <common.h>
-#include <boost/endian/conversion.hpp>
-
-using namespace boost::endian;
 
 namespace FileAccess {
-	long file_pos = 0;
-	fstream file;
+	fstream ios_file;
+	binwstream file(&ios_file);
 	bool writing = false;
 };
 
-void FileAccess::fieldcpy_write(void* object, int field_size) {
-	file.write(static_cast<char*>(object), field_size);
-	file_pos += field_size;
-	file.seekg(file_pos);
+int FileAccess::catch_libbinio_errors() {
+	int error = file.error();
+	if (error) {
+		cerr << "Libbinio error code: " << error << ", at file positon: " << file.pos() << "\n";
+		if (error == binio::Fatal) cerr << "Fatal error: an unspecified libbinio error occured.\n";
+		else if (error == binio::Unsupported) cerr << "Fatal error: unsupported libbinio conversion.\n";
+		else if (error == binio::NotOpen) cerr << "The file you tried to acces is not open yet\n";
+		else if (error == binio::Denied) cerr << "Fatal error: denied access to file.\n";
+		else if (error == binio::NotFound) cerr << "Fatal error: could not find file.\n";
+		else if (error == binio::Eof) cerr << "Fatal error: reached end of file.\n";
+		else cerr << "An unkown fatal error occured.\n";
+		DBBREAKPOINT("Libbinio error");
+		ios_file.close();
+	}
+	return error;
 }
 
-void FileAccess::fieldcpy_read(void* object, int field_size) {
-	file.read(static_cast<char*>(object), field_size);
-	file_pos += field_size;
-	file.seekg(file_pos);
-}
-// Checks and calls fieldcpy_read or write
-void FileAccess::fieldcpy(void* object, int field_size) {
-	if (writing == true) fieldcpy_write(object, field_size);
-	else fieldcpy_read(object, field_size);
+// Checks and calls fieldcpy_ functions will set object from read file, or get object and write to file.
+void FileAccess::fieldcpy_char(char* object, int field_size) {
+	if (writing == true) file.writeString(object, field_size);
+	else file.readString(object, field_size);
+	catch_libbinio_errors();
 }
 
-// Same as fieldcpy, but ensures little endianness for integer types.
-void FileAccess::fieldcpyLE16(uint16_t* object, int field_size) {
-	if (writing == true) fieldcpy_write(object, field_size);
-	else fieldcpy_read(object, field_size);
-	native_to_little(*object);
+void FileAccess::fieldcpy_char(char* object, int field_size, char delimeter) {
+	if (writing == true) file.writeString(object, field_size);
+	else file.readString(object, field_size, delimeter);
+	catch_libbinio_errors();
 }
-void FileAccess::fieldcpyLE32(uint32_t* object, int field_size) {
-	if (writing == true) fieldcpy_write(object, field_size);
-	else fieldcpy_read(object, field_size);
-	native_to_little(*object);
+
+void FileAccess::fieldcpy_uint8(uint8_t* object, int field_size) {
+	if (writing == true) file.writeInt(*object, field_size);
+	else *object = file.readInt(1);
+	catch_libbinio_errors();
+}
+
+void FileAccess::fieldcpy_uint16(uint16_t* object, int field_size) {
+	if (writing == true) file.writeInt(*object, field_size);
+	else *object = file.readInt(2);
+	catch_libbinio_errors();
+}
+
+void FileAccess::fieldcpy_uint32(uint32_t* object, int field_size) {
+	if (writing == true) file.writeInt(*object, field_size);
+	else *object = file.readInt(field_size);
+	catch_libbinio_errors();
+}
+
+void FileAccess::fieldcpy_float(float* object, binio::FType floating_type) {
+	if (writing == true) {
+		// BUG: Can't use binfstream::writeFloat() because it's not working for some reason.
+		// Should be fine for ROL files, since most hardware is IEEE 754.
+		// file.writeFloat(*object, floating_type);
+		int field_size = 4;
+		ios_file.write(reinterpret_cast<char*>(object), field_size);
+	}
+	else *object = file.readFloat(floating_type);
+	catch_libbinio_errors();
 }
 
 void FileAccess::fieldzero(int field_size) {
 	if (writing == true) {
 		vector<char> buffer = {};
-		buffer.resize(field_size, 0);
-		file.write(buffer.data(), field_size);
+		buffer.resize(field_size + 1, 0);
+		file.writeString(buffer.data(), field_size);
 	}
-	file_pos += field_size;
-	file.seekg(file_pos);
+	else {
+		file.seek(file.pos() + field_size, binio::Set);
+	}
+	catch_libbinio_errors();
 }
 
 void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spacing) {
+	uint16_t event_count = event_map.size();
+	fieldcpy_uint16(&event_count, 2);
+	DBPRINT("process " << event_count << " float events");
 	if (writing) {
-		int16_t event_count = event_map.size();
-		fieldcpy_write(&event_count, 2);
 		for (auto it = event_map.begin(); it != event_map.end(); it++) {
-			int16_t event_tick = it->first;
+			uint16_t event_tick = it->first;
 			float event_value = it->second;
-			fieldcpy_write(&event_tick, 2);
-			fieldcpy_write(&event_value, 4);
+			fieldcpy_uint16(&event_tick, 2);
+			fieldcpy_float(&event_value, binio::Single);
 			fieldzero(loop_spacing);
 		}
 	}
 	else {
-		int16_t event_count;
-		fieldcpy_read(&event_count, 2);
 		for (int i = 0; i < event_count; i++) {
-			int16_t event_tick;
+			uint16_t event_tick;
 			float event_value;
-			fieldcpy_read(&event_tick, 2);
-			fieldcpy_read(&event_value, 4);
-			event_map.insert({event_tick, event_value});
+			fieldcpy_uint16(&event_tick, 2);
+			fieldcpy_float(&event_value, binio::Single);
 			fieldzero(loop_spacing);
+
+			event_map.insert({event_tick, event_value});
 		}
 	}
 }
@@ -82,18 +111,34 @@ void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spac
 bool FileAccess::access_file(wxString file_path, bool write) {
 	writing = write;
 	if (writing) {
-		file = fstream(file_path, ios::out);
+		ios_file = fstream(file_path, ios::out | ios::binary);
 	}
 	else {
-		file = fstream(file_path, ios::in);
+		ios_file = fstream(file_path, ios::in | ios::binary);
 	}
-	if (!file.is_open()) {
+	if (!ios_file.is_open()) {
 		cerr << "Could not open file for " << (writing ? "write" : "read") << " operation: " << file_path << "\n";
-		if (file.bad()) cerr << "Fatal error: badbit is set.\n";
-		if (file.fail()) cerr << strerror(errno) << "\n";
+		if (ios_file.bad()) cerr << "Fatal error: badbit is set.\n";
+		if (ios_file.fail()) cerr << strerror(errno) << "\n";
 		return false;
 	}
-	file.seekg(0); // Initializing.
-	file_pos = 0;
+	file = binwstream(&ios_file);
+	int error = file.error();
+	if (error) {
+		cerr << "Libbinio could not open file for " << (writing ? "write" : "read") << " operation: " << file_path << "\n";
+		if (error == binio::Fatal) cerr << "Fatal error: an unspecified libbinio error occured.\n";
+		if (error == binio::Denied) cerr << "Fatal error: denied access to file.\n";
+		if (error == binio::NotFound) cerr << "Fatal error: could not find file.\n";
+		if (error == binio::Eof) cerr << "Fatal error: reached end of file immediately.\n";
+		if (error == binio::Unsupported) cerr << "Fatal error: unsupported libbinio conversion.\n";
+		ios_file.close();
+		return false;
+	}
+	file.setFlag(binio::BigEndian, false); // Setting BigEndian flag will reset FloatIEEE flag, so do it beforehand.
+	file.setFlag(binio::FloatIEEE, true);
+	file.seek(0, binio::End); // Go to end of file to get length.
+	DBPRINT("Access file, size: " << file.pos() << ", BigEndian: " << file.getFlag(binio::BigEndian) <<
+		", FloatIEEE: " << file.getFlag(binio::FloatIEEE));
+	file.seek(0, binio::Set);
 	return true;
 }

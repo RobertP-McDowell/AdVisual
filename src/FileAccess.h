@@ -9,25 +9,30 @@
 #include <deque>
 #include <vector>
 #include <map>
+#include <binfile.h>
+#include <binwrap.h>
 
 using namespace std;
 
 
 namespace FileAccess {
-	extern void fieldcpy_write(void* object, int field_size);
-	extern void fieldcpy_read(void* object, int field_size);
+	extern int catch_libbinio_errors();
 	// Checks and calls fieldcpy_read or write
-	extern void fieldcpy(void* object, int field_size);
+	// leave delimiter empty for non null-terminated char arrays.
+	extern void fieldcpy_char(char* object, int field_size);
+	extern void fieldcpy_char(char* object, int field_size, char delimiter);
+	extern void fieldcpy_uint8(uint8_t* object, int field_size);
+	extern void fieldcpy_uint16(uint16_t* object, int field_size);
+	extern void fieldcpy_uint32(uint32_t* object, int field_size);
+	extern void fieldcpy_float(float* object, binio::FType floating_type = binio::Single);
 	// Same as fieldcpy, but ensures little endianness for integer types.
-	extern void fieldcpyLE16(uint16_t* object, int field_size);
-	extern void fieldcpyLE32(uint32_t* object, int field_size);
 	extern void fieldzero(int field_size);
 	extern void fieldcpy_float_events(map<int, float>& event_map, int loop_spacing);
 	// Opens file and initializes. returns false if opening file was unsuccessful.
 	extern bool access_file(wxString file_path, bool write);
 
-	extern long file_pos;
-	extern fstream file;
+	extern binwstream file;
+	extern fstream ios_file;
 	extern bool writing;
 };
 

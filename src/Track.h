@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wx/wx.h>
+#include <cstdint>
 #include <memory>
 #include <deque>
 #include <vector>
@@ -60,10 +61,9 @@ struct Track {
 		}
 		return highest_tick_count;
 	}
-	
-	short file_version_major = 0, file_version_minor = 4, ticks_per_beat = 4, beats_per_measure = 4;
-	wxSize editor_scale;
-	int8_t rhythm_mode = 0; // 0 = percussive, 1 = melodic.
+	uint16_t file_version_major = 0, file_version_minor = 4, ticks_per_beat = 4, beats_per_measure = 4;
+	uint16_t editor_scale_x = 1, editor_scale_y = 1;
+	uint8_t rhythm_mode = 0; // 0 = percussive, 1 = melodic.
 	float basic_tempo = 120;
 	// Every event, key == time of event in Ticks. for tempo_events, Value = Tempo multipler (0.01 - 10.0).
 	map<int, float> tempo_events = {{0, 1.0f}};

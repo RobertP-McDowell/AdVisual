@@ -6,12 +6,6 @@
 #include <wx/dcbuffer.h>
 #include <wx/artprov.h>
 #include <memory>
-//class AdPlayer; // Declare these, since they're mutually dependant!
-//class Track;
-//class Channel;
-//class Bank;
-//class Instrument;
-//struct OPLFM;
 #include <Track.h>
 #include <Instrument.h>
 #include <AdPlayer.h>
@@ -31,14 +25,14 @@ extern int cursor_tick;
 #define DBPRINT(p_output) do { cout << p_output << "\n"; } while(0)
 // unlike DBPRINT, DBBREAKPOINT's are meant to be temporarily used (with a tool like gdb),
 // and should be left out of pr's/commits. Prefer assert otherwise.
-#define DBBREAKPOINT(p_output, p_name) do { \
+#define DBBREAKPOINT(p_output) do { \
+	cout << p_output << "\n"; \
 	raise(SIGTRAP); \
-	cout << p_output << " Breakpoint name: " << p_name << "\n"; \
 } while(0)
 #else
 #define DBPRINT(p_output) do {} while(0)
-#define DBBREAKPOINT(p_output, p_name) do { \
-	cerr << p_output << " This breakpoint shouldn't exist in release/shared builds, Breakpoint name: " << p_name << "\n"; \
+#define DBBREAKPOINT(p_output) do { \
+	cerr << p_output << " This breakpoint shouldn't exist in release/shared builds, Breakpoint name: " << "\n"; \
 } while(0)
 #endif
 
