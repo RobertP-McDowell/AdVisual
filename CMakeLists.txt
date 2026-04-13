@@ -10,7 +10,7 @@ target_sources(AdVisual PUBLIC ${src_files})
 target_include_directories(AdVisual PUBLIC "include")
 target_include_directories(AdVisual PUBLIC "src")
 target_link_directories(AdVisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
-message(STATUS "Adding ${CMAKE_SOURCE_DIR}/lib to library link path.")
+message(STATUS "Add ${CMAKE_SOURCE_DIR}/lib as possible library link path.")
 
 if (NOT TARGET libbinio)
 	find_package(libbinio REQUIRED CONFIG)
@@ -22,7 +22,7 @@ endif()
 
 include(UsewxWidgets)
 target_link_libraries(AdVisual PRIVATE ${wxWidgets_LIBRARIES})
-target_link_libraries(AdVisual PRIVATE adplug)
+target_link_libraries(AdVisual PRIVATE adplug::adplug)
 target_link_libraries(AdVisual PRIVATE libbinio::libbinio)
 
 target_compile_definitions(AdVisual PUBLIC ASSETS_PATH="${CMAKE_INSTALL_PREFIX}/share/AdVisual/assets/")
