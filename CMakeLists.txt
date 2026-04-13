@@ -7,10 +7,11 @@ find_package(wxWidgets 3.2 REQUIRED)
 add_executable(AdVisual src/main.cpp)
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 target_sources(AdVisual PUBLIC ${src_files})
+target_sources(AdVisual PRIVATE windows_resource.rc)
 target_include_directories(AdVisual PUBLIC "include")
 target_include_directories(AdVisual PUBLIC "src")
 target_link_directories(AdVisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
-message(STATUS "Add ${CMAKE_SOURCE_DIR}/lib as possible library link path.")
+message(STATUS "Adding ${CMAKE_SOURCE_DIR}/lib to library link path.")
 
 if (NOT TARGET libbinio)
 	find_package(libbinio REQUIRED CONFIG)
@@ -33,4 +34,3 @@ install(TARGETS AdVisual DESTINATION bin
 install(DIRECTORY assets DESTINATION share/AdVisual
 	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ
 	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-

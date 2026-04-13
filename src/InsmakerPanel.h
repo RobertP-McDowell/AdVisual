@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <wx/wx.h>
 #include <wx/utils.h>
 #include <wx/filedlg.h> 
@@ -213,7 +212,7 @@ protected:
 		wxPaintDC dc(slider_panel);
 		wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 		
-		wxGraphicsPen tick_pen = gc->CreatePen(wxGraphicsPenInfo(*wxColour(140, 140, 140)).Width(1.0).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT));
+		wxGraphicsPen tick_pen = gc->CreatePen(wxGraphicsPenInfo(wxColour(140, 140, 140)).Width(1.0).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT));
 		gc->SetPen(tick_pen);
 		int slider_width, slider_height;
 		slider_panel->GetSize(&slider_width, &slider_height);

@@ -23,8 +23,7 @@
  * Source references ADLIB.C from Adlib MSC SDK.
  */
 
-#ifndef H_VISUALCOMPOSER
-#define H_VISUALCOMPOSER
+#pragma once
 
 #include <vector>
 #include <string>
@@ -126,5 +125,3 @@ protected:
 	uint32_t tick;
 	float refresh_rate;
 };
-
-#endif

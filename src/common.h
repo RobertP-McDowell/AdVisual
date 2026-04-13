@@ -25,9 +25,9 @@ extern int cursor_tick;
 #define DBPRINT(p_output) do { cout << p_output << "\n"; } while(0)
 // unlike DBPRINT, DBBREAKPOINT's are meant to be temporarily used (with a tool like gdb),
 // and should be left out of pr's/commits. Prefer assert otherwise.
+//raise(SIGTRAP); // Commenting out for now, for windows. TODO: check for POSIX.
 #define DBBREAKPOINT(p_output) do { \
 	cout << p_output << "\n"; \
-	raise(SIGTRAP); \
 } while(0)
 #else
 #define DBPRINT(p_output) do {} while(0)
@@ -40,8 +40,6 @@ extern int cursor_tick;
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
 const int full_octave = 12;
-
-// const wxString ASSETS_PATH = "../assets/";
 
 enum
 {

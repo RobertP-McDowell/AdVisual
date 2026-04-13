@@ -210,7 +210,7 @@ void ComposerPanel::draw_notes() {
 			(note.length * note_size.x) - 2, note_size.y, note_size.y / 4.0);
 	}
 	wxGraphicsPen ghost_pen = gc->CreatePen(wxGraphicsPenInfo(
-	*wxColour(215, 200, 255, 100)).Width(note_size.y + note_pen_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
+	wxColour(215, 200, 255, 100)).Width(note_size.y + note_pen_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
 	if (editing_note != nullptr) {
 		gc->SetPen(ghost_pen);
 		gc->StrokeLine((editing_note->offset * cell_size.x) - grid_offset.x, (editing_note->pitch * cell_size.y) + middle_of_cell.y - grid_offset.y,
