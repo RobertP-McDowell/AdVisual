@@ -70,6 +70,9 @@ protected:
 	void update_scrollbars();
 	void move_h_scrollbar(int new_pos);
 	void move_v_scrollbar(int new_pos);
+	// Helper functions.
+	wxRect get_note_rect(const Note& note) const;
+
 	wxFont event_font;
 
 	wxPoint grid_offset = wxPoint(0, 0);

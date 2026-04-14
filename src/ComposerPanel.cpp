@@ -80,15 +80,17 @@ void ComposerPanel::on_scroll_grid_horizontal(wxScrollEvent& event) {
 	string last_ins_event_value;
 	current_channel->get_last_instrument_event(grid_offset.x, last_ins_event_tick, last_ins_event_value);
 	piano_ctrl->SetInstrument(current_bank->find_instrument(wxString(last_ins_event_value)));
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
+	event_header->Refresh();
+	event_header->Update();
 }
 
 void ComposerPanel::on_scroll_grid_vertical(wxScrollEvent& event) {
 	grid_offset.y = cell_size.y * event.GetPosition();
 	piano_ctrl->SetScrollOffset(grid_offset.y);
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::update_scrollbars() {
@@ -120,15 +122,17 @@ void ComposerPanel::on_mouse_wheel(wxMouseEvent& event) {
 
 void ComposerPanel::SetPreviewChannels(bool value) {
 	preview_channels = value;
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::SetChannelIndex(int channel) {
 	current_channel_idx = channel;
 	current_channel = current_track->GetChannel(current_channel_idx);
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
+	event_header->Refresh();
+	event_header->Update();
 }
 
 void ComposerPanel::on_paint_grid(wxPaintEvent& event) {
@@ -213,8 +217,8 @@ void ComposerPanel::draw_notes() {
 	wxColour(215, 200, 255, 100)).Width(note_size.y + note_pen_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT).Join(wxJOIN_BEVEL));
 	if (editing_note != nullptr) {
 		gc->SetPen(ghost_pen);
-		gc->StrokeLine((editing_note->offset * cell_size.x) - grid_offset.x, (editing_note->pitch * cell_size.y) + middle_of_cell.y - grid_offset.y,
-		((editing_note->offset + editing_note->length) * cell_size.x) - grid_offset.x, (editing_note->pitch * cell_size.y) + middle_of_cell.y - grid_offset.y);
+		wxRect cell_rect = get_note_rect(*editing_note);
+		gc->StrokeLine(cell_rect.x, cell_rect.y + (cell_rect.height / 2), cell_rect.x + cell_rect.width, cell_rect.y + (cell_rect.height / 2));
 	}
 
 	// Draw Preview notes.
@@ -258,8 +262,8 @@ void ComposerPanel::on_lmb_down(wxMouseEvent& event) {
 	if (grid_audio_feedback) {
 		adplayer->play_note(editing_note->pitch, current_channel_idx, piano_ctrl->GetInstrument());
 	}
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
@@ -269,8 +273,8 @@ void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
 	editing_note = nullptr;
 	update_scrollbars();
 	adplayer->play_note(0, current_channel_idx, piano_ctrl->GetInstrument());
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::on_rmb_down(wxMouseEvent& event) {
@@ -283,13 +287,13 @@ void ComposerPanel::on_rmb_down(wxMouseEvent& event) {
 		cursor_tick = new_cursor_pos;
 	}
 	cursor_end = new_cursor_pos;
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::on_rmb_up(wxMouseEvent& event) {
-	Refresh();
-	Update();
+	grid_panel->Refresh();
+	grid_panel->Update();
 }
 
 void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
@@ -297,6 +301,7 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 	if (event.LeftIsDown() && editing_note != nullptr) {
 		int start_offset = (mouse_down_start.m_x / cell_size.x);
 		int end_offset = (local_mouse_position.m_x / cell_size.x);
+		wxRect old_note_rect = get_note_rect(*editing_note); // We will need to update this if the note gets shorter.
 		if (end_offset >= start_offset) {
 			editing_note->length = (end_offset - start_offset) + 1;
 			editing_note->offset = start_offset;
@@ -305,13 +310,17 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 			editing_note->length = (start_offset - end_offset) + 1;
 			editing_note->offset = end_offset;
 		}
-		Refresh();
-		Update();
+		grid_panel->RefreshRect(get_note_rect(*editing_note).Union(old_note_rect), true);
+		grid_panel->Update();
 	}
 	else if (event.RightIsDown() && cursor_end != -1) {
-		cursor_end = (local_mouse_position.m_x / cell_size.x);
-		Refresh();
-		Update();
+		int new_cursor_end = (local_mouse_position.m_x / cell_size.x);
+		if (new_cursor_end != cursor_end) {
+			grid_panel->RefreshRect(wxRect(cursor_tick + grid_offset.x, 0,
+				(cursor_end * cell_size.x) + cell_size.x + grid_offset.x, grid_panel->GetSize().y), true);
+		}
+		cursor_end = new_cursor_end;
+		grid_panel->Update();
 	}
 	status_bar->SetStatusText(note_number_to_letter(local_mouse_position.m_y / cell_size.y));
 }
@@ -557,3 +566,9 @@ void EventPopup::on_show(wxShowEvent& event) {
 	}
 }
 
+wxRect ComposerPanel::get_note_rect(const Note& note) const {
+	return wxRect((editing_note->offset * cell_size.x) - grid_offset.x,
+	((editing_note->pitch * cell_size.y) - grid_offset.y) - ((cell_size.y - note_size.y) + 1),
+	editing_note->length * cell_size.x,
+	cell_size.y + ((cell_size.y - note_size.y) * 2) + 2);
+}
