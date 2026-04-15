@@ -72,6 +72,8 @@ protected:
 	void move_v_scrollbar(int new_pos);
 	// Helper functions.
 	wxRect get_note_rect(const Note& note) const;
+	void refresh_selected_ticks(int margin = 1);
+	void refresh_ticks(int start_tick, int end_tick, int margin = 1);
 
 	wxFont event_font;
 
@@ -81,7 +83,7 @@ protected:
 	int scroll_multiplier = 4; // TODO: make this editable in settings.
 	int cursor_end = -1; // Start of selection is cursor_tick in common.h
 	double zoom = 1.0;
-	wxPoint2DDouble mouse_down_start;
+	wxPoint mouse_down_start;
 	int editing_event_tick = -1;
 	bool preview_channels = false, grid_audio_feedback = false, follow_cursor = false;
 	unique_ptr<Note> editing_note;

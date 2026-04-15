@@ -256,13 +256,13 @@ void ComposerPanel::on_lmb_down(wxMouseEvent& event) {
 	SetFocus();
 	mouse_down_start = event.GetPosition() + grid_offset;
 	editing_note = make_unique<Note>();
-	editing_note->offset = mouse_down_start.m_x / cell_size.x;
-	editing_note->pitch = mouse_down_start.m_y / cell_size.y;
+	editing_note->offset = mouse_down_start.x / cell_size.x;
+	editing_note->pitch = mouse_down_start.y / cell_size.y;
 	editing_note->length = 1;
 	if (grid_audio_feedback) {
 		adplayer->play_note(editing_note->pitch, current_channel_idx, piano_ctrl->GetInstrument());
 	}
-	grid_panel->Refresh();
+	refresh_ticks(editing_note->offset, editing_note->offset + editing_note->length, 0);
 	grid_panel->Update();
 }
 
@@ -270,10 +270,10 @@ void ComposerPanel::on_lmb_up(wxMouseEvent& event) {
 	if (editing_note != nullptr) {
 		current_channel->add_note(*editing_note);
 	}
+	refresh_ticks(editing_note->offset, editing_note->offset + editing_note->length);
 	editing_note = nullptr;
 	update_scrollbars();
 	adplayer->play_note(0, current_channel_idx, piano_ctrl->GetInstrument());
-	grid_panel->Refresh();
 	grid_panel->Update();
 }
 
@@ -281,26 +281,42 @@ void ComposerPanel::on_rmb_down(wxMouseEvent& event) {
 	SetFocus();
 	mouse_down_start = event.GetPosition() + grid_offset;
 	editing_note = make_unique<Note>();
-	int new_cursor_pos = mouse_down_start.m_x / cell_size.x;
+	int new_cursor_pos = mouse_down_start.x / cell_size.x;
 	// If shift is down then the user just wants to move cursor_end, so skip cursor_tick.
 	if (!event.ShiftDown()) {
 		cursor_tick = new_cursor_pos;
 	}
 	cursor_end = new_cursor_pos;
-	grid_panel->Refresh();
+	refresh_selected_ticks();
 	grid_panel->Update();
 }
 
 void ComposerPanel::on_rmb_up(wxMouseEvent& event) {
-	grid_panel->Refresh();
+	refresh_selected_ticks();
 	grid_panel->Update();
 }
 
+void ComposerPanel::refresh_selected_ticks(int margin) {
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_end = (cursor_tick <= cursor_end ? cursor_end : cursor_tick);
+	wxRect selection_rect(selection_start * cell_size.x, 0, (selection_end - selection_start) * cell_size.x, grid_panel->GetSize().y);
+	selection_rect.x -= margin * cell_size.x;
+	selection_rect.width += (margin * cell_size.x) + wxWHITE_PEN->GetWidth();
+	grid_panel->RefreshRect(selection_rect, true);
+}
+
+void ComposerPanel::refresh_ticks(int start_tick, int end_tick, int margin) {
+	wxRect refresh_rect(start_tick * cell_size.x, 0, (end_tick - start_tick) * cell_size.x, grid_panel->GetSize().y);
+	refresh_rect.x -= margin * cell_size.x;
+	refresh_rect.width += margin * cell_size.x;
+	grid_panel->RefreshRect(refresh_rect, true);
+}
+
 void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
-	wxPoint2DDouble local_mouse_position = event.GetPosition() + grid_offset;
+	wxPoint local_mouse_position = event.GetPosition() + grid_offset;
 	if (event.LeftIsDown() && editing_note != nullptr) {
-		int start_offset = (mouse_down_start.m_x / cell_size.x);
-		int end_offset = (local_mouse_position.m_x / cell_size.x);
+		int start_offset = (mouse_down_start.x / cell_size.x);
+		int end_offset = (local_mouse_position.x / cell_size.x);
 		wxRect old_note_rect = get_note_rect(*editing_note); // We will need to update this if the note gets shorter.
 		if (end_offset >= start_offset) {
 			editing_note->length = (end_offset - start_offset) + 1;
@@ -310,19 +326,31 @@ void ComposerPanel::on_mouse_motion(wxMouseEvent& event) {
 			editing_note->length = (start_offset - end_offset) + 1;
 			editing_note->offset = end_offset;
 		}
-		grid_panel->RefreshRect(get_note_rect(*editing_note).Union(old_note_rect), true);
+		wxRect note_rect = get_note_rect(*editing_note);
+		if (note_rect.x == old_note_rect.x && note_rect.width == old_note_rect.width) {
+			return; // There is no change, dont update.
+		}
+		wxRect final_rect(0, note_rect.y, 0, note_rect.height);
+		line_exclusion(note_rect.x, note_rect.width, old_note_rect.x, old_note_rect.width, final_rect.x, final_rect.width);
+		grid_panel->RefreshRect(final_rect, true);
 		grid_panel->Update();
 	}
 	else if (event.RightIsDown() && cursor_end != -1) {
-		int new_cursor_end = (local_mouse_position.m_x / cell_size.x);
-		if (new_cursor_end != cursor_end) {
-			grid_panel->RefreshRect(wxRect(cursor_tick + grid_offset.x, 0,
-				(cursor_end * cell_size.x) + cell_size.x + grid_offset.x, grid_panel->GetSize().y), true);
-		}
+		int new_cursor_end = (local_mouse_position.x / cell_size.x);
+		int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+		int selection_end = (cursor_tick <= cursor_end ? cursor_end : cursor_tick);
+		int new_selection_start = (cursor_tick <= new_cursor_end ? cursor_tick : new_cursor_end);
+		int new_selection_end = (cursor_tick <= new_cursor_end ? new_cursor_end : cursor_tick);
+		wxRect selection_rect(0, 0, 0, grid_panel->GetSize().y);
+		line_exclusion(selection_start, selection_end - selection_start, new_selection_start,
+			new_selection_end - new_selection_start, selection_rect.x, selection_rect.width);
 		cursor_end = new_cursor_end;
+		selection_rect.x = (selection_rect.x * cell_size.x);
+		selection_rect.width = (selection_rect.width * cell_size.x) + wxWHITE_PEN->GetWidth();
+		grid_panel->RefreshRect(selection_rect, true);
 		grid_panel->Update();
 	}
-	status_bar->SetStatusText(note_number_to_letter(local_mouse_position.m_y / cell_size.y));
+	status_bar->SetStatusText(note_number_to_letter(local_mouse_position.y / cell_size.y));
 }
 
 void ComposerPanel::copy_notes() {
@@ -353,15 +381,16 @@ void ComposerPanel::copy_notes() {
 }
 
 void ComposerPanel::paste_notes() {
-	// Erase notes before pasting.
 	int ins_pos;
 	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
 	int selection_length = (cursor_tick <= cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end);
+	// Erase notes before pasting.
 	current_channel->erase_notes(selection_start, selection_length, ins_pos);
 	for (Note new_note : copy_buffer) {
 		new_note.offset += selection_start;
 		current_channel->add_note(new_note);
 	}
+	refresh_ticks(selection_start, selection_start + selection_length);
 }
 
 void ComposerPanel::on_key_down(wxKeyEvent& event) {
@@ -378,9 +407,11 @@ void ComposerPanel::on_key_down(wxKeyEvent& event) {
 	case 88: // 'x' keycode.
 		copy_notes();
 		current_channel->erase_notes(selection_start, selection_length, ins_pos);
+		refresh_selected_ticks();
 		break;
 	case WXK_BACK: // Erase contents of selection.
 		current_channel->erase_notes(selection_start, selection_length, ins_pos);
+		refresh_selected_ticks();
 		break;
 	case WXK_RETURN: // Chop selection (selection is erased, and everything past cursor end gets repositioned back to cursor start).
 		break;
@@ -392,6 +423,7 @@ void ComposerPanel::on_key_down(wxKeyEvent& event) {
 			cursor_tick = 0;
 			cursor_end = 0;
 		}
+		refresh_selected_ticks();
 		break;
 	case WXK_LEFT:
 		cursor_end -= 1;
@@ -400,8 +432,7 @@ void ComposerPanel::on_key_down(wxKeyEvent& event) {
 		cursor_end += 1;
 		break;
 	}
-	Refresh();
-	Update();
+	grid_panel->Update();
 }
 
 void ComposerPanel::on_paint_event_header(wxPaintEvent& event) {

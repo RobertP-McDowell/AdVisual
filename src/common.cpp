@@ -9,6 +9,27 @@ wxStatusBar* status_bar;
 int current_channel_idx = 0;
 int cursor_tick = 0;
 
+int sign(int val) {
+	return (val > 0) - (val < 0);
+}
+
+void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length) {
+	if (p1 != p2 && p1 + l1 != p2 + l2) { // Rect is resizing in both directions.
+		out_p = min(p1, p2);
+		out_length = max(p1 + p1, p2 + l2) - out_p;
+		return;
+	}
+	if (p1 != p2) { // Rect is resizing left.
+		out_p = min(p1, p2);
+		out_length = abs(p2 - p1);
+	}
+	else if (p1 + l1 != p2 + l2) { // Rect is resizing right.
+		out_p = p1; // We already know new_rect.x and old_rect.x are equal.
+		out_p += min(l1, l2);
+		out_length = max(l1 - l2, l2 - l1);
+	}
+}
+
 wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size) {
 	return wxBitmapBundle::FromSVGFile(ASSETS_PATH + asset_name, asset_size);
 }

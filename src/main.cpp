@@ -405,10 +405,13 @@ MainFrame::MainFrame() :
 {
 	SetMinSize(wxSize(320, 180));
 
+	wxColour bg_colour = wxColour(15, 10, 20);
 	toolbar = new AdVisualToolBar(this, wxID_ANY, wxDefaultPosition, wxSize(100, 36));
+	toolbar->SetBackgroundColour(bg_colour);
 	SetToolBar(toolbar);
 
 	status_bar = CreateStatusBar();
+	status_bar->SetBackgroundColour(bg_colour);
 
 	composer_panel = new ComposerPanel(this);
 	toolbar->CreateComposerTools(composer_panel);

@@ -36,7 +36,6 @@ extern int cursor_tick;
 } while(0)
 #endif
 
-
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
 const int full_octave = 12;
@@ -84,6 +83,11 @@ enum
 	ID_CYMBAL_INSTRUMENT,
 	ID_HIHAT_INSTRUMENT
 };
+
+int sign(int val);
+
+// exclude boolean operation on two 1D lines, useful for refreshing a lot of ui rects.
+void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length);
 
 wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size);
 wxString note_number_to_letter(int note_number);
