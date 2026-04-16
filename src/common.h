@@ -36,6 +36,12 @@ extern int cursor_tick;
 } while(0)
 #endif
 
+// UI colours.
+const wxColour bg_colour = wxColour(20, 15, 30);
+const wxColour fg_colour = wxColour(35, 20, 45);
+const wxColour scrollbar_bg = wxColour(20, 15, 30); // Til we implement custom themeing, all fg and bg will just be the default.
+const wxColour scrollbar_fg = wxColour(35, 20, 45);
+
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
 const int full_octave = 12;

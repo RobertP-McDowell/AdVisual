@@ -1,5 +1,6 @@
 #include <wx/wx.h>
 #include <wx/utils.h>
+#include <wx/sysopt.h>
 #include <wx/filedlg.h> 
 #include <wx/graphics.h>
 #include <wx/dcbuffer.h>
@@ -83,7 +84,6 @@ private:
 	void on_paint(wxPaintEvent& event) {
 		wxPaintDC dc(this);
 		wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
-		if (gc == nullptr) return;
 		double outline_width = 4.0;
 		wxPoint2DDouble center = (wxPoint2DDouble(GetSize().y, GetSize().y) / 2.0) - wxPoint2DDouble(outline_width / 2.0, outline_width / 2.0);
 		double outline_radius = (GetSize().y / 2.0) - outline_width;
@@ -111,13 +111,15 @@ private:
 			outline_path.CloseSubpath();
 			gc->DrawPath(fill_path);
 		}
-		wxGraphicsFont button_font = gc->CreateFont(GetSize().y, wxEmptyString, wxFONTFLAG_BOLD, *wxWHITE);
+		//wxGraphicsFont button_font = gc->CreateFont(GetSize().y, wxEmptyString, wxFONTFLAG_BOLD, *wxWHITE);
+		wxGraphicsFont button_font = gc->CreateFont(*(wxTheFontList->FindOrCreateFont(
+			GetSize().y / 2.0, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD)), *wxWHITE);
 		gc->SetFont(button_font);
-		gc->DrawText(GetLabel(), center.m_x * 2.0, 0);
+		gc->DrawText(GetLabel(), center.m_x * 2.0, center.m_y - 1);
 		delete gc;
 	}
 	void Init() {
-		SetBackgroundStyle(wxBG_STYLE_PAINT);
+		SetBackgroundColour(bg_colour);
 		Bind(wxEVT_PAINT, &ChannelButton::on_paint, this);
 		Bind(wxEVT_LEFT_DOWN, &ChannelButton::on_pressed, this);
 		Bind(wxEVT_ENTER_WINDOW, &ChannelButton::on_mouse_enter, this);
@@ -200,9 +202,9 @@ private:
 	
 	ComposerPanel* composer_panel;
 	InsmakerPanel* insmaker_panel;
-	vector<wxToolBarToolBase*> composer_tools;
-	vector<wxToolBarToolBase*> insmaker_tools;
-	vector<ChannelButton*> channel_buttons;
+	vector<wxToolBarToolBase*> composer_tools = {};
+	vector<wxToolBarToolBase*> insmaker_tools = {};
+	vector<ChannelButton*> channel_buttons = {};
 	wxSize tool_size;
 	wxSize square_size;
 };
@@ -310,7 +312,7 @@ void AdVisualToolBar::CreateInsmakerTools(InsmakerPanel* p_insmaker_panel) {
 	insmaker_panel = p_insmaker_panel;
 	// Start Composer ToolBar.
 	// We add to composer tools, so we can hide and show them at will.
-	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxSize(125, 1), wxTE_PROCESS_ENTER);
+	wxTextCtrl* instrument_select_field = new wxTextCtrl(this, ID_INSTRUMENT_FIELD, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
 	instrument_select_field->Bind(wxEVT_SET_FOCUS, &AdVisualToolBar::on_select_instrument_set_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_KILL_FOCUS, &AdVisualToolBar::on_select_instrument_kill_focus, this, wxID_ANY);
 	instrument_select_field->Bind(wxEVT_TEXT, &AdVisualToolBar::on_select_instrument_text_changed, this, ID_INSTRUMENT_FIELD);
@@ -349,13 +351,32 @@ void AdVisualToolBar::show_tools(bool show, vector<wxToolBarToolBase*> tools) {
 	if (show) {
 		for (wxToolBarToolBase*& tool_base : tools) {
 			AddTool(tool_base);
+			if (tool_base->IsControl()) {
+				tool_base->GetControl()->Show(show);
+			}
 		}
 	}
 	else {
 		for (wxToolBarToolBase*& tool_base : tools) {
 			RemoveTool(tool_base->GetId());
+			if (tool_base->IsControl()) {
+				tool_base->GetControl()->Show(show);
+			}
 		}
 	}
+	Realize();
+}
+
+void AdVisualToolBar::update_insmaker_toolbar() {
+	ToggleTool(ID_ADDITIVE_SYNTH, insmaker_panel->GetAdditiveSynth());
+	if (insmaker_panel->GetAdditiveSynth()) {
+		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("AMSynth.svg", tool_size));
+	}
+	else {
+		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("FMSynth.svg", tool_size));
+	}
+	instrument_edit_menu->Check(ID_MELODIC_INSTRUMENT + insmaker_panel->GetPercussionMode(), true);
+	instrument_edit_menu->UpdateUI();
 }
 
 void AdVisualToolBar::ShowComposerTools(bool show) {
@@ -403,15 +424,21 @@ bool MainApp::OnInit()
 MainFrame::MainFrame() :
 	wxFrame(nullptr, wxID_ANY, "AdVisual", wxDefaultPosition, wxSize(1920, 1024))
 {
+	wxSystemOptions::SetOption("msw.remap", 2);
+
 	SetMinSize(wxSize(320, 180));
 
-	wxColour bg_colour = wxColour(15, 10, 20);
+	SetBackgroundColour(bg_colour);
+	SetForegroundColour(fg_colour);
+	int fontsize = 8; // TODO, make fontsize dynamic.
+	SetFont(*(wxTheFontList->FindOrCreateFont(fontsize, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD)));
 	toolbar = new AdVisualToolBar(this, wxID_ANY, wxDefaultPosition, wxSize(100, 36));
 	toolbar->SetBackgroundColour(bg_colour);
 	SetToolBar(toolbar);
 
 	status_bar = CreateStatusBar();
 	status_bar->SetBackgroundColour(bg_colour);
+	status_bar->SetForegroundColour(*wxWHITE);
 
 	composer_panel = new ComposerPanel(this);
 	toolbar->CreateComposerTools(composer_panel);
@@ -455,18 +482,6 @@ MainFrame::MainFrame() :
 	help_menu->Append(wxID_ABOUT);
 }
 
-void AdVisualToolBar::update_insmaker_toolbar() {
-	ToggleTool(ID_ADDITIVE_SYNTH, insmaker_panel->GetAdditiveSynth());
-	if (insmaker_panel->GetAdditiveSynth()) {
-		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("AMSynth.svg", tool_size));
-	}
-	else {
-		SetToolNormalBitmap(ID_ADDITIVE_SYNTH, GetAsset("FMSynth.svg", tool_size));
-	}
-	instrument_edit_menu->Check(ID_MELODIC_INSTRUMENT + insmaker_panel->GetPercussionMode(), true);
-	instrument_edit_menu->UpdateUI();
-}
-
 void MainFrame::on_popup_file_menu(wxCommandEvent& event) {
 	PopupMenu(file_menu);
 }
@@ -490,6 +505,7 @@ void MainFrame::on_show_composer_panel(wxCommandEvent& event) {
 	insmaker_panel->Show(false);
 	toolbar->ShowComposerTools(true);
 	toolbar->ShowInsmakerTools(false);
+	Layout();
 }
 
 void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
@@ -497,6 +513,7 @@ void MainFrame::on_show_insmaker_panel(wxCommandEvent& event) {
 	insmaker_panel->Show(true);
 	toolbar->ShowComposerTools(false);
 	toolbar->ShowInsmakerTools(true);
+	Layout();
 }
 
 void MainFrame::on_play_track(wxCommandEvent& event) {
@@ -649,7 +666,7 @@ void AdVisualToolBar::on_select_instrument_set_focus(wxFocusEvent& event) {
 	wxSize popup_size = wxSize(100, 100);
 	wxPoint popup_pos = text_tool->GetPosition();
 	popup_pos.y += text_tool->GetSize().y;
-	bank_popup->Position(popup_pos - popup_size, popup_size);
+	bank_popup->Position(ClientToScreen(popup_pos) - popup_size, popup_size);
 	bank_popup->Show(true);
 }
 

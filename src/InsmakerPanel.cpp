@@ -84,12 +84,15 @@ InsmakerPanel::InsmakerPanel(wxWindow* parent, int id) : wxScrolledWindow(parent
 	int scroll_thumb_size = (piano_ctrl->GetSize().x / piano_ctrl->GetKeyWidth());
 	h_scroll_bar->SetScrollbar(middle_c, scroll_thumb_size, pitch_range, scroll_thumb_size);
 	h_scroll_bar->Bind(wxEVT_SCROLL_THUMBTRACK, &InsmakerPanel::on_scroll_piano, this);
+	h_scroll_bar->SetBackgroundColour(scrollbar_bg);
+	h_scroll_bar->SetForegroundColour(scrollbar_fg);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(property_sizer, 1, wxEXPAND);
 	sizer->Add(piano_ctrl, 0, wxEXPAND | wxUP, 2);
 	sizer->Add(h_scroll_bar, 0, wxEXPAND);
 	SetSizerAndFit(sizer);
+	Layout();
 }
 
 int InsmakerPanel::get_number_of_unsaved_changes() {
@@ -102,6 +105,7 @@ int InsmakerPanel::get_number_of_unsaved_changes() {
 	}
 	return ret;
 }
+
 Instrument* InsmakerPanel::find_unsaved_instrument(char name[9]) {
 	for (Instrument& ins : unsaved_instruments) {
 		if (strcmp(ins.name, name) == 0) {

@@ -9,7 +9,6 @@
 ComposerPanel::ComposerPanel(wxWindow *parent) : 
 	wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
 {
-	wxColour bg_colour = wxColour(40, 40, 40);
 	SetBackgroundColour(*wxBLACK);
 	event_font = wxFont(wxFontInfo(10).Bold());
 	note_size = wxSize(20.0 / zoom, 19.0 / zoom);
@@ -20,14 +19,14 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	current_channel = &(current_track->channels[0]);
 
 	event_header = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 30));
-	event_header->SetBackgroundColour(bg_colour);
+	event_header->SetBackgroundColour(panel_bg);
 	event_header->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_event_header, this);
 	event_header->Bind(wxEVT_MOTION, &ComposerPanel::on_mouse_motion_event_header, this);
 	event_header->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down_event_header, this);
 	event_header->Bind(wxEVT_LEFT_UP, &ComposerPanel::on_lmb_up_event_header, this);
 
 	grid_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
-	grid_panel->SetBackgroundColour(bg_colour);
+	grid_panel->SetBackgroundColour(panel_bg);
 
 	grid_panel->Bind(wxEVT_PAINT, &ComposerPanel::on_paint_grid, this);
 	grid_panel->Bind(wxEVT_LEFT_DOWN, &ComposerPanel::on_lmb_down, this);
@@ -54,6 +53,10 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	v_scrollbar = new wxScrollBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL);
 	h_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_horizontal, this);
 	v_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_vertical, this);
+	h_scrollbar->SetBackgroundColour(scrollbar_bg);
+	v_scrollbar->SetBackgroundColour(scrollbar_bg);
+	h_scrollbar->SetForegroundColour(scrollbar_fg);
+	v_scrollbar->SetForegroundColour(scrollbar_fg);
 
 	sizer->Add(v_scrollbar, wxGBPosition(0, 2), wxGBSpan(2, 1), wxEXPAND);
 	sizer->Add(h_scrollbar, wxGBPosition(2, 0), wxGBSpan(1, 3), wxEXPAND); // h_scroll_bar gets the extra cell here.

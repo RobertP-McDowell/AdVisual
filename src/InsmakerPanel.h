@@ -176,7 +176,7 @@ protected:
 		Update();
 	}
 	void on_mouse_motion(wxMouseEvent& event) {
-		if (event.Dragging()) {
+		if (event.Dragging() && HasFocus() == true) {
 			int slider_width = slider_panel->GetSize().x;
 			float new_slider_valuef = (event.GetPosition().x / float(slider_width)) * max_value;
 			// First we use int, than cast to uint8_t, just so we have a higher and lower bounds limit and it won't wrap negative numbers.
@@ -225,7 +225,9 @@ protected:
 		}
 		int bold_tick_width = 3.0;
 		wxGraphicsPen bold_pen = gc->CreatePen(wxGraphicsPenInfo(*wxWHITE).Width(bold_tick_width).Style(wxPENSTYLE_SOLID).Cap(wxCAP_BUTT));
-		wxGraphicsFont number_font = gc->CreateFont(slider_height, wxEmptyString, wxFONTFLAG_DEFAULT, *wxWHITE);
+		//wxGraphicsFont number_font = gc->CreateFont(slider_height, wxEmptyString, wxFONTFLAG_DEFAULT, *wxWHITE);
+		wxGraphicsFont number_font = gc->CreateFont(*(wxTheFontList->FindOrCreateFont(
+			slider_height / 1.5, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD)), *wxWHITE);
 		gc->SetFont(number_font);
 		int current_tick_offset = *value_ptr * tick_spacing;
 		int slider_tick_offset = *new_value_ptr * tick_spacing;

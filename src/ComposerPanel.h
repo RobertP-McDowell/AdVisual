@@ -95,4 +95,5 @@ protected:
 	wxPanel* grid_panel;
 	wxScrollBar* h_scrollbar;
 	wxScrollBar* v_scrollbar;
+	wxColour panel_bg = wxColour(40, 40, 40);
 };
