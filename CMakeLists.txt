@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.23)
 
 project(AdVisual)
 
-find_package(wxWidgets 3.2 REQUIRED)
+find_package(wxWidgets 3.2.9 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK4 REQUIRED gtk4)
 
 add_executable(AdVisual src/main.cpp)
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
@@ -25,6 +27,11 @@ include(UsewxWidgets)
 target_link_libraries(AdVisual PRIVATE ${wxWidgets_LIBRARIES})
 target_link_libraries(AdVisual PRIVATE adplug::adplug)
 target_link_libraries(AdVisual PRIVATE libbinio::libbinio)
+
+# include gtk4.
+include_directories(${GTK4_INCLUDE_DIRS})
+link_directories(${GTK4_LIBRARY_DIRS})
+add_definitions(${GTK4_CFLAGS_OTHER})
 
 target_compile_definitions(AdVisual PUBLIC ASSETS_PATH="${CMAKE_INSTALL_PREFIX}/share/AdVisual/assets/")
 

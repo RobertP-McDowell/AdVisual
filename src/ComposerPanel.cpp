@@ -53,8 +53,8 @@ ComposerPanel::ComposerPanel(wxWindow *parent) :
 	v_scrollbar = new wxScrollBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL);
 	h_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_horizontal, this);
 	v_scrollbar->Bind(wxEVT_SCROLL_THUMBTRACK, &ComposerPanel::on_scroll_grid_vertical, this);
-	h_scrollbar->SetBackgroundColour(scrollbar_bg);
-	v_scrollbar->SetBackgroundColour(scrollbar_bg);
+	//h_scrollbar->SetBackgroundColour(scrollbar_bg);
+	//v_scrollbar->SetBackgroundColour(scrollbar_bg);
 	h_scrollbar->SetForegroundColour(scrollbar_fg);
 	v_scrollbar->SetForegroundColour(scrollbar_fg);
 
@@ -311,7 +311,7 @@ void ComposerPanel::refresh_selected_ticks(int margin) {
 void ComposerPanel::refresh_ticks(int start_tick, int end_tick, int margin) {
 	wxRect refresh_rect(start_tick * cell_size.x, 0, (end_tick - start_tick) * cell_size.x, grid_panel->GetSize().y);
 	refresh_rect.x -= margin * cell_size.x;
-	refresh_rect.width += margin * cell_size.x;
+	refresh_rect.width += margin * 2 * cell_size.x;
 	grid_panel->RefreshRect(refresh_rect, true);
 }
 

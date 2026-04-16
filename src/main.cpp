@@ -1,3 +1,4 @@
+#include <gtk/gtk.h>
 #include <wx/wx.h>
 #include <wx/utils.h>
 #include <wx/sysopt.h>
@@ -41,16 +42,6 @@ wxDECLARE_EVENT(EVT_TOGGLED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TOGGLED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_TOGGLED_ENABLE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TOGGLED_ENABLE, wxCommandEvent);
-
-class AdVisualArtProvider : public wxArtProvider {
-protected:
-	wxBitmapBundle CreateBitmapBundle(const wxArtID& id, const wxArtClient& client, const wxSize& size) override;
-};
-
-wxBitmapBundle AdVisualArtProvider::CreateBitmapBundle(const wxArtID& id, const wxArtClient& client, const wxSize& size) {
-	return wxNullBitmap;
-}
-
 
 class ChannelButton : public wxControl {
 private:
@@ -269,9 +260,6 @@ void AdVisualToolBar::CreateComposerTools(ComposerPanel* p_composer_panel) {
 	composer_tools.push_back( AddTool(ID_AUDIO_FEEDBACK, "Audio Feedback", GetAsset("AudioFeedback.svg", tool_size), wxNullBitmap, wxITEM_CHECK,
 		"Audio Feedback", "Sample newly created Notes on the grid.") );
 	Bind(wxEVT_MENU, &AdVisualToolBar::on_grid_feedback_checked, this, ID_AUDIO_FEEDBACK);
-	//composer_tools.push_back( AddTool(ID_FOLLOW_CURSOR, "Follow Cursor", GetAsset("SheetMusicBox.svg", tool_size), wxNullBitmap, wxITEM_CHECK,
-	//	"Follow Cursor", "Follow the cursor during playback.") );
-	//Bind(wxEVT_MENU, &AdVisualToolBar::on_follow_cursor_checked, this, ID_FOLLOW_CURSOR);
 
 	// Track Popup.
 	Bind(wxEVT_MENU, &AdVisualToolBar::on_popup_track_menu, this, ID_TRACK_MENU);
@@ -417,28 +405,19 @@ bool MainApp::OnInit()
 	MainFrame *frame = new MainFrame();
 	frame->Show(true);
 	adplayer = make_unique<AdPlayer>();
-	wxArtProvider::Push(new AdVisualArtProvider);
 	return true;
 }
 
 MainFrame::MainFrame() :
 	wxFrame(nullptr, wxID_ANY, "AdVisual", wxDefaultPosition, wxSize(1920, 1024))
 {
-	wxSystemOptions::SetOption("msw.remap", 2);
 
-	SetMinSize(wxSize(320, 180));
-
-	SetBackgroundColour(bg_colour);
-	SetForegroundColour(fg_colour);
 	int fontsize = 8; // TODO, make fontsize dynamic.
 	SetFont(*(wxTheFontList->FindOrCreateFont(fontsize, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD)));
 	toolbar = new AdVisualToolBar(this, wxID_ANY, wxDefaultPosition, wxSize(100, 36));
-	toolbar->SetBackgroundColour(bg_colour);
 	SetToolBar(toolbar);
 
 	status_bar = CreateStatusBar();
-	status_bar->SetBackgroundColour(bg_colour);
-	status_bar->SetForegroundColour(*wxWHITE);
 
 	composer_panel = new ComposerPanel(this);
 	toolbar->CreateComposerTools(composer_panel);
