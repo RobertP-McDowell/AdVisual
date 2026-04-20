@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <wx/wx.h>
 #include <memory>
 #include <string>
 #include <cstdint>
@@ -29,7 +28,7 @@ namespace FileAccess {
 	extern void fieldzero(int field_size);
 	extern void fieldcpy_float_events(map<int, float>& event_map, int loop_spacing);
 	// Opens file and initializes. returns false if opening file was unsuccessful.
-	extern bool access_file(wxString file_path, bool write);
+	extern bool access_file(string file_path, bool write);
 
 	extern binwstream file;
 	extern fstream ios_file;

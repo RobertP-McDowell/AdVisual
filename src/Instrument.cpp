@@ -43,10 +43,12 @@ void Bank::delete_instrument(char name[9]) {
 	cerr << "Could not find and delete instrument of name '" << name << "'\n";
 }
 
-Instrument* Bank::find_instrument(wxString name) {
+Instrument* Bank::find_instrument(string name) {
 	char char_name[9];
-	name = name.MakeUpper();
 	name.resize(8);
+	for (char& name_char : name) {
+		name_char = toupper(name_char);
+	}
 	memcpy(&char_name, name.c_str(), 9);
 	return find_instrument(char_name);
 }
@@ -60,7 +62,7 @@ Instrument* Bank::find_instrument(char name[9]) {
 	return &Instrument::default_instrument;
 }
 
-void Bank::save_file(wxString save_path) {
+void Bank::save_file(string save_path) {
 	cout << "Saving Bank File: " << save_path << "\n";
 	if (!access_file(save_path, true)) return;
 	bnk_move_fields();
@@ -68,7 +70,7 @@ void Bank::save_file(wxString save_path) {
 	ios_file.close();
 }
 
-void Bank::load_file(wxString load_path) {
+void Bank::load_file(string load_path) {
 	cout << "Loading Bank File: " << load_path << "\n";
 	if (!access_file(load_path, false)) return;
 	clear_bank_data();

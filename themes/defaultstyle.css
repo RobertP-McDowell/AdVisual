@@ -1,0 +1,44 @@
+:root {
+	--solid-black: rgba(15, 15, 15, 255);
+}
+
+widget {
+	background-color: var(--solid-black);
+	color: rgb(255, 255, 255);
+}
+
+window {
+	background-color: var(--solid-black);
+}
+
+.toggle {
+	background-color: var(--solid-black);
+	border-color: rgb(75, 75, 75);
+	color: rgb(255, 255, 255);
+}
+.toggle:hover {
+	background-color: rgb(50, 20, 20);
+	border-color: rgb(75, 75, 75);
+	color: rgb(255, 255, 255);
+}
+.toggle:checked {
+	background-color: rgb(80, 20, 20);
+	border-color: rgb(200, 20, 20);
+	color: rgb(255, 255, 255);
+}
+
+statusbar {
+	background-color: var(--solid-black);
+}
+.toolbar {
+	background-color: var(--solid-black);
+}
+#composer {
+	background-color: rgba(0, 0, 0, 255);
+}
+#insmaker {
+	background-color: rgba(0, 0, 0, 255);
+}
+#mainframe {
+	background-color: rgba(0, 0, 0, 0);
+}

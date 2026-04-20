@@ -1,15 +1,11 @@
 #pragma once
 
-#include <wx/wx.h>
-#include <wx/utils.h>
-#include <wx/graphics.h>
-#include <wx/dcbuffer.h>
-#include <wx/listctrl.h>
 #include <cstdint>
 #include <memory>
 #include <deque>
 #include <vector>
 #include <map>
+#include <string>
 
 using namespace std;
 
@@ -63,87 +59,17 @@ public:
 
 class Bank {
 public:
-	void load_file(wxString filename);
-	void save_file(wxString filename);
+	void load_file(string filename);
+	void save_file(string filename);
 	uint8_t file_version_major = 0;
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
 	void add_instrument(Instrument new_instrument);
 	void delete_instrument(char name[9]);
 	void clear_bank_data() { instruments.clear(); }
-	Instrument* find_instrument(wxString name);
+	Instrument* find_instrument(string name);
 	Instrument* find_instrument(char name[9]);
-	wxString file_path = wxEmptyString;
+	string file_path = "";
 protected:
 	void bnk_move_fields();
 };
-
-////////////////////////////////////////////////////////////////////////////////////
-// Autocomplete for filtering and selecting bank instruments ///////////////////////
-////////////////////////////////////////////////////////////////////////////////////
-class BankControl : public wxControl {
-private:
-	wxListBox* list_box;
-	char filter_str[9] = "";
-	void on_item_selected(wxCommandEvent& event) {
-		ProcessEvent(event); // Forward it.
-	}
-	Bank* bank;
-public:
-	BankControl(wxWindow* parent, int id = wxID_ANY, wxPoint pos = wxDefaultPosition, wxSize size = wxDefaultSize) :
-			wxControl(parent, id, pos, size) {
-		list_box = new wxListBox(this, wxID_ANY, wxPoint(0, 0), size, 0, NULL, wxBORDER_NONE | wxLB_SINGLE);
-		list_box->Bind(wxEVT_LISTBOX, &BankControl::on_item_selected, this, wxID_ANY);
-		SetWindowStyle(wxBORDER_NONE);
-		wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
-		sizer->Add(list_box, 1, wxEXPAND);
-		SetSizerAndFit(sizer);
-	}
-	char* GetText() { return filter_str; }
-	void SetBank(Bank* new_bank) {
-		bank = new_bank;
-		list_box->Clear();
-		if (bank != nullptr) {
-			for (int insi = 0; insi < bank->instruments.size(); insi++) {
-				list_box->Append(wxString(bank->instruments.at(insi).name));
-			}
-		}
-		Refresh();
-		Update();
-	}
-	void FilterString(const char new_filter[9]) {
-		memcpy(filter_str, new_filter, 9);
-		if (list_box->GetCount() == 0 || bank == nullptr) {
-			return;
-		}
-		int greatest_match_len = 0;
-		int greatest_match_idx = 0;
-		for (int insi = 0; insi < bank->instruments.size(); insi++) {
-			Instrument& ins = bank->instruments.at(insi);
-			for (int i = 0; i <= 9; i++) {
-				if (filter_str[i] == '\0') {
-					if (greatest_match_len < i) {
-						greatest_match_len = i;
-						greatest_match_idx = insi;
-					}
-					break;
-				}
-				if (filter_str[i] != ins.name[i]) {
-					if (greatest_match_len < i) {
-						greatest_match_len = i;
-						greatest_match_idx = insi;
-					}
-					break;
-				}
-			}
-		}
-		list_box->EnsureVisible(list_box->GetCount() - 1); // Ensure visible the final item,
-		list_box->EnsureVisible(greatest_match_idx); // so the greatest match item will be at the top of the list!
-	}
-};
-
-
-
-
-
-

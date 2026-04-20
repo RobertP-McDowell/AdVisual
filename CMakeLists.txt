@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(AdVisual)
+project(advisual)
 
-find_package(wxWidgets 3.2.9 REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK4 REQUIRED gtk4)
+pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
 
-add_executable(AdVisual src/main.cpp)
+add_executable(advisual src/main.cpp)
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
-target_sources(AdVisual PUBLIC ${src_files})
-target_sources(AdVisual PRIVATE windows_resource.rc)
-target_include_directories(AdVisual PUBLIC "include")
-target_include_directories(AdVisual PUBLIC "src")
-target_link_directories(AdVisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
+#set(src_files "src/main.cpp")
+target_sources(advisual PUBLIC ${src_files})
+target_sources(advisual PRIVATE windows_resource.rc)
+target_include_directories(advisual PUBLIC "include")
+target_include_directories(advisual PUBLIC "src")
+target_link_directories(advisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 message(STATUS "Adding ${CMAKE_SOURCE_DIR}/lib to library link path.")
 
 if (NOT TARGET libbinio)
@@ -23,21 +23,25 @@ if (NOT TARGET adplug)
 	find_package(adplug REQUIRED CONFIG)
 endif()
 
-include(UsewxWidgets)
-target_link_libraries(AdVisual PRIVATE ${wxWidgets_LIBRARIES})
-target_link_libraries(AdVisual PRIVATE adplug::adplug)
-target_link_libraries(AdVisual PRIVATE libbinio::libbinio)
+target_link_libraries(advisual PRIVATE adplug::adplug)
+target_link_libraries(advisual PRIVATE libbinio::libbinio)
 
-# include gtk4.
-include_directories(${GTK4_INCLUDE_DIRS})
-link_directories(${GTK4_LIBRARY_DIRS})
-add_definitions(${GTK4_CFLAGS_OTHER})
+# Include gtkmm-4.0
+link_directories(${GTKMM_LIBRARY_DIRS})
+include_directories(${GTKMM_INCLUDE_DIRS})
+add_definitions(${GTKMM_CFLAGS_OTHER})
+target_link_libraries(advisual PRIVATE ${GTKMM_LIBRARIES})
 
-target_compile_definitions(AdVisual PUBLIC ASSETS_PATH="${CMAKE_INSTALL_PREFIX}/share/AdVisual/assets/")
+target_compile_definitions(advisual PUBLIC ICONS_PATH="${CMAKE_INSTALL_PREFIX}/share/advisual/icons/")
+target_compile_definitions(advisual PUBLIC THEMES_PATH="${CMAKE_INSTALL_PREFIX}/share/advisual/themes/")
 
-install(TARGETS AdVisual DESTINATION bin
+install(TARGETS advisual DESTINATION bin
 	PERMISSIONS WORLD_READ OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_EXECUTE)
 
-install(DIRECTORY assets DESTINATION share/AdVisual
+install(DIRECTORY icons DESTINATION share/advisual
+	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ
+	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install(DIRECTORY themes DESTINATION share/advisual
 	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ
 	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

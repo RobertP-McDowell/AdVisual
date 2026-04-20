@@ -1,13 +1,16 @@
 #pragma once
 
-#include <wx/wx.h>
+#include <gtkmm.h>
 #include <cstdint>
 #include <memory>
 #include <deque>
 #include <vector>
+#include <string>
 #include <map>
 
 using namespace std;
+using namespace Gtk;
+using namespace Gdk;
 
 struct Note {
 	int offset;
@@ -19,7 +22,7 @@ struct Note {
 };
 
 struct Channel {
-	wxColour colour = *wxWHITE;
+	RGBA color = RGBA(1.0, 1.0, 1.0, 1.0);
 	deque<Note> notes;
 	map<int, string> instrument_events = {{0, "PIANO1"}}; // Value = Instrument name.
 	map<int, float> volume_events = {{0, 1.0f}}; // Value = Volume mulitplier (0.0 - 1.0).
@@ -52,8 +55,8 @@ struct Track {
 	void set_tempo_event(int at_tick, float value);
 	void get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value);
 	void clear_track_data(); // Clears all events of track and channel, and notes.
-	void save_file(wxString filename);
-	void load_file(wxString filename);
+	void save_file(string filename);
+	void load_file(string filename);
 	int get_tick_count() const {
 		int highest_tick_count = 0;
 		for (const Channel& channel : channels) {
@@ -67,7 +70,7 @@ struct Track {
 	float basic_tempo = 120;
 	// Every event, key == time of event in Ticks. for tempo_events, Value = Tempo multipler (0.01 - 10.0).
 	map<int, float> tempo_events = {{0, 1.0f}};
-	wxString file_path = wxEmptyString;
+	string file_path = "";
 protected:
 	void rol_move_fields();
 };

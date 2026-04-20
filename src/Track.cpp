@@ -3,9 +3,9 @@
 #include <common.h>
 using namespace FileAccess;
 
-const wxColour ChannelColours[11] = { wxColour(255, 100, 100), wxColour(100, 255, 100), wxColour(100, 100, 255), wxColour(140, 40, 208),
-		wxColour(255, 100, 255), wxColour(255, 255, 100), wxColour(100, 255, 255), wxColour(255, 255, 255),
-		wxColour(255, 255, 255), wxColour(255, 255, 255), wxColour(255, 255, 255) };
+const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(0.4, 0.4, 1.0), RGBA(0.45, 0.3, 0.7),
+		RGBA(1.0, 0.4, 1.0), RGBA(1.0, 1.0, 0.4), RGBA(0.4, 1.0, 1.0), RGBA(1.0, 1.0, 1.0),
+		RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0) };
 
 Note::Note() {}
 Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch), length(_length) {}
@@ -13,7 +13,7 @@ Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch
 Track::Track() {
 	for (int i = 0; i < 11; i++) {
 		Channel new_channel;
-		new_channel.colour = ChannelColours[i];
+		new_channel.color = ChannelColors[i];
 		channels.push_back(new_channel);
 	}
 }
@@ -128,8 +128,8 @@ void Track::clear_track_data() {
 	rhythm_mode = 0;
 }
 
-void Track::save_file(wxString save_path) {
-	wxString try_path = (!save_path.empty() ? save_path : file_path);
+void Track::save_file(string save_path) {
+	string try_path = (!save_path.empty() ? save_path : file_path);
 	cout << "Saving Track File: " << try_path << "\n";
 	if (!access_file(try_path, true)) return;
 	rol_move_fields();
@@ -138,8 +138,8 @@ void Track::save_file(wxString save_path) {
 	ios_file.close();
 }
 
-void Track::load_file(wxString load_path) {
-	wxString try_path = (!load_path.empty() ? load_path : file_path);
+void Track::load_file(string load_path) {
+	string try_path = (!load_path.empty() ? load_path : file_path);
 	cout << "Load Track File: " << try_path << "\n";
 	if (!access_file(try_path, false)) return;
 	clear_track_data();

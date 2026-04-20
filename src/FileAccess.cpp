@@ -108,13 +108,13 @@ void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spac
 	}
 }
 
-bool FileAccess::access_file(wxString file_path, bool write) {
+bool FileAccess::access_file(string file_path, bool write) {
 	writing = write;
 	if (writing) {
-		ios_file = fstream((string)file_path, ios::out | ios::binary);
+		ios_file = fstream(file_path, ios::out | ios::binary);
 	}
 	else {
-		ios_file = fstream((string)file_path, ios::in | ios::binary);
+		ios_file = fstream(file_path, ios::in | ios::binary);
 	}
 	if (!ios_file.is_open()) {
 		cerr << "Could not open file for " << (writing ? "write" : "read") << " operation: " << file_path << "\n";
