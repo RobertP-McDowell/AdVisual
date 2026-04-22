@@ -6,35 +6,20 @@
 #include <Track.h>
 #include <Instrument.h>
 #include <AdPlayer.h>
+#include <debug.h>
 
 using namespace std;
-using namespace Gtk;
-using namespace Gdk;
+using Gdk::RGBA;
+using sigc::mem_fun;
 
 extern unique_ptr<AdPlayer> adplayer;
 extern unique_ptr<Track> current_track;
 extern unique_ptr<Bank> current_bank;
 extern Channel* current_channel;
-extern Statusbar* status_bar;
+extern Gtk::Statusbar* status_bar;
 extern int current_channel_idx;
 extern int cursor_tick;
 
-#define DEBUG_MODE
-
-#ifdef DEBUG_MODE
-#define DBPRINT(p_output) do { cout << p_output << "\n"; } while(0)
-// unlike DBPRINT, DBBREAKPOINT's are meant to be temporarily used (with a tool like gdb),
-// and should be left out of pr's/commits. Prefer assert otherwise.
-//raise(SIGTRAP); // Commenting out for now, for windows. TODO: check for POSIX.
-#define DBBREAKPOINT(p_output) do { \
-	cout << p_output << "\n"; \
-} while(0)
-#else
-#define DBPRINT(p_output) do {} while(0)
-#define DBBREAKPOINT(p_output) do { \
-	cerr << p_output << " This breakpoint shouldn't exist in release/shared builds, Breakpoint name: " << "\n"; \
-} while(0)
-#endif
 
 #define ICON_PATH(file_name) (string(ICONS_PATH) + string(file_name))
 
@@ -90,6 +75,14 @@ enum
 	ID_TOM_INSTRUMENT,
 	ID_CYMBAL_INSTRUMENT,
 	ID_HIHAT_INSTRUMENT
+};
+
+struct vec2 {
+	vec2() : x(0), y(0) {}
+	vec2(int p_v) : x(p_v), y(p_v) {}
+	vec2(int p_x, int p_y) : x(p_x), y(p_y) {}
+	int x;
+	int y;
 };
 
 int sign(int val);

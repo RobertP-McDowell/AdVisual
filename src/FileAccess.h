@@ -13,7 +13,6 @@
 
 using namespace std;
 
-
 namespace FileAccess {
 	extern int catch_libbinio_errors();
 	// Checks and calls fieldcpy_read or write

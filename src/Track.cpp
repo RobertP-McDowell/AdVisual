@@ -1,11 +1,13 @@
 #include <Track.h>
 #include <FileAccess.h>
-#include <common.h>
+#include <debug.h>
+#include <cstring>
+
 using namespace FileAccess;
 
-const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(0.4, 0.4, 1.0), RGBA(0.45, 0.3, 0.7),
-		RGBA(1.0, 0.4, 1.0), RGBA(1.0, 1.0, 0.4), RGBA(0.4, 1.0, 1.0), RGBA(1.0, 1.0, 1.0),
-		RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0) };
+//const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(0.4, 0.4, 1.0), RGBA(0.45, 0.3, 0.7),
+//		RGBA(1.0, 0.4, 1.0), RGBA(1.0, 1.0, 0.4), RGBA(0.4, 1.0, 1.0), RGBA(1.0, 1.0, 1.0),
+//		RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0) };
 
 Note::Note() {}
 Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch), length(_length) {}
@@ -13,7 +15,7 @@ Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch
 Track::Track() {
 	for (int i = 0; i < 11; i++) {
 		Channel new_channel;
-		new_channel.color = ChannelColors[i];
+		//new_channel.color = ChannelColors[i];
 		channels.push_back(new_channel);
 	}
 }
@@ -116,8 +118,9 @@ void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_posi
 
 void Channel::add_note(Note new_note) {
 	int insert_position = notes.size();
-	erase_notes(new_note.offset, new_note.length, insert_position);
+	//erase_notes(new_note.offset, new_note.length, insert_position);
 	notes.insert(notes.begin() + insert_position, new_note);
+	//notes[0] = ( new_note);
 }
 
 void Track::clear_track_data() {

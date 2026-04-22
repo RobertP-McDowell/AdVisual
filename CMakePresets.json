@@ -1,0 +1,28 @@
+{
+	"version": 10,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 23,
+		"patch": 0
+	},
+	"configurePresets": [
+	{
+		"name": "debug",
+		"displayName": "Debug",
+		"description": "Build with debug symbols",
+		"binaryDir": "${sourceDir}/bin",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Debug"
+		}
+	},
+	{
+		"name": "release",
+		"displayName": "Release",
+		"description": "Build without breaks and asserts or debug symbols.",
+		"binaryDir": "${sourceDir}/bin",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Release"
+		}
+	}
+	]
+}
