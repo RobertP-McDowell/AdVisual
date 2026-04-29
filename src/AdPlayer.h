@@ -32,3 +32,5 @@ protected:
 	int adplug_process(short* p_buffer, unsigned int p_frames, unsigned int p_buffer_offset);
 	friend class ma_device;
 };
+
+extern unique_ptr<AdPlayer> adplayer;

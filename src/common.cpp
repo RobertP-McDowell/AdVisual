@@ -1,13 +1,7 @@
 #include <common.h>
 
-unique_ptr<AdPlayer> adplayer = nullptr;
-unique_ptr<Track> current_track = nullptr;
-unique_ptr<Bank> current_bank = nullptr;
-Channel* current_channel = nullptr;
 vector<bool> enabled_channels = {};
 Gtk::Statusbar* status_bar;
-int current_channel_idx = 0;
-int cursor_tick = 0;
 
 int sign(int val) {
 	return (val > 0) - (val < 0);

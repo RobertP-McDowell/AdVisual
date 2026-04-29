@@ -9,6 +9,7 @@
 #define BIT16	true    // true when 16bit samples should be used
 #define BUFSIZE	512     // Sound buffer size in samples
 
+unique_ptr<AdPlayer> adplayer = nullptr;
 
 int AdPlayer::adplug_process(short* p_buffer, unsigned int p_frames, unsigned int p_buffer_offset) {
 	unsigned int write = (towrite > p_frames ? p_frames : towrite);
@@ -92,7 +93,7 @@ AdPlayer::AdPlayer() {
 	}
 	enabled_channels.resize(11, true);
 	opl_device->init();
-	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track.get(), current_bank.get() )));
+	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track, current_bank )));
 }
 
 AdPlayer::~AdPlayer() {
@@ -131,8 +132,8 @@ void AdPlayer::set_channel_enable(int channel, bool enable) {
 }
 
 bool AdPlayer::play(string file_path, int start_from) {
-	opl_playback->SetTrack(current_track.get());
-	opl_playback->SetBank(current_bank.get());
+	opl_playback->SetTrack(current_track);
+	opl_playback->SetBank(current_bank);
 	opl_playback->EnableAllChannels();
 	for (int v = 0; v < 11; v++) {
 		if (enabled_channels[v] == false) {

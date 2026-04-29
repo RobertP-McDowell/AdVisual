@@ -4,6 +4,8 @@
 
 using namespace FileAccess;
 
+Bank* current_bank = nullptr;
+
 OPLFM Instrument::default_carrier(  13, 2, 15-8 , 4, false, true,  1, 0, false, 63-63, 0, false, 0);
 OPLFM Instrument::default_modulator(15, 1, 15-10, 3, false, false, 1, 3, false, 63-48, 2, false, 0);
 

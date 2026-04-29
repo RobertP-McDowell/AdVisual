@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <gtkmm.h>
+#include <gtkmm.h>
 #include <cstdint>
 #include <memory>
 #include <deque>
@@ -9,7 +9,7 @@
 #include <map>
 
 using namespace std;
-//using Gdk::RGBA;
+using Gdk::RGBA;
 
 struct Note {
 	int offset;
@@ -21,8 +21,9 @@ struct Note {
 };
 
 struct Channel {
-	//RGBA color = RGBA(1.0, 1.0, 1.0, 1.0);
-	deque<Note> notes = {};
+	Channel();
+	RGBA color = RGBA(1.0, 1.0, 1.0, 1.0);
+	deque<Note> notes;
 	map<int, string> instrument_events = {{0, "PIANO1"}}; // Value = Instrument name.
 	map<int, float> volume_events = {{0, 1.0f}}; // Value = Volume mulitplier (0.0 - 1.0).
 	map<int, float> pitch_events = {{0, 1.0f}}; // Value = Pitch variation (0.0 - 2.0, nominal is 1.0).
@@ -47,7 +48,7 @@ struct Channel {
 
 struct Track {
 	Track();
-	vector<Channel> channels = {};
+	vector<Channel> channels;
 	Channel* GetChannel(int idx) {return &channels[idx];}
 	int get_channel_count() const {return channels.size();}
 	
@@ -73,3 +74,7 @@ struct Track {
 protected:
 	void rol_move_fields();
 };
+
+extern Track* current_track;
+extern Channel* current_channel;
+extern sigc::signal<void()> signal_channel_changed;

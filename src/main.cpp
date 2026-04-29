@@ -1,6 +1,7 @@
 #include <gtkmm.h>
 #include <common.h>
 #include <ComposerPanel.h>
+#include <ChannelButton.h>
 
 Gtk::ToggleButton create_image_button(string image_name) {
 using namespace Gtk;
@@ -25,6 +26,8 @@ using namespace Gtk;
 class Toolbar : public Gtk::Box {
 public:
 	Toolbar();
+	void create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel);
+	void create_insmaker_tools(shared_ptr<ComposerPanel> p_insmaker_panel);
 private:
 	void on_file_pressed();
 	void on_help_pressed();
@@ -33,6 +36,9 @@ private:
 	void on_play_track();
 	Gtk::ToggleButton composer_button;
 	Gtk::ToggleButton play_button;
+	vector<unique_ptr<ChannelButton>> channel_buttons;
+	shared_ptr<ComposerPanel> composer_panel;
+	shared_ptr<ComposerPanel> insmaker_panel;
 };
 
 Toolbar::Toolbar() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 0) {
@@ -61,6 +67,19 @@ using namespace Gtk;
 	play_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_play_track));
 }
 
+void Toolbar::create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel) {
+using namespace Gtk;
+	composer_panel = p_composer_panel;
+	for (int i = 0; i < 11; i++) {
+		string channel_name = "CH" + to_string(i + 1);
+		ChannelButton* channel_button = new ChannelButton(i);
+		channel_button->set_name(channel_name);
+		//channel_button.set_group(channel_button0);
+		append(*channel_button);
+		channel_button->show();
+	}
+}
+
 void Toolbar::on_play_track() {
 using namespace Gtk;
 	cout << play_button.get_active() << " Play\n";
@@ -70,7 +89,7 @@ class MainWindow : public Gtk::Window {
 public:
 	MainWindow();
 	double opacity = 0.5;
-	shared_ptr<Gtk::Box> toolbar;
+	shared_ptr<Toolbar> toolbar;
 	shared_ptr<Gtk::Statusbar> statusbar;
 	shared_ptr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
 	shared_ptr<ComposerPanel> composer_panel;
@@ -99,13 +118,14 @@ using namespace Gtk;
 	composer_panel = make_shared<ComposerPanel>();
 	composer_panel->set_vexpand(true);
 	insmaker_panel = make_shared<ComposerPanel>();
+	toolbar->create_composer_tools(composer_panel);
 	// Append items in proper order.
 	vertical_box.append(*toolbar);
 	vertical_box.append(*composer_panel);
 	vertical_box.append(*insmaker_panel);
 	vertical_box.append(*statusbar);
 	insmaker_panel->hide();
-	
+
 	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action("load_track", mem_fun(*this, &MainWindow::on_load_track));
 	insert_action_group("actions", action_group);

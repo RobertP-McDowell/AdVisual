@@ -73,3 +73,5 @@ public:
 protected:
 	void bnk_move_fields();
 };
+
+extern Bank* current_bank;

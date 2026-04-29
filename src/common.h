@@ -1,33 +1,19 @@
 #pragma once
 
 #include <gtkmm.h>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <Track.h>
-#include <Instrument.h>
-#include <AdPlayer.h>
 #include <debug.h>
 
 using namespace std;
 using Gdk::RGBA;
 using sigc::mem_fun;
 
-extern unique_ptr<AdPlayer> adplayer;
-extern unique_ptr<Track> current_track;
-extern unique_ptr<Bank> current_bank;
-extern Channel* current_channel;
 extern Gtk::Statusbar* status_bar;
-extern int current_channel_idx;
-extern int cursor_tick;
 
 
 #define ICON_PATH(file_name) (string(ICONS_PATH) + string(file_name))
-
-// UI colours.
-const RGBA bg_colour = RGBA(0.2, 0.1, 0.25);
-const RGBA fg_colour = RGBA(0.3, 0.2, 0.35);
-const RGBA scrollbar_bg = RGBA(0.2, 0.1, 0.25); // Til we implement custom themeing, all fg and bg will just be the default.
-const RGBA scrollbar_fg = RGBA(0.3, 0.2, 0.35);
 
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;
