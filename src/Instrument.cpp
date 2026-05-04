@@ -5,6 +5,7 @@
 using namespace FileAccess;
 
 Bank* current_bank = nullptr;
+sigc::signal<void()> signal_bank_changed;
 
 OPLFM Instrument::default_carrier(  13, 2, 15-8 , 4, false, true,  1, 0, false, 63-63, 0, false, 0);
 OPLFM Instrument::default_modulator(15, 1, 15-10, 3, false, false, 1, 3, false, 63-48, 2, false, 0);
@@ -32,6 +33,7 @@ void Bank::add_instrument(Instrument new_instrument) {
 		}
 	}
 	instruments.push_back(new_instrument);
+	signal_bank_changed.emit();
 }
 
 void Bank::delete_instrument(char name[9]) {
@@ -39,6 +41,7 @@ void Bank::delete_instrument(char name[9]) {
 		if (strcmp(insit->name, name) == 0) {
 			instruments.erase(insit);
 			cout << "Delete instrument '" << name << "'\n";
+			signal_bank_changed.emit();
 			return;
 		}
 	}
@@ -79,6 +82,7 @@ void Bank::load_file(string load_path) {
 	bnk_move_fields();
 	file_path = load_path;
 	ios_file.close();
+	signal_bank_changed.emit();
 	return;
 }
 
@@ -140,7 +144,7 @@ void Bank::bnk_move_fields() {
 		Instrument& ins = instruments.at(insi);
 		fieldcpy_uint16(&data_index, 2);
 		fieldcpy_uint8(&ins.flags, 1);
-		fieldcpy_char(&ins.name[0], 9-1); // Is null terminated
+		fieldcpy_char(&ins.name[0], 9); // Is null terminated
 		data_indices[data_index] = insi;
 		DBPRINT(insi << " / " << num_of_ins << "Ins Flags: " << int(ins.flags) << " Ins name: " << ins.name << " Data at: " << data_index);
 	}

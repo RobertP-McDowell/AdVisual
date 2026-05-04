@@ -72,6 +72,7 @@ struct vec2 {
 };
 
 int sign(int val);
+void string_to_upper(string& str);
 
 // exclude boolean operation on two 1D lines, useful for refreshing a lot of ui rects.
 void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length);

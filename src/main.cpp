@@ -1,7 +1,8 @@
 #include <gtkmm.h>
 #include <common.h>
 #include <ComposerPanel.h>
-#include <ChannelButton.h>
+#include <InsmakerPanel.h>
+#include <CommonWidgets.h>
 
 Gtk::ToggleButton create_image_button(string image_name) {
 using namespace Gtk;
@@ -27,19 +28,83 @@ class Toolbar : public Gtk::Box {
 public:
 	Toolbar();
 	void create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel);
-	void create_insmaker_tools(shared_ptr<ComposerPanel> p_insmaker_panel);
+	void create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel);
+	void show_composer_tools();
+	void show_insmaker_tools();
 private:
+	// General signals.
 	void on_file_pressed();
 	void on_help_pressed();
-	void on_show_composer_panel();
-	void on_show_insmaker_panel();
+	void on_press_composer_panel();
+	void on_press_insmaker_panel();
 	void on_play_track();
+	// Insmaker signals.
+	void on_instrument_entry_text_changed() {
+		bank_ctrl_popover.popup();
+		string text = instrument_entry.get_text();
+		string_to_upper(text);
+		if (text == instrument_entry.get_text()) {
+			return; // Don't change text if it's already uppercase.
+		}
+		int caret_pos = instrument_entry.get_position();
+		instrument_entry.set_text(text);
+		instrument_entry.set_position(caret_pos);
+	}
+	void on_instrument_entry_text_entered() {
+		bank_ctrl_popover.set_visible(false);
+		Instrument* ins = current_bank->find_instrument(instrument_entry.get_text());
+		if (ins == &(Instrument::default_instrument)) {
+			cout << "Couldn't find an instrument with the name '" << instrument_entry.get_text() << "'\n";
+			return;
+		}
+		insmaker_panel->set_instrument(ins);
+	}
+	void on_bank_ctrl_instrument_selected(Instrument* instrument) {
+		instrument_entry.set_text((string)instrument->name);
+		insmaker_panel->set_instrument(instrument);
+		instrument_entry.set_position(instrument_entry.get_text().length());
+	}
+	void on_global_lmb_down(int n_press, double x, double y) {
+		Gtk::Widget* focused = get_root()->get_focus();
+		if (!focused) {
+			return;
+		}
+		// Hide bank_ctrl completion_popover on click away.
+		if (focused->is_ancestor(instrument_entry) && !int(instrument_entry.get_state_flags() & Gtk::StateFlags::PRELIGHT)) {
+			int caret_pos = instrument_entry.get_position();
+			instrument_entry.set_text((string)insmaker_panel->get_instrument_ptr()->name);
+			instrument_entry.set_position(caret_pos);
+			bank_ctrl_popover.set_visible(false);
+		}
+	}
+	// Composer widgets.
+	Gtk::Box composer_toolbar;
 	Gtk::ToggleButton composer_button;
 	Gtk::ToggleButton play_button;
-	vector<unique_ptr<ChannelButton>> channel_buttons;
+	// Insmaker widgets.
+	Gtk::Box insmaker_toolbar;
+	Gtk::Entry instrument_entry;
+	Gtk::Popover bank_ctrl_popover;
+	BankCtrl bank_ctrl;
 	shared_ptr<ComposerPanel> composer_panel;
-	shared_ptr<ComposerPanel> insmaker_panel;
+	shared_ptr<InsmakerPanel> insmaker_panel;
 };
+
+void Toolbar::on_press_composer_panel() {
+	if (!insmaker_panel || !composer_panel) return;
+	insmaker_panel->hide();
+	insmaker_toolbar.hide();
+	composer_panel->show();
+	composer_toolbar.show();
+}
+
+void Toolbar::on_press_insmaker_panel() {
+	if (!insmaker_panel || !composer_panel) return;
+	composer_panel->hide();
+	composer_toolbar.hide();
+	insmaker_panel->show();
+	insmaker_toolbar.show();
+}
 
 Toolbar::Toolbar() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 0) {
 using namespace Gtk;
@@ -57,14 +122,19 @@ using namespace Gtk;
 	help_menu->append("About", "actions.about");
 	append(help_button);
 	composer_button = create_image_button("ComposerIcon.svg");
-	composer_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_play_track));
+	composer_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_press_composer_panel));
+	composer_button.set_active();
 	append(composer_button);
 	ToggleButton insmaker_button = create_image_button("InsmakerIcon.svg");
+	insmaker_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_press_insmaker_panel));
 	insmaker_button.set_group(composer_button);
 	append(insmaker_button);
 	play_button = create_image_button("PlayButton.svg");
 	append(play_button);
 	play_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_play_track));
+	append(composer_toolbar);
+	append(insmaker_toolbar);
+	insmaker_toolbar.hide();
 }
 
 void Toolbar::create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel) {
@@ -72,12 +142,11 @@ using namespace Gtk;
 	composer_panel = p_composer_panel;
 	for (int i = 0; i < 11; i++) {
 		string channel_name = "CH" + to_string(i + 1);
-		ChannelButton* channel_button = new ChannelButton(i);
+		ChannelButton* channel_button = make_managed<ChannelButton>(i);
 		channel_button->set_name(channel_name);
-		//channel_button.set_group(channel_button0);
-		append(*channel_button);
-		channel_button->show();
+		composer_toolbar.append(*channel_button);
 	}
+	ChannelButton::set_pressed_channel(0);
 }
 
 void Toolbar::on_play_track() {
@@ -93,11 +162,16 @@ public:
 	shared_ptr<Gtk::Statusbar> statusbar;
 	shared_ptr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
 	shared_ptr<ComposerPanel> composer_panel;
-	shared_ptr<ComposerPanel> insmaker_panel;
-protected:
-	void on_load_track();
+	shared_ptr<InsmakerPanel> insmaker_panel;
+	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
 	
+protected:
+	void on_save_panel();
+	void on_load(bool loading_bank);
+	void on_load_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog);
 };
+
+shared_ptr<Gtk::GestureClick> MainWindow::global_lmb_gesture = nullptr;
 
 MainWindow::MainWindow() {
 using namespace Gtk;
@@ -110,6 +184,10 @@ using namespace Gtk;
 	Box vertical_box = Box(Orientation::VERTICAL, 0);
 	set_child(vertical_box);
 
+	global_lmb_gesture = GestureClick::create();
+	global_lmb_gesture->set_button(GDK_BUTTON_PRIMARY);
+	add_controller(global_lmb_gesture);
+
 	toolbar = make_shared<Toolbar>();
 
 	statusbar = make_shared<Statusbar>();
@@ -117,8 +195,9 @@ using namespace Gtk;
 
 	composer_panel = make_shared<ComposerPanel>();
 	composer_panel->set_vexpand(true);
-	insmaker_panel = make_shared<ComposerPanel>();
+	insmaker_panel = make_shared<InsmakerPanel>();
 	toolbar->create_composer_tools(composer_panel);
+	toolbar->create_insmaker_tools(insmaker_panel);
 	// Append items in proper order.
 	vertical_box.append(*toolbar);
 	vertical_box.append(*composer_panel);
@@ -127,9 +206,27 @@ using namespace Gtk;
 	insmaker_panel->hide();
 
 	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
-	action_group->add_action("load_track", mem_fun(*this, &MainWindow::on_load_track));
+	action_group->add_action("load_track", sigc::bind(mem_fun(*this, &MainWindow::on_load), false));
+	action_group->add_action("load_bank", sigc::bind(mem_fun(*this, &MainWindow::on_load), true));
+	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::on_save_panel));
 	insert_action_group("actions", action_group);
+
 	show();
+}
+
+void Toolbar::create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel) {
+using namespace Gtk;
+	insmaker_panel = p_insmaker_panel;
+	instrument_entry;
+	instrument_entry.signal_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_changed));
+	instrument_entry.signal_activate().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_entered));
+	insmaker_toolbar.append(instrument_entry);
+	//instrument_entry.signal_state_flags_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_state_changed));
+	MainWindow::global_lmb_gesture->signal_pressed().connect(mem_fun(*this, &Toolbar::on_global_lmb_down));
+	bank_ctrl.instrument_selected.connect(mem_fun(*this, &Toolbar::on_bank_ctrl_instrument_selected));
+	bank_ctrl_popover.set_parent(instrument_entry);
+	bank_ctrl_popover.set_child(bank_ctrl);
+	bank_ctrl_popover.set_autohide(false);
 }
 
 int main(int argc, char* argv[]) {
@@ -138,6 +235,60 @@ using namespace Gtk;
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 
-void MainWindow::on_load_track() {
-	cout << "Load track\n";
+void MainWindow::on_load(bool loading_bank) {
+using namespace Gtk;
+	shared_ptr<FileDialog> dialog = FileDialog::create();
+	shared_ptr<Gio::ListStore<FileFilter>> filters = Gio::ListStore<FileFilter>::create();
+
+	shared_ptr<Gtk::FileFilter> track_filter = FileFilter::create();
+	track_filter->set_name("Track files");
+	track_filter->add_pattern("*.ROL");
+
+	shared_ptr<Gtk::FileFilter> bank_filter = FileFilter::create();
+	bank_filter->set_name("Bank files");
+	bank_filter->add_pattern("*.BNK");
+
+	filters->append(track_filter);
+	filters->append(bank_filter);
+
+	dialog->set_filters(filters);
+	if (loading_bank) { dialog->set_default_filter(bank_filter); }
+	else              { dialog->set_default_filter(track_filter); }
+	dialog->open(sigc::bind(mem_fun(*this, &MainWindow::on_load_selected), dialog));
+}
+
+void MainWindow::on_load_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog) {
+using namespace Gtk;
+	try {
+		auto file = dialog->open_finish(result);
+		string filename = file->get_path();
+
+		// Get file extension.
+		string file_ext;
+		int extension_pos = filename.rfind(".");
+		if (extension_pos == -1 && extension_pos != filename.length() - 1) {
+			cerr << "Filename doesn't have a file extension\n";
+			return;
+		}
+		file_ext = filename.substr(extension_pos + 1);
+		string_to_upper(file_ext);
+
+		// Compare file extension.
+		if (file_ext == "ROL") {
+			current_track->load_file(filename);
+		}
+		if (file_ext == "BNK") {
+			current_bank->load_file(filename);
+		}
+	}
+	catch (const Gtk::DialogError& err) {
+		cout << "No file selected\n";
+	}
+	
+}
+
+void MainWindow::on_save_panel() {
+
+	insmaker_panel->save_instruments();
+	current_bank->save_file((string)"");
 }

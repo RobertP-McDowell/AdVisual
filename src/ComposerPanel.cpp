@@ -20,15 +20,58 @@ ComposerPanel::ComposerPanel() {
 	insert_column(0);
 	note_size = vec2(20.0 / zoom, 17.0 / zoom);
 	cell_size = vec2(20.0 / zoom, 20.0 / zoom);
-
-	event_header = make_unique<EventHeader>();
-	event_header->show();
+// Init event_header.
+	event_header = make_managed<EventHeader>();
 	attach(*event_header, 1, 0);
-	grid_panel = make_unique<GridPanel>();
+// Init grid_panel.
+	grid_panel = make_managed<GridPanel>();
 	grid_panel->set_expand(true);
-	grid_panel->show();
 	attach(*grid_panel, 1, 1);
+// Init piano_ctrl.
+	piano_ctrl = make_managed<PianoCtrl>();
+	attach(*piano_ctrl, 0, 1);
+// Init scrollbars.
+	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, 100, 1, 10, 0);
+	shared_ptr<Adjustment> vadjust = Adjustment::create(0, 0, 100, 1, 10, 0);
+	hscrollbar = make_managed<Scrollbar>(hadjust, Orientation::HORIZONTAL);
+	vscrollbar = make_managed<Scrollbar>(vadjust, Orientation::VERTICAL);
+	hadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_hscroll));
+	vadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_vscroll));
+	attach(*hscrollbar, 0, 2, 3, 1);
+	attach(*vscrollbar, 2, 0, 1, 2);
 }
+
+void ComposerPanel::on_hscroll() {
+	int new_x = hscrollbar->get_adjustment()->get_value() * cell_size.x;
+	event_header->scroll_offset = new_x;
+	event_header->queue_draw();
+	grid_panel->scroll_offset.x = new_x;
+	grid_panel->queue_draw();
+}
+
+void ComposerPanel::on_vscroll() {
+	int new_y = vscrollbar->get_adjustment()->get_value() * cell_size.y;
+	grid_panel->scroll_offset.y = new_y;
+	grid_panel->queue_draw();
+}
+
+#define update_event_field(event_field, get_last_event_callable, t_type, type_conversion_func, max_text_length) do { \
+	int last_event_tick; \
+	t_type last_event_value; \
+	get_last_event_callable(editing_tick, last_event_tick, last_event_value); \
+	if (last_event_tick == editing_tick) { \
+		string new_text = type_conversion_func(last_event_value); \
+		new_text.resize(max_text_length); \
+		event_field.set_text(new_text); \
+		get_last_event_callable(editing_tick - 1, last_event_tick, last_event_value); \
+	} \
+	else { \
+		event_field.set_text(""); \
+	} \
+	string new_hint = type_conversion_func(last_event_value); \
+	new_hint.resize(max_text_length); \
+	/* event_field.set_placeholder_text(new_hint); */ \
+} while(0)
 
 void EventPopup::init_spin_field(Grid& grid, string text, int entry_idx, SpinButton& spinbox) {
 	Label label(text, Align::START);
@@ -67,25 +110,9 @@ EventPopup::EventPopup() {
 	volume_field.set_name("field-volume");
 	init_spin_field(grid, "Pitch", 2, pitch_field);
 	init_spin_field(grid, "Volume", 3, volume_field);
+	bank_ctrl.instrument_selected.connect(mem_fun(*this, &EventPopup::on_bank_ctrl_instrument_selected));
+	main_box.append(bank_ctrl);
 }
-
-#define update_event_field(event_field, get_last_event_callable, t_type, type_conversion_func, max_text_length) do { \
-	int last_event_tick; \
-	t_type last_event_value; \
-	get_last_event_callable(editing_tick, last_event_tick, last_event_value); \
-	if (last_event_tick == editing_tick) { \
-		string new_text = type_conversion_func(last_event_value); \
-		new_text.resize(max_text_length); \
-		event_field.set_text(new_text); \
-		get_last_event_callable(editing_tick - 1, last_event_tick, last_event_value); \
-	} \
-	else { \
-		event_field.set_text(""); \
-	} \
-	string new_hint = type_conversion_func(last_event_value); \
-	new_hint.resize(max_text_length); \
-	/* event_field.set_placeholder_text(new_hint); */ \
-} while(0)
 
 void EventPopup::popup(int at_tick) {
 	editing_tick = at_tick;
@@ -108,6 +135,10 @@ void EventPopup::on_closed() {
 	get_parent()->queue_draw();
 }
 
+void EventPopup::on_bank_ctrl_instrument_selected(Instrument* ins) {
+	instrument_field.set_text((string)ins->name);
+}
+
 EventHeader::EventHeader() {
 	set_name("event-header");
 	set_draw_func(sigc::mem_fun(*this, &EventHeader::on_draw));
@@ -115,7 +146,6 @@ EventHeader::EventHeader() {
 	rmb_gesture = GestureClick::create();
 	rmb_gesture->set_button(GDK_BUTTON_SECONDARY);
 	rmb_gesture->signal_pressed().connect(mem_fun(*this, &EventHeader::on_rmb_down));
-	//rmb_gesture->signal_released().connect(mem_fun(*this, &EventHeader::on_rmb_up));
 	add_controller(rmb_gesture);
 	event_popup.set_parent(*this);
 	signal_channel_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
@@ -123,9 +153,9 @@ EventHeader::EventHeader() {
 
 
 void EventHeader::on_rmb_down(int n_press, double x, double y) {
-	int tick = int(x / cell_size.x);
+	int tick = int((x + scroll_offset) / cell_size.x);
 	event_popup.popup(tick);
-	event_popup.set_pointing_to(Gdk::Rectangle(tick * cell_size.x, 0, cell_size.x, get_height()));
+	event_popup.set_pointing_to(Gdk::Rectangle((tick * cell_size.x) - scroll_offset, 0, cell_size.x, get_height()));
 }
 
 GridPanel::GridPanel() {
@@ -149,7 +179,7 @@ GridPanel::GridPanel() {
 }
 
 void GridPanel::on_lmb_down(int n_press, double x, double y) {
-	mouse_down_start = vec2(x, y);
+	mouse_down_start = vec2(x + scroll_offset.x, y + scroll_offset.y);
 	ghost_note = make_unique<Note>(x / cell_size.x, y / cell_size.x, 1);
 	ghost_note->offset = mouse_down_start.x / cell_size.x;
 	ghost_note->pitch = mouse_down_start.y / cell_size.y;
@@ -223,9 +253,11 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 
 	// Start drawing Grid.
 	double vertical_dash = (cell_size.y / 3.0) * 2.0; // Subtract pen_width because the rounded cap protrudes
-	vector<double> vertical_dashes = {vertical_dash, cell_size.y - vertical_dash};
+	double vdash_gap = cell_size.y - vertical_dash;
+	vector<double> vertical_dashes = {vertical_dash, vdash_gap};
 	double horizontal_dash = (cell_size.x / 3.0) * 2.0; // Subtract pen_width because the rounded cap protrudes
-	vector<double> horizontal_dashes = {horizontal_dash, cell_size.x - horizontal_dash};
+	double hdash_gap = cell_size.x - horizontal_dash;
+	vector<double> horizontal_dashes = {horizontal_dash, hdash_gap};
 
 	int ticks_per_measure = current_track->beats_per_measure * current_track->ticks_per_beat;
 	vec2 max_offstep = vec2(cell_size.x * ticks_per_measure, cell_size.y * full_octave);
@@ -236,7 +268,7 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	int grid_sub = 0;
 	double middle_c_y = cell_size.y * 50;
 	Gdk::Cairo::set_source_rgba(cr, grid_color);
-	cr->set_dash(horizontal_dashes, 0);
+	cr->set_dash(horizontal_dashes, -hdash_gap / 2.0);
 	cr->set_line_width(grid_width);
 	// Draw dashed line for every sharp note.
 	for (int i = 0; i <= rows; i++) {
@@ -244,13 +276,13 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			grid_sub++;
 			continue;
 		}
-		int y = (cell_size.y * 2.0 * (i-(grid_sub/2.0))) + (cell_size.y /2.0);
-		cr->move_to(0, y);
+		int y = ((cell_size.y * 2.0 * (i-(grid_sub/2.0))) + (cell_size.y /2.0)) - draw_offstep.y;
+		cr->move_to(-draw_offstep.x, y);
 		cr->line_to(get_width(), y);
 		cr->stroke();
 	}
 	// Draw solid line per measure.
-	for (int measure = 0; measure <= columns; measure += ticks_per_measure) {
+	for (int measure = 0; measure <= columns + 2; measure += ticks_per_measure) {
 		cr->unset_dash();
 		cr->set_line_width(measure_width);
 		Gdk::Cairo::set_source_rgba(cr, measure_color);
@@ -260,7 +292,7 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		cr->stroke();
 		// Draw dashed line per beat.
 		for (int beat = current_track->ticks_per_beat; beat < ticks_per_measure; beat += current_track->ticks_per_beat) {
-			cr->set_dash(vertical_dashes, 0);
+			cr->set_dash(vertical_dashes, -vdash_gap / 2.0);
 			cr->set_line_width(grid_width);
 			Gdk::Cairo::set_source_rgba(cr, grid_color);
 			x = (measure + beat) * cell_size.x;
@@ -274,11 +306,10 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	cr->unset_dash();
 	// Note pen setup.
 	cr->set_line_width(note_size.y / 4.0);
-	//cr->set_fill_rule(Cairo::FillRule::EVEN
 	vec2 note_visdiff = vec2((note_size.x - cell_size.x) / 2.0, (note_size.y - cell_size.x) / 2.0);
 	// Notes.
 	for (Note& note : current_channel->notes) {
-		cairo_round_rect(cr, note.offset * cell_size.x, (note.pitch * cell_size.y) - note_visdiff.y,
+		cairo_round_rect(cr, (note.offset * cell_size.x) - scroll_offset.x, (note.pitch * cell_size.y) - note_visdiff.y - scroll_offset.y,
 						note.length * cell_size.x, note_size.y, note_size.y / 4.0);
 		Gdk::Cairo::set_source_rgba(cr, RGBA(0, 0, 0, 1));
 		cr->fill_preserve();
@@ -290,9 +321,9 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	if (ghost_note != nullptr) {
 		Gdk::Cairo::set_source_rgba(cr, ghost_note_color);
 		cr->set_line_width(cell_size.y);
-		int y = (ghost_note->pitch * cell_size.y) + (cell_size.y / 2.0);
-		cr->move_to(ghost_note->offset * cell_size.x, y);
-		cr->line_to((ghost_note->offset + ghost_note->length) * cell_size.x, y);
+		int y = ((ghost_note->pitch * cell_size.y) + (cell_size.y / 2.0)) - scroll_offset.y;
+		cr->move_to((ghost_note->offset * cell_size.x) - scroll_offset.x, y);
+		cr->line_to(((ghost_note->offset + ghost_note->length) * cell_size.x) - scroll_offset.x, y);
 		cr->stroke();
 	}
 	// Start drawing Cursor & Selection.
@@ -336,7 +367,7 @@ void EventHeader::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int h
 
 	// Tempo events.
 	for (auto event = current_track->tempo_events.begin(); event != current_track->tempo_events.end(); event++) {
-		int event_on_grid = (event->first * note_size.x);
+		int event_on_grid = (event->first * note_size.x) - scroll_offset;
 		if (event_on_grid > width) break;
 		if (event_on_grid < -(note_size.x * 20)) continue;
 		cr->rectangle(event_on_grid, 0, event_bar_size.x, event_bar_size.y);

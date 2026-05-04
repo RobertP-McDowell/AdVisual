@@ -44,6 +44,7 @@ struct OPLFM {
 class Instrument {
 public:
 	Instrument() {}
+	
 	Instrument(OPLFM p_carrier, OPLFM p_modulator) : carrier(p_carrier), modulator(p_modulator) {}
 	uint8_t percussion_mode = 0; // 0=Melodic, 1=percussive.
 	uint8_t voice_number = 0; // Starts from 6 (percussive only).
@@ -74,4 +75,6 @@ protected:
 	void bnk_move_fields();
 };
 
+#include <sigc++/sigc++.h>
 extern Bank* current_bank;
+extern sigc::signal<void()> signal_bank_changed;

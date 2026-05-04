@@ -24,7 +24,7 @@
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
      inkscape:zoom="29.05688"
-     inkscape:cx="5.2311192"
+     inkscape:cx="5.2311191"
      inkscape:cy="4.9730047"
      inkscape:window-width="2048"
      inkscape:window-height="1124"
@@ -39,20 +39,20 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#949494;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 4.7877455,1.3875901 V 6.9212798"
+       style="fill:none;fill-rule:evenodd;stroke:#949494;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 6.555677,1.7015608 V 10.170298"
        id="path1" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#aaaaaa;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 2.0464721,4.1544351 H 7.5290194"
+       style="fill:none;fill-rule:evenodd;stroke:#aaaaaa;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 2.3604428,5.9359296 H 10.750912"
        id="path2" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#b2b2b2;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 6.8846144,2.0575656 2.690876,6.2513042"
+       style="fill:none;fill-rule:evenodd;stroke:#b2b2b2;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 9.764717,2.7268886 3.346636,9.14497"
        id="path4" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#c1c1c1;stroke-width:1.18391;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 2.690876,2.0575656 6.8846144,6.2513042"
+       style="fill:none;fill-rule:evenodd;stroke:#c1c1c1;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 3.346636,2.7268886 9.764717,9.14497"
        id="path5" />
   </g>
 </svg>

@@ -11,20 +11,34 @@ window {
 	background-color: var(--solid-black);
 }
 
-.toggle {
+button {
 	background-color: var(--solid-black);
 	border-color: rgb(75, 75, 75);
 	color: rgb(255, 255, 255);
 }
-.toggle:hover {
-	background-color: var(--solid-black);
+button:hover {
 	border-color: rgb(100, 100, 100);
-	color: rgb(255, 255, 255);
+}
+button:focus {
+	background-color: var(--solid-black);
+	border-color: rgb(200, 20, 20);
+}
+button:active {
+	background-color: rgb(80, 20, 20);
+	border-color: rgb(200, 20, 20);
 }
 .toggle:checked {
 	background-color: rgb(80, 20, 20);
 	border-color: rgb(200, 20, 20);
-	color: rgb(255, 255, 255);
+}
+.toggle:focus {
+	border-color: rgb(100, 100, 100);
+}
+.toggle:focus:active {
+	border-color: rgb(200, 20, 20);
+}
+.toggle:focus:checked {
+	border-color: rgb(200, 20, 20);
 }
 
 statusbar {
@@ -33,12 +47,21 @@ statusbar {
 .toolbar {
 	background-color: var(--solid-black);
 }
+#event-header {
+	background-color: rgba(0, 0, 0, 0.7);
+}
 #grid-panel {
-	background-color: rgba(0, 0, 0, 0.5);
+	background-color: rgba(0, 0, 0, 0.7);
 }
 #insmaker {
-	background-color: rgba(100, 100, 0, 0.5);
+	background-color: rgba(0, 0, 0, 0.7);
 }
+.insmaker-slider {
+	border-width: 2px;
+	border-color: rgba(255, 0, 0, 1.0);
+	background-color: var(--solid-black);
+}
+
 #mainframe {
 	background-color: rgba(0, 0, 0, 0);
 }
@@ -60,19 +83,4 @@ entry {
 }
 #field-volume {
 	border-color: rgb(0, 0, 255);
-}
-radio {
-	background-color: rgb(0, 0, 0);
-	border-color: rgb(255, 255, 255);
-	color: rgb(255, 255, 255);
-}
-#ch1 {
-	background-color: rgb(0, 0, 0);
-	border-color: rgb(255, 0, 0);
-	color: rgb(255, 0, 0);
-}
-.channel {
-	background-color: rgb(0, 0, 0);
-	border-color: rgb(255, 0, 0);
-	color: rgb(255, 0, 0);
 }

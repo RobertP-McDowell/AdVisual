@@ -7,7 +7,7 @@ using namespace FileAccess;
 
 const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(0.4, 0.4, 1.0), RGBA(0.45, 0.3, 0.7),
 		RGBA(1.0, 0.4, 1.0), RGBA(1.0, 1.0, 0.4), RGBA(0.4, 1.0, 1.0), RGBA(1.0, 1.0, 1.0),
-		RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0), RGBA(1.0, 1.0, 1.0) };
+		RGBA(1.0, 0.0, 0.0), RGBA(0.0, 1.0, 0.0), RGBA(0.0, 0.0, 1.0) };
 Track* current_track;
 Channel* current_channel;
 sigc::signal<void()> signal_channel_changed;

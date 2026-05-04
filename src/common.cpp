@@ -7,6 +7,10 @@ int sign(int val) {
 	return (val > 0) - (val < 0);
 }
 
+void string_to_upper(string& str) {
+	transform(str.begin(), str.end(), str.begin(), ::toupper);
+}
+
 void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length) {
 	if (p1 != p2 && p1 + l1 != p2 + l2) { // Rect is resizing in both directions.
 		out_p = min(p1, p2);
