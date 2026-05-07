@@ -120,7 +120,7 @@ BankCtrl::BankCtrl() : Box(Orientation::HORIZONTAL) {
 	lmb_gesture->set_button(GDK_BUTTON_PRIMARY);
 	lmb_gesture->signal_pressed().connect(mem_fun(*this, &BankCtrl::on_lmb_down));
 	draw_panel.add_controller(lmb_gesture);
-	
+
 	scroll_controller = EventControllerScroll::create();
 	scroll_controller->set_flags(EventControllerScroll::Flags::VERTICAL);
 	scroll_controller->signal_scroll().connect(mem_fun(*this, &BankCtrl::on_mouse_scroll), true);
@@ -149,14 +149,15 @@ void BankCtrl::update() {
 	vadjust->set_upper(current_bank->instruments.size() * item_height);
 	draw_panel.queue_draw();
 }
-
+#include <InsmakerPanel.h>
 void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
 	if (current_bank == nullptr || current_bank->instruments.empty()) { return; }
+	RGBA select_color = RGBA(0.4, 0.4, 0.4, 1.0);
 	double half_item_height = item_height / 2.0;
 	int items_start = max(0, (int)floor(vadjust->get_value() / item_height) - 1);
 	// Draw background for selected item.
 	if (selected_item_idx != -1) {
-		Gdk::Cairo::set_source_rgba(cr, RGBA(0.4, 0.4, 0.4, 1.0));
+		Gdk::Cairo::set_source_rgba(cr, select_color);
 		int selected_start = ((selected_item_idx - items_start + 1) * item_height);
 		cr->set_line_width(item_height + 1);
 		cr->move_to(0, selected_start);
@@ -179,15 +180,20 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 			instrument_color = current_track->GetChannel(ins.voice_number)->color;
 		}
 		Gdk::Cairo::set_source_rgba(cr, instrument_color);
-		layout->set_text((string)ins.name);
+		string ins_text = (string)ins.name;
+		if (InsmakerPanel::find_unsaved_instrument(ins.name) != nullptr) {
+			ins_text += "*";
+		}
+		layout->set_text(ins_text);
 		cr->move_to(0, (i - items_start) * item_height);
 		layout->show_in_cairo_context(cr);
 	}
 }
 
-PianoCtrl::PianoCtrl(int orient) : instrument(&Instrument::default_instrument), orientation(orient) {
+PianoCtrl::PianoCtrl(bool p_tall) : instrument(&Instrument::default_instrument), tall(p_tall) {
+	add_css_class("piano-ctrl");
 	set_draw_func(mem_fun(*this, &PianoCtrl::on_draw));
-	if (orientation == 0) {
+	if (tall) {
 		set_size_request(deepness, -1);
 	}
 	else {
@@ -196,5 +202,60 @@ PianoCtrl::PianoCtrl(int orient) : instrument(&Instrument::default_instrument), 
 }
 
 void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
-	cout << "Draw Piano\n";
+	RGBA sharp_color = RGBA(0.0, 0.0, 0.0, 1.0);
+	Gdk::Cairo::set_source_rgba(cr, sharp_color);
+	int max_offstep = key_width * full_octave;
+	int draw_offstep = scroll_offset % max_offstep;
+	int grid_sub = 0;
+	int half_key = key_width / 2.0;
+	if (tall == true) {
+		for (int i = 0; i <= height / key_width; i++) {
+			double y = (key_width * 2.0 * (i-(grid_sub/2.0))) - draw_offstep;
+			if (i % 7 == 4 || i % 7 == 0)  {
+				cr->move_to(0, y);
+				cr->line_to(deepness, y);
+				cr->stroke();
+				grid_sub++;
+				continue;
+			}
+			cr->move_to(0, y + half_key);
+			cr->line_to(deepness, y + half_key);
+			cr->stroke();
+			cr->rectangle(0, y, deepness / 2.0, key_width);
+			cr->fill();
+		}
+		// Draw middle C.
+		for (int i = 0; i < 4; i++) {
+			int y = (key_width * middle_c) - (key_width * 1.25) - scroll_offset;
+			int x = deepness - (i * 6);
+			cr->move_to(x, y);
+			cr->line_to(x, y + key_width);
+			cr->stroke();
+		}
+	}
+	else {
+		for (int i = 0; i <= width / key_width; i++) {
+			double x = (key_width * 2.0 * (i-(grid_sub/2.0))) - draw_offstep;
+			if (i % 7 == 4 || i % 7 == 0)  {
+				cr->move_to(x, 0);
+				cr->line_to(x, deepness);
+				cr->stroke();
+				grid_sub++;
+				continue;
+			}
+			cr->move_to(x + half_key, 0);
+			cr->line_to(x + half_key, deepness);
+			cr->stroke();
+			cr->rectangle(x, 0, key_width, deepness / 2.0);
+			cr->fill();
+		}
+		// Draw middle C.
+		for (int i = 0; i < 4; i++) {
+			int x = (key_width * middle_c) - (key_width * 1.25) - scroll_offset;
+			int y = deepness - (i * 6);
+			cr->move_to(x, y);
+			cr->line_to(x, y + key_width);
+			cr->stroke();
+		}
+	}
 }

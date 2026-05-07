@@ -3,15 +3,9 @@
 #include <ComposerPanel.h>
 #include <InsmakerPanel.h>
 #include <CommonWidgets.h>
+#include <AdPlayer.h>
 
-Gtk::ToggleButton create_image_button(string image_name) {
-using namespace Gtk;
-	ToggleButton bttn;
-	Image bttn_img(ICON_PATH(image_name));
-	bttn.set_child(bttn_img);
-	bttn_img.set_icon_size(IconSize::LARGE);
-	return bttn;
-}
+class MainWindow;
 
 Gtk::MenuButton create_image_menu_button(string image_name) {
 using namespace Gtk;
@@ -38,6 +32,8 @@ private:
 	void on_press_composer_panel();
 	void on_press_insmaker_panel();
 	void on_play_track();
+	// Composer signals.
+	void on_preview_channels_toggled();
 	// Insmaker signals.
 	void on_instrument_entry_text_changed() {
 		bank_ctrl_popover.popup();
@@ -64,6 +60,10 @@ private:
 		insmaker_panel->set_instrument(instrument);
 		instrument_entry.set_position(instrument_entry.get_text().length());
 	}
+	void on_instrument_entry_dropdown_pressed(Gtk::Entry::IconPosition icon_pos) {
+		instrument_edit_menu.set_pointing_to(instrument_entry.get_icon_area());
+		instrument_edit_menu.popup();
+	}
 	void on_global_lmb_down(int n_press, double x, double y) {
 		Gtk::Widget* focused = get_root()->get_focus();
 		if (!focused) {
@@ -77,13 +77,16 @@ private:
 			bank_ctrl_popover.set_visible(false);
 		}
 	}
-	// Composer widgets.
-	Gtk::Box composer_toolbar;
+	// General buttons.
 	Gtk::ToggleButton composer_button;
 	Gtk::ToggleButton play_button;
+	// Composer widgets.
+	Gtk::Box composer_toolbar;
+	Gtk::ToggleButton preview_channels_button;
 	// Insmaker widgets.
 	Gtk::Box insmaker_toolbar;
 	Gtk::Entry instrument_entry;
+	Gtk::PopoverMenu instrument_edit_menu;
 	Gtk::Popover bank_ctrl_popover;
 	BankCtrl bank_ctrl;
 	shared_ptr<ComposerPanel> composer_panel;
@@ -104,6 +107,10 @@ void Toolbar::on_press_insmaker_panel() {
 	composer_toolbar.hide();
 	insmaker_panel->show();
 	insmaker_toolbar.show();
+}
+
+void Toolbar::on_preview_channels_toggled() {
+	composer_panel->set_preview_channels(preview_channels_button.get_active());
 }
 
 Toolbar::Toolbar() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 0) {
@@ -147,11 +154,20 @@ using namespace Gtk;
 		composer_toolbar.append(*channel_button);
 	}
 	ChannelButton::set_pressed_channel(0);
+	preview_channels_button = create_image_button("OpenedEye.svg");
+	preview_channels_button.set_active(true);
+	preview_channels_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_preview_channels_toggled));
+	composer_toolbar.append(preview_channels_button);
 }
 
 void Toolbar::on_play_track() {
 using namespace Gtk;
-	cout << play_button.get_active() << " Play\n";
+	if (play_button.get_active()) {
+		adplayer->play(current_track->file_path, cursor_tick);
+	}
+	else {
+		adplayer->stop();
+	}
 }
 
 class MainWindow : public Gtk::Window {
@@ -164,7 +180,6 @@ public:
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
-	
 protected:
 	void on_save_panel();
 	void on_load(bool loading_bank);
@@ -172,6 +187,48 @@ protected:
 };
 
 shared_ptr<Gtk::GestureClick> MainWindow::global_lmb_gesture = nullptr;
+
+static void menu_append_radio(shared_ptr<Gio::Menu> menu, string name, string action, int value) {
+	shared_ptr<Gio::MenuItem> rhythm_item = Gio::MenuItem::create(name, action);
+	rhythm_item->set_action_and_target(action, Glib::Variant<int>::create(value));
+	menu->append_item(rhythm_item);
+}
+
+void Toolbar::create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel) {
+using namespace Gtk;
+	insmaker_panel = p_insmaker_panel;
+	instrument_entry.signal_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_changed));
+	instrument_entry.signal_activate().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_entered));
+	shared_ptr<Gdk::Texture> dropdown_texture = Gdk::Texture::create_from_filename(ICON_PATH("DropdownButton.svg"));
+	instrument_entry.set_icon_from_paintable(dropdown_texture, Entry::IconPosition::PRIMARY);
+	instrument_entry.set_icon_activatable(true);
+	instrument_entry.signal_icon_press().connect(mem_fun(*this, &Toolbar::on_instrument_entry_dropdown_pressed));
+	insmaker_toolbar.append(instrument_entry);
+// Setup instrument select popover (bank_ctrl_popover).
+	MainWindow::global_lmb_gesture->signal_pressed().connect(mem_fun(*this, &Toolbar::on_global_lmb_down));
+	bank_ctrl.instrument_selected.connect(mem_fun(*this, &Toolbar::on_bank_ctrl_instrument_selected));
+	bank_ctrl_popover.set_parent(instrument_entry);
+	bank_ctrl_popover.set_child(bank_ctrl);
+	bank_ctrl_popover.set_autohide(false);
+// Setup instrument edit popover (instrument_edit_menu).
+	shared_ptr<Gio::Menu> edit_menu_model = Gio::Menu::create();
+	instrument_edit_menu.set_menu_model(edit_menu_model);
+	instrument_edit_menu.set_parent(instrument_entry);
+	shared_ptr<Gio::Menu> bank_edit_menu_model = Gio::Menu::create();
+	shared_ptr<Gio::Menu> instrument_edit_menu_model = Gio::Menu::create();
+	bank_edit_menu_model->append("Create Instrument", "actions.create_instrument");
+	bank_edit_menu_model->append("Delete Instrument", "actions.delete_instrument");
+	bank_edit_menu_model->append("Duplicate Instrument", "actions.duplicate_instrument");
+	instrument_edit_menu_model->append("Additive Synthesis", "insmaker.toggle_additive_synth");
+	menu_append_radio(instrument_edit_menu_model, "Melodic Mode", "insmaker.set_rhythm_mode", 0);
+	menu_append_radio(instrument_edit_menu_model, "Bass Drum Mode", "insmaker.set_rhythm_mode", 6);
+	menu_append_radio(instrument_edit_menu_model, "Snare Drum Mode", "insmaker.set_rhythm_mode", 7);
+	menu_append_radio(instrument_edit_menu_model, "Tom Drum Mode", "insmaker.set_rhythm_mode", 8);
+	menu_append_radio(instrument_edit_menu_model, "Cymbal Mode", "insmaker.set_rhythm_mode", 9);
+	menu_append_radio(instrument_edit_menu_model, "Hi-Hat Mode", "insmaker.set_rhythm_mode", 10);
+	edit_menu_model->append_section(bank_edit_menu_model);
+	edit_menu_model->append_section(instrument_edit_menu_model);
+}
 
 MainWindow::MainWindow() {
 using namespace Gtk;
@@ -204,6 +261,8 @@ using namespace Gtk;
 	vertical_box.append(*insmaker_panel);
 	vertical_box.append(*statusbar);
 	insmaker_panel->hide();
+	// Create adplayer after current_track and current_bank have been initialized.
+	adplayer = make_unique<AdPlayer>();
 
 	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action("load_track", sigc::bind(mem_fun(*this, &MainWindow::on_load), false));
@@ -211,22 +270,9 @@ using namespace Gtk;
 	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::on_save_panel));
 	insert_action_group("actions", action_group);
 
-	show();
-}
+	insert_action_group("insmaker", insmaker_panel->action_group);
 
-void Toolbar::create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel) {
-using namespace Gtk;
-	insmaker_panel = p_insmaker_panel;
-	instrument_entry;
-	instrument_entry.signal_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_changed));
-	instrument_entry.signal_activate().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_entered));
-	insmaker_toolbar.append(instrument_entry);
-	//instrument_entry.signal_state_flags_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_state_changed));
-	MainWindow::global_lmb_gesture->signal_pressed().connect(mem_fun(*this, &Toolbar::on_global_lmb_down));
-	bank_ctrl.instrument_selected.connect(mem_fun(*this, &Toolbar::on_bank_ctrl_instrument_selected));
-	bank_ctrl_popover.set_parent(instrument_entry);
-	bank_ctrl_popover.set_child(bank_ctrl);
-	bank_ctrl_popover.set_autohide(false);
+	show();
 }
 
 int main(int argc, char* argv[]) {

@@ -68,3 +68,12 @@ float get_float_from_string(string str_val, float min, float max) {
 	}
 	return ret_float;
 }
+
+Gtk::ToggleButton create_image_button(string image_name) {
+using namespace Gtk;
+	ToggleButton bttn;
+	Image bttn_img(ICON_PATH(image_name));
+	bttn.set_child(bttn_img);
+	bttn_img.set_icon_size(IconSize::LARGE);
+	return bttn;
+}

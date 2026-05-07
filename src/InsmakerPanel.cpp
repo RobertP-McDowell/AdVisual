@@ -2,6 +2,7 @@
 
 using namespace Gtk;
 
+vector<Instrument> InsmakerPanel::unsaved_instruments;
 
 enum {
 	ATTACK_RATE = 0,
@@ -30,17 +31,17 @@ int current_property_row = 0;
 void InsmakerPanel::create_oplfm_editor(OPLFM* car, OPLFM* mod) {
 	add_slider_property("Attack Rate", get_opl_prop(car, attack_rate), get_opl_prop(mod, attack_rate), 0, 15);
 	add_slider_property("Decay Rate", get_opl_prop(car, decay_rate), get_opl_prop(mod, decay_rate), 0, 15);
-	add_slider_property("Sustain Level", get_opl_prop(car, sustain_level), get_opl_prop(mod, sustain_level), 0, 15);
+	add_slider_property("Sustain Level", get_opl_prop(car, sustain_level), get_opl_prop(mod, sustain_level), 0, 15, true); // Inverted.
 	add_slider_property("Release Rate", get_opl_prop(car, release_rate), get_opl_prop(mod, release_rate), 0, 15);
 	add_checkbox_property("Sustain Sound", get_opl_prop(car, sustain_sound), get_opl_prop(mod, sustain_sound));
 	add_checkbox_property("Envelope Scaling", get_opl_prop(car, ksr), get_opl_prop(mod, ksr));
 	add_slider_property("Frequency Multiplier", get_opl_prop(car, frequency_multiplier), get_opl_prop(mod, frequency_multiplier), 0, 15); // 0.5
 	add_slider_property("Modulation Feedback", nullptr, get_opl_prop(mod, feedback), 0, 7);
 	add_checkbox_property("Pitch Vibrato", get_opl_prop(car, vibrato), get_opl_prop(mod, vibrato));
-	add_slider_property("Output Level", get_opl_prop(car, output_level), get_opl_prop(mod, output_level), 0, 63);
+	add_slider_property("Output Level", get_opl_prop(car, output_level), get_opl_prop(mod, output_level), 0, 63, true); // Inverted.
 	add_slider_property("Level Scaling", get_opl_prop(car, ksl), get_opl_prop(mod, ksl), 0, 3);
 	add_checkbox_property("Amplitude Tremelo", get_opl_prop(car, tremelo), get_opl_prop(mod, tremelo));
-	add_slider_property("Wave Form", get_opl_prop(car, waveform), get_opl_prop(mod, waveform), 0, 3);
+	add_radio_property("Wave Form", get_opl_prop(car, waveform), get_opl_prop(mod, waveform));
 }
 
 void InsmakerPanel::update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8_t* mod_value_ptr,
@@ -66,24 +67,6 @@ void InsmakerPanel::update_oplfm_editor(OPLFM* car, OPLFM* mod, OPLFM* ncar, OPL
 	upd_prop_macro(WAVEFORM,             car, mod, ncar, nmod, waveform);
 }
 
-void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
-		uint8_t p_min_value, uint8_t p_max_value) {
-	// Property name.
-	auto property_label = make_managed<Label>(name);
-	property_label->set_vexpand(true);
-	property_grid->attach(*property_label, 0, current_property_row);
-	// Carrier.
-	unique_ptr<OPLFMSlider> car_slider = make_unique<OPLFMSlider>(p_car_value_ptr, nullptr, p_min_value, p_max_value);
-	property_grid->attach(*car_slider, 1, current_property_row);
-	carrier_properties.push_back(move(car_slider));
-	// Modulator.
-	unique_ptr<OPLFMSlider> mod_slider = make_unique<OPLFMSlider>(p_mod_value_ptr, nullptr, p_min_value, p_max_value);
-	property_grid->attach(*mod_slider, 2, current_property_row);
-	modulator_properties.push_back(move(mod_slider));
-
-	current_property_row++;
-}
-
 void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr) {
 	// Property name.
 	Label* property_label = make_managed<Label>(name);
@@ -101,7 +84,42 @@ void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr,
 	current_property_row++;
 }
 
-InsmakerPanel::InsmakerPanel() {
+void InsmakerPanel::add_radio_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr) {
+	// Property name.
+	auto property_label = make_managed<Label>(name);
+	property_label->set_vexpand(true);
+	property_grid->attach(*property_label, 0, current_property_row);
+	// Carrier.
+	unique_ptr<OPLFMRadio> car_slider = make_unique<OPLFMRadio>(p_car_value_ptr, nullptr);
+	property_grid->attach(*car_slider, 1, current_property_row);
+	carrier_properties.push_back(move(car_slider));
+	// Modulator.
+	unique_ptr<OPLFMRadio> mod_slider = make_unique<OPLFMRadio>(p_mod_value_ptr, nullptr);
+	property_grid->attach(*mod_slider, 2, current_property_row);
+	modulator_properties.push_back(move(mod_slider));
+
+	current_property_row++;
+}
+
+void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
+		uint8_t p_min_value, uint8_t p_max_value, bool p_inverted) {
+	// Property name.
+	auto property_label = make_managed<Label>(name);
+	property_label->set_vexpand(true);
+	property_grid->attach(*property_label, 0, current_property_row);
+	// Carrier.
+	unique_ptr<OPLFMSlider> car_slider = make_unique<OPLFMSlider>(p_car_value_ptr, nullptr, p_min_value, p_max_value, p_inverted);
+	property_grid->attach(*car_slider, 1, current_property_row);
+	carrier_properties.push_back(move(car_slider));
+	// Modulator.
+	unique_ptr<OPLFMSlider> mod_slider = make_unique<OPLFMSlider>(p_mod_value_ptr, nullptr, p_min_value, p_max_value, p_inverted);
+	property_grid->attach(*mod_slider, 2, current_property_row);
+	modulator_properties.push_back(move(mod_slider));
+
+	current_property_row++;
+}
+
+InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	current_bank = new Bank();
 	set_name("insmaker");
 	set_expand(true);
@@ -133,6 +151,13 @@ InsmakerPanel::InsmakerPanel() {
 	
 	create_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator);
 	update_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator, &new_instrument.carrier, &new_instrument.modulator);
+	
+	piano_ctrl = make_managed<PianoCtrl>(false);
+	append(*piano_ctrl);
+
+	action_group = Gio::SimpleActionGroup::create();
+	action_group->add_action_bool("toggle_additive_synth", mem_fun(*this, &InsmakerPanel::toggle_additive_synth), false);
+	action_group->add_action_radio_integer("set_rhythm_mode", mem_fun(*this, &InsmakerPanel::set_rhythm_mode), 0);
 }
 
 int InsmakerPanel::get_number_of_unsaved_changes() {
@@ -146,7 +171,27 @@ int InsmakerPanel::get_number_of_unsaved_changes() {
 	return ret;
 }
 
-Instrument* InsmakerPanel::find_unsaved_instrument(char name[9]) {
+void InsmakerPanel::set_additive_synth(bool value) {
+	cout << "additive Synth set to " << value << "\n";
+}
+void InsmakerPanel::toggle_additive_synth() {
+	new_instrument.modulator.additive_synth = uint8_t(!bool(new_instrument.modulator.additive_synth));
+	action_group->change_action_state("toggle_additive_synth",
+				Glib::Variant<bool>::create(new_instrument.modulator.additive_synth));
+}
+void InsmakerPanel::set_rhythm_mode(int value) {
+	if (value >= 6) {
+		new_instrument.voice_number = value;
+		new_instrument.percussion_mode = 1;
+	}
+	else {
+		new_instrument.voice_number = 0; 
+		new_instrument.percussion_mode = 0;
+	}
+	action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
+}
+
+Instrument* InsmakerPanel::find_unsaved_instrument(const char name[9]) {
 	for (Instrument& ins : unsaved_instruments) {
 		if (strcmp(ins.name, name) == 0) {
 			return &ins;
@@ -188,24 +233,20 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 		else {
 			update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
 		}
+		action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
+		action_group->change_action_state("toggle_additive_synth", Glib::Variant<bool>::create(new_instrument.modulator.additive_synth));
 		number_of_unsaved_changes = get_number_of_unsaved_changes(); // Might not be 0 if using unsaved instrument.
 		//piano_ctrl->set_instrument(&new_instrument);
 		queue_draw();
-		for (auto&& prop : carrier_properties) {
-			prop->queue_draw();
-		}
-		for (auto&& prop : modulator_properties) {
-			prop->queue_draw();
-		}
 	}
 }
 
 void InsmakerPanel::save_current_instrument() {
 	for (auto&& prop : carrier_properties) {
-		prop->update_base_value();
+		prop->save_base_value();
 	}
 	for (auto&& prop : modulator_properties) {
-		prop->update_base_value();
+		prop->save_base_value();
 	}
 }
 

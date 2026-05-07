@@ -22,6 +22,7 @@ Track::Track() {
 		Channel new_channel;
 		new_channel.notes = {};
 		new_channel.color = ChannelColors[i];
+		new_channel.channel_number = i;
 		channels.push_back(new_channel);
 	}
 	current_track = this;

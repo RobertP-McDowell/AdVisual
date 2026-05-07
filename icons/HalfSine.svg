@@ -27,7 +27,7 @@
      inkscape:cx="10.907721"
      inkscape:cy="12.350355"
      inkscape:window-width="2048"
-     inkscape:window-height="1128"
+     inkscape:window-height="1124"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -39,8 +39,8 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
-       d="m 2.65954,16 c 0,0 0.3814782,-11.053902 6.6702301,-11.053902 C 12.474146,4.946098 14.237073,10.473049 16,16 h 13.34046 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
+       d="m 2.7144924,15.896381 c 0,0 0.3798717,-13.239325 6.6421397,-13.239325 3.1311339,0 4.8866369,6.6196624 6.6421399,13.239325 H 29.28305 Z"
        id="path1"
        sodipodi:nodetypes="csccc" />
   </g>

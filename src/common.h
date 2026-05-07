@@ -81,3 +81,4 @@ void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length)
 string note_number_to_letter(int note_number);
 float get_float_from_string(string str_val, float min = 0.0, float max = 1.0);
 
+Gtk::ToggleButton create_image_button(string image_name);

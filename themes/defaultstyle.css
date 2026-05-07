@@ -84,3 +84,7 @@ entry {
 #field-volume {
 	border-color: rgb(0, 0, 255);
 }
+.piano-ctrl {
+	background-color: rgba(255, 255, 255, 1.0);
+	background-color: rgba(255, 255, 255, 0.0);
+}

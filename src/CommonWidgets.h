@@ -44,6 +44,7 @@ protected:
 class PianoCtrl : public Gtk::DrawingArea {
 protected:
 	int key_width = 20, deepness = 80, scroll_offset = 0, playing_note = 0, orientation;
+	bool tall;
 	shared_ptr<Gtk::GestureClick> lmb_gesture;
 	shared_ptr<Gtk::GestureClick> rmb_gesture;
 	shared_ptr<Gtk::EventControllerMotion> motion_controller;
@@ -55,7 +56,7 @@ protected:
 	void on_rmb_down(int n_press, double x, double y); // when rmb is clicked, it instantly stops the note.
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
 public:
-	PianoCtrl(int orient = 0);
+	PianoCtrl(bool p_tall);
 	void set_key_width(int value) { key_width = value; queue_draw(); }
 	void set_deepness(int value) { deepness = value; queue_draw(); }
 	void set_scroll_offset(int value) { scroll_offset = value; queue_draw(); }

@@ -28,17 +28,29 @@ ComposerPanel::ComposerPanel() {
 	grid_panel->set_expand(true);
 	attach(*grid_panel, 1, 1);
 // Init piano_ctrl.
-	piano_ctrl = make_managed<PianoCtrl>();
+	piano_ctrl = make_managed<PianoCtrl>(true);
 	attach(*piano_ctrl, 0, 1);
 // Init scrollbars.
-	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, 100, 1, 10, 0);
-	shared_ptr<Adjustment> vadjust = Adjustment::create(0, 0, 100, 1, 10, 0);
+	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, 100, 1, 10, 10);
+	shared_ptr<Adjustment> vadjust = Adjustment::create(0, 0, pitch_range, 1, 1, 0);
 	hscrollbar = make_managed<Scrollbar>(hadjust, Orientation::HORIZONTAL);
 	vscrollbar = make_managed<Scrollbar>(vadjust, Orientation::VERTICAL);
 	hadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_hscroll));
 	vadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_vscroll));
+	vadjust->set_value(middle_c); // Go to center of grid.
 	attach(*hscrollbar, 0, 2, 3, 1);
 	attach(*vscrollbar, 2, 0, 1, 2);
+
+	scroll_controller = EventControllerScroll::create();
+	scroll_controller->set_flags(EventControllerScroll::Flags::BOTH_AXES);
+	scroll_controller->signal_scroll().connect(mem_fun(*this, &ComposerPanel::on_mouse_scroll), true);
+	add_controller(scroll_controller);
+	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
+}
+
+void ComposerPanel::on_show() {
+	Gtk::Grid::on_show();
+	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
 }
 
 void ComposerPanel::on_hscroll() {
@@ -53,6 +65,20 @@ void ComposerPanel::on_vscroll() {
 	int new_y = vscrollbar->get_adjustment()->get_value() * cell_size.y;
 	grid_panel->scroll_offset.y = new_y;
 	grid_panel->queue_draw();
+	piano_ctrl->set_scroll_offset(new_y);
+	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
+}
+
+bool ComposerPanel::on_mouse_scroll(double x, double y) {
+	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
+		// Need to setup Shift+Scroll for horizontal scrolling... and potentially vertical from horizontal?
+		double old_x = x;
+		x = y;
+		y = old_x;
+	}
+	vscrollbar->get_adjustment()->set_value(vscrollbar->get_adjustment()->get_value() + y);
+	hscrollbar->get_adjustment()->set_value(hscrollbar->get_adjustment()->get_value() + x);
+	return true;
 }
 
 #define update_event_field(event_field, get_last_event_callable, t_type, type_conversion_func, max_text_length) do { \
@@ -182,7 +208,7 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 	mouse_down_start = vec2(x + scroll_offset.x, y + scroll_offset.y);
 	ghost_note = make_unique<Note>(x / cell_size.x, y / cell_size.x, 1);
 	ghost_note->offset = mouse_down_start.x / cell_size.x;
-	ghost_note->pitch = mouse_down_start.y / cell_size.y;
+	ghost_note->pitch = clamp(mouse_down_start.y / cell_size.y, 0, pitch_range-1);
 	ghost_note->length = 1;
 	queue_draw();
 }
@@ -305,7 +331,8 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	RGBA ghost_note_color = RGBA(0.5, 0.5, 0.5, 0.7);
 	cr->unset_dash();
 	// Note pen setup.
-	cr->set_line_width(note_size.y / 4.0);
+	double note_line_width = note_size.y / 4.0;
+	cr->set_line_width(note_line_width);
 	vec2 note_visdiff = vec2((note_size.x - cell_size.x) / 2.0, (note_size.y - cell_size.x) / 2.0);
 	// Notes.
 	for (Note& note : current_channel->notes) {
@@ -316,7 +343,24 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		Gdk::Cairo::set_source_rgba(cr, current_channel->color);
 		cr->stroke();
 	}
-	// Start drawing Notes.
+	// Preview Notes.
+	if (preview_channels) {
+		for (int i = 0; i < current_track->get_channel_count(); i++) {
+			if (i == current_channel->channel_number) {
+				continue;
+			}
+			Channel* channel = current_track->GetChannel(i);
+			Gdk::Cairo::set_source_rgba(cr, channel->color);
+			double preview_line_width = note_size.y / 8.0;
+			cr->set_line_width(preview_line_width);
+			int line_y_offset = (preview_line_width * i) + note_line_width + 1;
+			for (Note& note : channel->notes) {
+				cr->move_to((note.offset * cell_size.x) + note_line_width, (note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
+				cr->line_to(((note.offset + note.length) * cell_size.x) - note_line_width, (note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
+				cr->stroke();
+			}
+		}
+	}
 	// Ghost Note.
 	if (ghost_note != nullptr) {
 		Gdk::Cairo::set_source_rgba(cr, ghost_note_color);

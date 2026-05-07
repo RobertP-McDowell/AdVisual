@@ -39,20 +39,20 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#949494;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 6.555677,1.7015608 V 10.170298"
+       style="fill:none;fill-rule:evenodd;stroke:#949494;stroke-width:1.05975;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 5.8492013,1.3255096 V 6.2788573"
        id="path1" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#aaaaaa;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 2.3604428,5.9359296 H 10.750912"
+       style="fill:none;fill-rule:evenodd;stroke:#aaaaaa;stroke-width:1.05975;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 3.3954171,3.8021836 H 8.302986"
        id="path2" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#b2b2b2;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 9.764717,2.7268886 3.346636,9.14497"
+       style="fill:none;fill-rule:evenodd;stroke:#b2b2b2;stroke-width:1.05975;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 7.7261625,1.9252218 3.9722395,5.679145"
        id="path4" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#c1c1c1;stroke-width:1.81185;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 3.346636,2.7268886 9.764717,9.14497"
+       style="fill:none;fill-rule:evenodd;stroke:#c1c1c1;stroke-width:1.05975;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 3.9722395,1.9252218 7.7261625,5.679145"
        id="path5" />
   </g>
 </svg>

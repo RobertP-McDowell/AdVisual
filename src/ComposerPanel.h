@@ -30,6 +30,8 @@ class GridPanel : public Gtk::DrawingArea {
 public:
 	GridPanel();
 	vec2 scroll_offset = vec2(0);
+	void set_preview_channels(bool value) { preview_channels = value; queue_draw(); }
+	bool get_preview_channels() const { return preview_channels; }
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
 	void on_lmb_down(int n_press, double x, double y);
@@ -41,6 +43,7 @@ protected:
 	shared_ptr<Gtk::GestureClick> rmb_gesture;
 	unique_ptr<Note> ghost_note = nullptr;
 	vec2 mouse_down_start;
+	bool preview_channels = true;
 };
 
 class EventHeader : public Gtk::DrawingArea {
@@ -58,15 +61,21 @@ protected:
 class ComposerPanel : public Gtk::Grid {
 public:
 	ComposerPanel();
+	void set_preview_channels(bool value) { grid_panel->set_preview_channels(value); }
+	bool get_preview_channels() const { return grid_panel->get_preview_channels(); }
 protected:
+	void on_show() override;
 	void on_lmb_down();
 	void on_hscroll();
 	void on_vscroll();
+	bool on_mouse_scroll(double x, double y);
+	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
+
 	EventHeader* event_header;
 	GridPanel* grid_panel;
 	PianoCtrl* piano_ctrl;
 	Gtk::Scrollbar* hscrollbar;
 	Gtk::Scrollbar* vscrollbar;
-	
+
 	double zoom = 1.0;
 };

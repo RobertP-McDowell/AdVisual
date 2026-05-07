@@ -23,11 +23,11 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="1.7762648"
-     inkscape:cx="-106.40306"
-     inkscape:cy="-14.355968"
+     inkscape:zoom="10.048071"
+     inkscape:cx="5.9712953"
+     inkscape:cy="15.873693"
      inkscape:window-width="2048"
-     inkscape:window-height="1128"
+     inkscape:window-height="1124"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -72,19 +72,18 @@
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
-       d="M 2.65954,16 13,4.7968156 V 16 h 3 z"
-       id="path1"
-       sodipodi:nodetypes="ccccc" />
-    <path
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
-       d="M 2.65954,16 13,4.7968156 V 16 h 3 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:3.75154;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;paint-order:normal"
+       d="M 13.774809,16.105867 28.277523,0.90926927 V 16.105867 h 4.869856 z"
        id="path2"
        sodipodi:nodetypes="ccccc" />
     <path
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;paint-order:normal"
-       d="M 15.99977,16 26.34023,4.7968156 V 16 h 4.970427 z"
-       id="path3"
+       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;paint-order:stroke fill markers"
+       d="M -2.6037784,16.029573 H 36.312222"
+       id="path3" />
+    <path
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:3.75154;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;paint-order:normal"
+       d="M 1.3898356,16.105867 15.89255,0.90926927 V 16.105867 h 4.869856 z"
+       id="path4"
        sodipodi:nodetypes="ccccc" />
   </g>
 </svg>

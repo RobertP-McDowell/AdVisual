@@ -7,8 +7,8 @@
    viewBox="0 0 32 32"
    version="1.1"
    id="svg1"
-   sodipodi:docname="AbsSine.svg"
    inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   sodipodi:docname="CheckButton.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="20.096142"
-     inkscape:cx="11.89283"
-     inkscape:cy="8.2354116"
+     inkscape:zoom="9.6453784"
+     inkscape:cx="16.277226"
+     inkscape:cy="11.456264"
      inkscape:window-width="2048"
      inkscape:window-height="1124"
      inkscape:window-x="0"
@@ -33,32 +33,15 @@
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
   <defs
-     id="defs1">
-    <inkscape:path-effect
-       effect="mirror_symmetry"
-       start_point="16,4.946098"
-       end_point="16,16"
-       center_point="16,10.473049"
-       id="path-effect1"
-       is_visible="true"
-       lpeversion="1.2"
-       lpesatellites=""
-       mode="free"
-       discard_orig_path="false"
-       fuse_paths="false"
-       oposite_fuse="false"
-       split_items="false"
-       split_open="false"
-       link_styles="false" />
-  </defs>
+     id="defs1" />
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
-       d="m 2.8642304,15.802414 c 0,0 0.3756249,-13.5946159 6.5678848,-13.5946159 3.0961308,0 4.8320078,6.7973074 6.5678848,13.5946159 z m 26.2715396,0 c 0,0 -0.375625,-13.5946159 -6.567886,-13.5946159 -3.09613,0 -4.832007,6.7973074 -6.567884,13.5946159 z"
+       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:6;stroke-linecap:butt;stroke-dasharray:none;stroke-opacity:1"
+       d="M 2.3659602,14.882596 15.062151,26.95673 29.12774,1.7446654"
        id="path1"
-       sodipodi:nodetypes="cscccscc" />
+       sodipodi:nodetypes="ccc" />
   </g>
 </svg>

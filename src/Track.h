@@ -22,6 +22,7 @@ struct Note {
 
 struct Channel {
 	Channel();
+	int8_t channel_number;
 	RGBA color = RGBA(1.0, 1.0, 1.0, 1.0);
 	deque<Note> notes;
 	map<int, string> instrument_events = {{0, "PIANO1"}}; // Value = Instrument name.
