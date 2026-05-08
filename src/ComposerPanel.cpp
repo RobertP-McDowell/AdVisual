@@ -1,4 +1,5 @@
 #include <ComposerPanel.h>
+#include <AdPlayer.h>
 #include <math.h>
 
 using namespace Gtk;
@@ -54,10 +55,10 @@ ComposerPanel::ComposerPanel() {
 	action_group->add_action("delete_selection", mem_fun(*this, &ComposerPanel::delete_selection));
 	action_group->add_action("show_track_settings", mem_fun(*this, &ComposerPanel::show_track_settings));
 // Set shortcuts.
-	app->set_accel_for_action("composer.cut_selection", "<Primary>x");
-	app->set_accel_for_action("composer.copy_selection", "<Primary>c");
-	app->set_accel_for_action("composer.paste_selection", "<Primary>v");
-	app->set_accel_for_action("composer.delete_selection", "x");
+	app->set_accel_for_action("composer.cut_selection", "<Ctrl>x");
+	app->set_accel_for_action("composer.copy_selection", "<Ctrl>c");
+	app->set_accel_for_action("composer.paste_selection", "<Ctrl>v");
+	app->set_accels_for_action("composer.delete_selection", {"Delete", "BackSpace"});
 	track_settings.signal_visible_change.connect(mem_fun(*grid_panel, &GridPanel::queue_draw));
 }
 
@@ -127,6 +128,13 @@ void ComposerPanel::on_hscroll() {
 	event_header->queue_draw();
 	grid_panel->scroll_offset.x = new_x;
 	grid_panel->queue_draw();
+
+	string last_ins_val;
+	int last_ins_tick;
+	current_channel->get_last_instrument_event(hscrollbar->get_adjustment()->get_value(), last_ins_tick, last_ins_val);
+	Instrument* last_ins = current_bank->find_instrument(last_ins_val);
+	if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
+	piano_ctrl->set_instrument(last_ins);
 }
 
 void ComposerPanel::on_vscroll() {
@@ -275,6 +283,14 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 	ghost_note->offset = mouse_down_start.x / cell_size.x;
 	ghost_note->pitch = clamp(mouse_down_start.y / cell_size.y, 0, pitch_range-1);
 	ghost_note->length = 1;
+	if (audio_feedback) {
+		string last_ins_val;
+		int last_ins_tick;
+		current_channel->get_last_instrument_event(x / cell_size.x, last_ins_tick, last_ins_val);
+		Instrument* last_ins = current_bank->find_instrument(last_ins_val);
+		if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
+		adplayer->play_note(ghost_note->pitch, ChannelButton::get_pressed_channel(), last_ins);
+	}
 	queue_draw();
 }
 
@@ -283,6 +299,9 @@ void GridPanel::on_lmb_up(int n_press, double x, double y) {
 		current_channel->add_note(*ghost_note);
 	}
 	ghost_note = nullptr;
+	if (audio_feedback) {
+		adplayer->play_note(0, ChannelButton::get_pressed_channel(), nullptr);
+	}
 	queue_draw();
 }
 

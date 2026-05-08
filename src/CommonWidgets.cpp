@@ -219,6 +219,45 @@ PianoCtrl::PianoCtrl(bool p_tall) : instrument(&Instrument::default_instrument),
 	else {
 		set_size_request(-1, deepness);
 	}
+	lmb_gesture = GestureClick::create();
+	lmb_gesture->set_button(GDK_BUTTON_PRIMARY);
+	lmb_gesture->signal_pressed().connect(mem_fun(*this, &PianoCtrl::on_lmb_down));
+	lmb_gesture->signal_released().connect(mem_fun(*this, &PianoCtrl::on_lmb_up));
+	add_controller(lmb_gesture);
+	motion_controller = Gtk::EventControllerMotion::create();
+	motion_controller->signal_motion().connect(mem_fun(*this, &PianoCtrl::on_mouse_motion));
+	add_controller(motion_controller);
+}
+
+#include <AdPlayer.h>
+
+int PianoCtrl::get_note_number_at_position(double x, double y) {
+	if (tall == true) {
+		return (y + scroll_offset) / key_width;
+	}
+	else {
+		return (x + scroll_offset) / key_width;
+	}
+}
+
+void PianoCtrl::on_lmb_down(int n_press, double x, double y) {
+	int note_number = get_note_number_at_position(x, y);
+	adplayer->play_note(note_number, ChannelButton::get_pressed_channel(), instrument);
+	playing_note = note_number;
+}
+
+void PianoCtrl::on_lmb_up(int n_press, double x, double y) {
+	adplayer->play_note(0, ChannelButton::get_pressed_channel(), instrument);
+	playing_note = 0;
+}
+
+void PianoCtrl::on_mouse_motion(double x, double y) {
+	int note_number = get_note_number_at_position(x, y);
+	if (lmb_gesture->get_current_button() && playing_note != note_number) {
+		adplayer->play_note(note_number, ChannelButton::get_pressed_channel(), instrument);
+		playing_note = note_number;
+	}
+	status->set_text(note_number_to_letter(note_number));
 }
 
 void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
@@ -279,3 +318,4 @@ void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		}
 	}
 }
+

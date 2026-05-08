@@ -11,8 +11,8 @@ class OPLFMPropertyControl : public Gtk::Box {
 protected:
 	uint8_t* base_value = nullptr;
 	uint8_t* control_value = nullptr;
-	bool is_valid() const { return base_value != nullptr && control_value != nullptr; }
 public:
+	bool is_valid() const { return base_value != nullptr && control_value != nullptr; }
 	virtual void set_new_value(int new_value) { // signed int as argument so it doesn't underflow.
 		*control_value = (new_value < 0 ? uint8_t(0) : uint8_t(new_value));
 		queue_draw();
@@ -133,15 +133,13 @@ public:
 		asterisk_picture.set_size_request(-1, -1);
 		asterisk_picture.set_content_fit(Gtk::ContentFit::COVER);
 		append(asterisk_picture);
-		if (p_base_value != nullptr) {
-			buttons[0]->set_active(*p_base_value);
-		}
 		if (has_unsaved_change()) { asterisk_picture.set_opacity(1); }
 		else { asterisk_picture.set_opacity(0); }
 		if (!is_valid()) {
 			set_visible(false);
 			return;
 		}
+		buttons[0]->set_active(*p_base_value);
 		set_visible(true);
 	}
 };
@@ -335,14 +333,13 @@ public:
 	shared_ptr<Gio::SimpleActionGroup> action_group;
 private:
 	int get_unsaved_count();
-	void create_oplfm_editor(OPLFM* p_car, OPLFM* p_mod);
+	void create_oplfm_editor();
 	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod, OPLFM* n_car, OPLFM* n_mod);
 	void update_oplfm_property(int idx, uint8_t* base_car_value_ptr, uint8_t* base_mod_value_ptr,
 		uint8_t* new_car_value_ptr, uint8_t* new_mod_value_ptr);
-	void add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
-	void add_radio_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr);
-	void add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
-		uint8_t p_min_value, uint8_t p_max_value, bool p_inverted = false);
+	void add_checkbox_property(string name);
+	void add_radio_property(string name);
+	void add_slider_property(string name, uint8_t p_min_value, uint8_t p_max_value, bool p_inverted = false);
 	void on_value_event();
 	int get_number_of_unsaved_changes();
 	Instrument* instrument_ptr = nullptr;

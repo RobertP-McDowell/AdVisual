@@ -10,6 +10,7 @@ public:
 	virtual ~ChannelButton();
 	static vector<ChannelButton*> buttons;
 	static ChannelButton* currently_pressed;
+	static int get_pressed_channel() { return currently_pressed->channel_index; }
 	static void set_pressed_channel(int channel);
 	static void update_percussion_mode();
 	void set_pressed();
@@ -50,7 +51,7 @@ protected:
 	shared_ptr<Gtk::GestureClick> rmb_gesture;
 	shared_ptr<Gtk::EventControllerMotion> motion_controller;
 	Instrument* instrument;
-	int get_note_number_at_position(int offset, int pitch);
+	int get_note_number_at_position(double x, double y);
 	void on_lmb_down(int n_press, double x, double y);
 	void on_lmb_up(int n_press, double x, double y);
 	void on_mouse_motion(double x, double y);

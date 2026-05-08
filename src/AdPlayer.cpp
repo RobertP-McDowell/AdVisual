@@ -108,9 +108,11 @@ AdPlayer::~AdPlayer() {
 }
 
 void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
-	if (instrument->percussion_mode != 0 || channel >= 9) {
-		opl_playback->SetRhythmMode(1);
-		channel = instrument->voice_number;
+	if (instrument != nullptr) {
+		if (instrument->percussion_mode != 0 || channel >= 9) {
+			opl_playback->SetRhythmMode(1);
+			channel = instrument->voice_number;
+		}
 	}
 	DBPRINT("Play dynamic note at channel: " << channel);
 	opl_playback->DisableChannelAndPlayNote(channel, note_number, instrument);

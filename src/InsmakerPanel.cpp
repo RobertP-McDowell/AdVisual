@@ -28,20 +28,20 @@ get_opl_prop(new_car, property_name), get_opl_prop(new_mod, property_name)) \
 
 int current_property_row = 0;
 
-void InsmakerPanel::create_oplfm_editor(OPLFM* car, OPLFM* mod) {
-	add_slider_property("Attack Rate", get_opl_prop(car, attack_rate), get_opl_prop(mod, attack_rate), 0, 15);
-	add_slider_property("Decay Rate", get_opl_prop(car, decay_rate), get_opl_prop(mod, decay_rate), 0, 15);
-	add_slider_property("Sustain Level", get_opl_prop(car, sustain_level), get_opl_prop(mod, sustain_level), 0, 15, true); // Inverted.
-	add_slider_property("Release Rate", get_opl_prop(car, release_rate), get_opl_prop(mod, release_rate), 0, 15);
-	add_checkbox_property("Sustain Sound", get_opl_prop(car, sustain_sound), get_opl_prop(mod, sustain_sound));
-	add_checkbox_property("Envelope Scaling", get_opl_prop(car, ksr), get_opl_prop(mod, ksr));
-	add_slider_property("Frequency Multiplier", get_opl_prop(car, frequency_multiplier), get_opl_prop(mod, frequency_multiplier), 0, 15); // 0.5
-	add_slider_property("Modulation Feedback", nullptr, get_opl_prop(mod, feedback), 0, 7);
-	add_checkbox_property("Pitch Vibrato", get_opl_prop(car, vibrato), get_opl_prop(mod, vibrato));
-	add_slider_property("Output Level", get_opl_prop(car, output_level), get_opl_prop(mod, output_level), 0, 63, true); // Inverted.
-	add_slider_property("Level Scaling", get_opl_prop(car, ksl), get_opl_prop(mod, ksl), 0, 3);
-	add_checkbox_property("Amplitude Tremelo", get_opl_prop(car, tremelo), get_opl_prop(mod, tremelo));
-	add_radio_property("Wave Form", get_opl_prop(car, waveform), get_opl_prop(mod, waveform));
+void InsmakerPanel::create_oplfm_editor() {
+	add_slider_property("Attack Rate", 0, 15);
+	add_slider_property("Decay Rate", 0, 15);
+	add_slider_property("Sustain Level", 0, 15, true); // Inverted.
+	add_slider_property("Release Rate", 0, 15);
+	add_checkbox_property("Sustain Sound");
+	add_checkbox_property("Envelope Scaling");
+	add_slider_property("Frequency Multiplier", 0, 15); // 0.5
+	add_slider_property("Modulation Feedback", 0, 7);
+	add_checkbox_property("Pitch Vibrato");
+	add_slider_property("Output Level", 0, 63, true); // Inverted.
+	add_slider_property("Level Scaling", 0, 3);
+	add_checkbox_property("Amplitude Tremelo");
+	add_radio_property("Wave Form");
 }
 
 void InsmakerPanel::update_oplfm_property(int idx, uint8_t* car_value_ptr, uint8_t* mod_value_ptr,
@@ -67,52 +67,51 @@ void InsmakerPanel::update_oplfm_editor(OPLFM* car, OPLFM* mod, OPLFM* ncar, OPL
 	upd_prop_macro(WAVEFORM,             car, mod, ncar, nmod, waveform);
 }
 
-void InsmakerPanel::add_checkbox_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr) {
+void InsmakerPanel::add_checkbox_property(string name) {
 	// Property name.
 	Label* property_label = make_managed<Label>(name);
 	property_label->set_vexpand(true);
 	property_grid->attach(*property_label, 0, current_property_row);
 	// Carrier.
-	unique_ptr<OPLFMCheckbox> car_checkbox = make_unique<OPLFMCheckbox>(p_car_value_ptr, nullptr);
+	unique_ptr<OPLFMCheckbox> car_checkbox = make_unique<OPLFMCheckbox>(nullptr, nullptr);
 	property_grid->attach(*car_checkbox, 1, current_property_row);
 	carrier_properties.push_back(move(car_checkbox));
 	// Modulator.
-	unique_ptr<OPLFMCheckbox> mod_checkbox = make_unique<OPLFMCheckbox>(p_mod_value_ptr, nullptr);
+	unique_ptr<OPLFMCheckbox> mod_checkbox = make_unique<OPLFMCheckbox>(nullptr, nullptr);
 	property_grid->attach(*mod_checkbox, 2, current_property_row);
 	modulator_properties.push_back(move(mod_checkbox));
 
 	current_property_row++;
 }
 
-void InsmakerPanel::add_radio_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr) {
+void InsmakerPanel::add_radio_property(string name) {
 	// Property name.
 	auto property_label = make_managed<Label>(name);
 	property_label->set_vexpand(true);
 	property_grid->attach(*property_label, 0, current_property_row);
 	// Carrier.
-	unique_ptr<OPLFMRadio> car_slider = make_unique<OPLFMRadio>(p_car_value_ptr, nullptr);
+	unique_ptr<OPLFMRadio> car_slider = make_unique<OPLFMRadio>(nullptr, nullptr);
 	property_grid->attach(*car_slider, 1, current_property_row);
 	carrier_properties.push_back(move(car_slider));
 	// Modulator.
-	unique_ptr<OPLFMRadio> mod_slider = make_unique<OPLFMRadio>(p_mod_value_ptr, nullptr);
+	unique_ptr<OPLFMRadio> mod_slider = make_unique<OPLFMRadio>(nullptr, nullptr);
 	property_grid->attach(*mod_slider, 2, current_property_row);
 	modulator_properties.push_back(move(mod_slider));
 
 	current_property_row++;
 }
 
-void InsmakerPanel::add_slider_property(string name, uint8_t* p_car_value_ptr, uint8_t* p_mod_value_ptr,
-		uint8_t p_min_value, uint8_t p_max_value, bool p_inverted) {
+void InsmakerPanel::add_slider_property(string name, uint8_t p_min_value, uint8_t p_max_value, bool p_inverted) {
 	// Property name.
 	auto property_label = make_managed<Label>(name);
 	property_label->set_vexpand(true);
 	property_grid->attach(*property_label, 0, current_property_row);
 	// Carrier.
-	unique_ptr<OPLFMSlider> car_slider = make_unique<OPLFMSlider>(p_car_value_ptr, nullptr, p_min_value, p_max_value, p_inverted);
+	unique_ptr<OPLFMSlider> car_slider = make_unique<OPLFMSlider>(nullptr, nullptr, p_min_value, p_max_value, p_inverted);
 	property_grid->attach(*car_slider, 1, current_property_row);
 	carrier_properties.push_back(move(car_slider));
 	// Modulator.
-	unique_ptr<OPLFMSlider> mod_slider = make_unique<OPLFMSlider>(p_mod_value_ptr, nullptr, p_min_value, p_max_value, p_inverted);
+	unique_ptr<OPLFMSlider> mod_slider = make_unique<OPLFMSlider>(nullptr, nullptr, p_min_value, p_max_value, p_inverted);
 	property_grid->attach(*mod_slider, 2, current_property_row);
 	modulator_properties.push_back(move(mod_slider));
 
@@ -130,7 +129,7 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	for (int i = 0; i < 10; i++) {
 		property_grid->insert_row(0);
 	}
-	instrument_ptr = &Instrument::default_instrument;
+	instrument_ptr = nullptr;
 	new_instrument = Instrument::default_instrument;
 	
 	property_grid->set_row_spacing(8);
@@ -140,17 +139,17 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	append(*property_grid);
 	
 	Label* car_label = make_managed<Label>("Carrier");
-	car_label->set_vexpand(true);
+	car_label->set_expand(true);
 	car_label->set_halign(Align::CENTER);
 	property_grid->attach(*car_label, 1, 0);
 	Label* mod_label = make_managed<Label>("Modulator");
-	mod_label->set_vexpand(true);
+	mod_label->set_expand(true);
 	mod_label->set_halign(Align::CENTER);
 	property_grid->attach(*mod_label, 2, 0);
 	current_property_row += 1;
 	
-	create_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator);
-	update_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator, &new_instrument.carrier, &new_instrument.modulator);
+	create_oplfm_editor();
+	update_oplfm_editor(nullptr, nullptr, nullptr, nullptr);
 	
 	piano_ctrl = make_managed<PianoCtrl>(false);
 	append(*piano_ctrl);
@@ -187,6 +186,13 @@ void InsmakerPanel::set_rhythm_mode(int value) {
 	else {
 		new_instrument.voice_number = 0; 
 		new_instrument.percussion_mode = 0;
+	}
+	if (new_instrument.percussion_mode == 0 || new_instrument.voice_number == 6) {
+		update_oplfm_editor(&(instrument_ptr->carrier), &(instrument_ptr->modulator),
+			&(new_instrument.carrier), &(new_instrument.modulator));
+	}
+	else {
+		update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
 	}
 	action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
 }
@@ -273,6 +279,11 @@ void InsmakerPanel::save_instruments() {
 	save_current_instrument();
 	for (Instrument& ins : unsaved_instruments) {
 		Instrument* base_ins = current_bank->find_instrument(ins.name);
+		if (base_ins == nullptr) {
+			cerr << "Orphan instrument with name '" << ins.name << "' is not going to be saved\n";
+			continue;
+		}
 		*base_ins = ins;
 	}
+	unsaved_instruments.clear();
 }

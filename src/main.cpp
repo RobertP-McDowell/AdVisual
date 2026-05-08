@@ -64,6 +64,7 @@ private:
 	void on_play_track();
 	// Composer signals.
 	void on_preview_channels_toggled();
+	void on_audio_feedback_toggled();
 	// Insmaker signals.
 	void on_instrument_entry_text_changed() {
 		bank_ctrl_popover.popup();
@@ -93,10 +94,12 @@ private:
 			Instrument new_ins = Instrument::default_instrument;
 			memcpy(new_ins.name, instrument_entry.get_text().c_str(), 9);
 			current_bank->add_instrument(new_ins);
+			insmaker_panel->set_instrument(current_bank->find_instrument(new_ins.name));
 			break; }
 		case InsEntryMode::DELETE_INS: {
 			cout << "Delete instrument\n";
 			current_bank->delete_instrument(instrument_entry.get_text().c_str());
+			insmaker_panel->set_instrument(nullptr);
 			break; }
 		case InsEntryMode::RENAME_INS: {
 			cout << "Rename instrument\n";
@@ -109,6 +112,7 @@ private:
 			Instrument new_ins = *(insmaker_panel->get_instrument());
 			memcpy(new_ins.name, instrument_entry.get_text().c_str(), 9);
 			current_bank->add_instrument(new_ins);
+			insmaker_panel->set_instrument(current_bank->find_instrument(new_ins.name));
 			break; }
 		}
 		instrument_entry_mode = InsEntryMode::FIND_INS;
@@ -137,7 +141,8 @@ private:
 		// Hide bank_ctrl completion_popover on click away.
 		if (focused->is_ancestor(instrument_entry) && !int(instrument_entry.get_state_flags() & Gtk::StateFlags::PRELIGHT)) {
 			int caret_pos = instrument_entry.get_position();
-			instrument_entry.set_text((string)insmaker_panel->get_instrument_ptr()->name);
+			if (insmaker_panel->get_instrument_ptr()) { instrument_entry.set_text((string)insmaker_panel->get_instrument_ptr()->name); }
+			else { instrument_entry.set_text(""); }
 			instrument_entry.set_position(caret_pos);
 			bank_ctrl_popover.set_visible(false);
 		}
@@ -179,16 +184,19 @@ void Toolbar::on_press_insmaker_panel() {
 void Toolbar::on_preview_channels_toggled() {
 	composer_panel->set_preview_channels(preview_channels_button.get_active());
 }
+void Toolbar::on_audio_feedback_toggled() {
+	composer_panel->set_audio_feedback(audio_feedback_button.get_active());
+}
 
 Toolbar::Toolbar() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 0) {
 using namespace Gtk;
 	set_css_classes({"toolbar"});
 	MenuButton file_button = create_image_menu_button("FloppyDisk.svg");
 	shared_ptr<Gio::Menu> file_menu = static_pointer_cast<Gio::Menu>(file_button.get_menu_model());
-	file_menu->append("Load Track", "actions.load_track");
-	file_menu->append("Save Track", "actions.save_track");
-	file_menu->append("Load Bank", "actions.load_bank");
-	file_menu->append("Save Bank", "actions.save_bank");
+	file_menu->append("Load", "actions.load");
+	file_menu->append("Save", "actions.save");
+	file_menu->append("Save Panel", "actions.save_panel");
+	file_menu->append("Save As", "actions.save_as");
 	shared_ptr<Gio::Menu> help_menu = Gio::Menu::create();
 	help_menu->append("Docs", "actions.docs");
 	help_menu->append("About", "actions.about");
@@ -227,13 +235,16 @@ using namespace Gtk;
 	preview_channels_button.set_active(true);
 	preview_channels_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_preview_channels_toggled));
 	composer_toolbar.append(preview_channels_button);
+
 	track_settings_button = create_image_button("Cassete.svg");
 	track_settings_button.set_action_name("composer.show_track_settings");
-	append(track_settings_button);
+	composer_toolbar.append(track_settings_button);
+
 	audio_feedback_button = create_image_button("AudioFeedback.svg");
-	append(audio_feedback_button);
+	audio_feedback_button.set_active(true);
+	audio_feedback_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_audio_feedback_toggled));
+	composer_toolbar.append(audio_feedback_button);
 	
-	//composer_panel->track_settings_popover.set_parent(track_settings_button);
 	composer_panel->track_settings.signal_visible_change.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
 	signal_track_changed.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
 }
@@ -258,9 +269,13 @@ public:
 	shared_ptr<InsmakerPanel> insmaker_panel;
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
 protected:
-	void on_save_panel();
-	void on_load(bool loading_bank);
-	void on_load_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog);
+	void load();
+	void save();
+	void load_panel();
+	void save_panel();
+	void save_as();
+	void on_select_file(bool loading_bank, bool saving);
+	void on_file_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog, bool saving);
 };
 
 shared_ptr<Gtk::GestureClick> MainWindow::global_lmb_gesture = nullptr;
@@ -351,9 +366,11 @@ using namespace Gtk;
 	adplayer = make_unique<AdPlayer>();
 // Create common actions.
 	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
-	action_group->add_action("load_track", sigc::bind(mem_fun(*this, &MainWindow::on_load), false));
-	action_group->add_action("load_bank", sigc::bind(mem_fun(*this, &MainWindow::on_load), true));
-	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::on_save_panel));
+	action_group->add_action("load", mem_fun(*this, &MainWindow::load));
+	action_group->add_action("save", mem_fun(*this, &MainWindow::save));
+	action_group->add_action("save_as", mem_fun(*this, &MainWindow::save_as));
+	action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
+	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
 	action_group->add_action("quit", mem_fun(*app, &Application::quit));
 	insert_action_group("actions", action_group);
 // Create insmaker actions.
@@ -369,7 +386,8 @@ using namespace Gtk;
 	insert_action_group("insmaker", insmaker_panel->action_group);
 	insert_action_group("composer", composer_panel->action_group);
 // Create common shortcuts.
-	app->set_accel_for_action("actions.load_bank", "<Primary>l");
+	app->set_accel_for_action("actions.load", "<Primary>l");
+	app->set_accel_for_action("actions.save", "<Primary>s");
 
 	show();
 }
@@ -380,7 +398,32 @@ using namespace Gtk;
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 
-void MainWindow::on_load(bool loading_bank) {
+void MainWindow::load() {
+	on_select_file(false, false);
+	on_select_file(true, false);
+}
+void MainWindow::save_as() {
+	on_select_file(false, true);
+	on_select_file(true, true);
+}
+void MainWindow::save() {
+	if (!current_track->file_path.empty()) { current_track->save_file(current_track->file_path); }
+	else { on_select_file(false, true); }
+
+	if (!current_bank->file_path.empty()) {
+		insmaker_panel->save_instruments();
+		current_bank->save_file(current_track->file_path);
+	}
+	else { on_select_file(true, true); }
+}
+void MainWindow::load_panel() {
+	on_select_file(insmaker_panel->get_visible(), false);
+}
+void MainWindow::save_panel() {
+	on_select_file(insmaker_panel->get_visible(), true);
+}
+
+void MainWindow::on_select_file(bool bank, bool saving) {
 using namespace Gtk;
 	shared_ptr<FileDialog> dialog = FileDialog::create();
 	shared_ptr<Gio::ListStore<FileFilter>> filters = Gio::ListStore<FileFilter>::create();
@@ -397,15 +440,16 @@ using namespace Gtk;
 	filters->append(bank_filter);
 
 	dialog->set_filters(filters);
-	if (loading_bank) { dialog->set_default_filter(bank_filter); }
-	else              { dialog->set_default_filter(track_filter); }
-	dialog->open(sigc::bind(mem_fun(*this, &MainWindow::on_load_selected), dialog));
+	if (bank) { dialog->set_default_filter(bank_filter); }
+	else      { dialog->set_default_filter(track_filter); }
+	if (saving) { dialog->save(sigc::bind(mem_fun(*this, &MainWindow::on_file_selected), dialog, saving)); }
+	else { dialog->open(sigc::bind(mem_fun(*this, &MainWindow::on_file_selected), dialog, saving)); }
 }
 
-void MainWindow::on_load_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog) {
+void MainWindow::on_file_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog, bool saving) {
 using namespace Gtk;
 	try {
-		auto file = dialog->open_finish(result);
+		shared_ptr<Gio::File> file = (saving ? dialog->save_finish(result) : dialog->open_finish(result));
 		string filename = file->get_path();
 
 		// Get file extension.
@@ -420,10 +464,15 @@ using namespace Gtk;
 
 		// Compare file extension.
 		if (file_ext == "ROL") {
-			current_track->load_file(filename);
+			if (saving) { current_track->save_file(filename); }
+			else  { current_track->load_file(filename); }
 		}
 		if (file_ext == "BNK") {
-			current_bank->load_file(filename);
+			if (saving) {
+				insmaker_panel->save_instruments();
+				current_bank->save_file(filename);
+			}
+			else { current_bank->load_file(filename); }
 		}
 	}
 	catch (const Gtk::DialogError& err) {
@@ -432,8 +481,3 @@ using namespace Gtk;
 	
 }
 
-void MainWindow::on_save_panel() {
-
-	insmaker_panel->save_instruments();
-	current_bank->save_file((string)"");
-}

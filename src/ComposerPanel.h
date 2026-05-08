@@ -32,6 +32,8 @@ public:
 	vec2 scroll_offset = vec2(0);
 	void set_preview_channels(bool value) { preview_channels = value; queue_draw(); }
 	bool get_preview_channels() const { return preview_channels; }
+	void set_audio_feedback(bool value) { audio_feedback = value; }
+	bool get_audio_feedback() const { return audio_feedback; }
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
 	void on_lmb_down(int n_press, double x, double y);
@@ -44,6 +46,7 @@ protected:
 	unique_ptr<Note> ghost_note = nullptr;
 	vec2 mouse_down_start;
 	bool preview_channels = true;
+	bool audio_feedback = true;
 };
 
 class EventHeader : public Gtk::DrawingArea {
@@ -81,6 +84,8 @@ public:
 	ComposerPanel();
 	void set_preview_channels(bool value) { grid_panel->set_preview_channels(value); }
 	bool get_preview_channels() const { return grid_panel->get_preview_channels(); }
+	void set_audio_feedback(bool value) { grid_panel->set_audio_feedback(value); }
+	bool get_audio_feedback() const { return grid_panel->get_audio_feedback(); }
 	shared_ptr<Gio::SimpleActionGroup> action_group;
 	void show_track_settings();
 	TrackSettings track_settings;
