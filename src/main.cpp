@@ -25,7 +25,19 @@ public:
 	void create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel);
 	void show_composer_tools();
 	void show_insmaker_tools();
+	enum InsEntryMode {
+		FIND_INS,
+		CREATE_INS,
+		DELETE_INS,
+		RENAME_INS,
+		DUPLICATE_INS
+	};
+	void set_instrument_entry_mode(InsEntryMode mode = InsEntryMode::FIND_INS) {
+		instrument_entry_mode = mode;
+		instrument_entry.grab_focus();
+	}
 private:
+	InsEntryMode instrument_entry_mode = InsEntryMode::FIND_INS;
 	// General signals.
 	void on_file_pressed();
 	void on_help_pressed();
@@ -48,12 +60,40 @@ private:
 	}
 	void on_instrument_entry_text_entered() {
 		bank_ctrl_popover.set_visible(false);
-		Instrument* ins = current_bank->find_instrument(instrument_entry.get_text());
-		if (ins == &(Instrument::default_instrument)) {
-			cout << "Couldn't find an instrument with the name '" << instrument_entry.get_text() << "'\n";
-			return;
+		switch (instrument_entry_mode) {
+		case InsEntryMode::FIND_INS: {
+			Instrument* ins = current_bank->find_instrument(instrument_entry.get_text());
+			if (ins == &(Instrument::default_instrument)) {
+				cout << "Couldn't find an instrument with the name '" << instrument_entry.get_text() << "'\n";
+				return;
+			}
+			insmaker_panel->set_instrument(ins);
+			return; } // Only FIND_INS will return immediately, everything else has to break.
+		case InsEntryMode::CREATE_INS: {
+			cout << "Create instrument\n";
+			if (instrument_entry.get_text().empty()) { break; }
+			Instrument new_ins = Instrument::default_instrument;
+			memcpy(new_ins.name, instrument_entry.get_text().c_str(), 9);
+			current_bank->add_instrument(new_ins);
+			break; }
+		case InsEntryMode::DELETE_INS: {
+			cout << "Delete instrument\n";
+			current_bank->delete_instrument(instrument_entry.get_text().c_str());
+			break; }
+		case InsEntryMode::RENAME_INS: {
+			cout << "Rename instrument\n";
+			if (instrument_entry.get_text().empty()) { break; }
+			insmaker_panel->rename_instrument(instrument_entry.get_text().c_str());
+			break; }
+		case InsEntryMode::DUPLICATE_INS: {
+			cout << "Duplicate instrument\n";
+			if (instrument_entry.get_text().empty()) { break; }
+			Instrument new_ins = *(insmaker_panel->get_instrument());
+			memcpy(new_ins.name, instrument_entry.get_text().c_str(), 9);
+			current_bank->add_instrument(new_ins);
+			break; }
 		}
-		insmaker_panel->set_instrument(ins);
+		instrument_entry_mode = InsEntryMode::FIND_INS;
 	}
 	void on_bank_ctrl_instrument_selected(Instrument* instrument) {
 		instrument_entry.set_text((string)instrument->name);
@@ -61,8 +101,14 @@ private:
 		instrument_entry.set_position(instrument_entry.get_text().length());
 	}
 	void on_instrument_entry_dropdown_pressed(Gtk::Entry::IconPosition icon_pos) {
-		instrument_edit_menu.set_pointing_to(instrument_entry.get_icon_area());
-		instrument_edit_menu.popup();
+		if (icon_pos == Gtk::Entry::IconPosition::PRIMARY) {
+			instrument_entry.grab_focus();
+			bank_ctrl_popover.popup();
+		}
+		else {
+			instrument_edit_menu.set_pointing_to(instrument_entry.get_icon_area(Gtk::Entry::IconPosition::SECONDARY));
+			instrument_edit_menu.popup();
+		}
 	}
 	void on_global_lmb_down(int n_press, double x, double y) {
 		Gtk::Widget* focused = get_root()->get_focus();
@@ -197,10 +243,13 @@ static void menu_append_radio(shared_ptr<Gio::Menu> menu, string name, string ac
 void Toolbar::create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel) {
 using namespace Gtk;
 	insmaker_panel = p_insmaker_panel;
+	instrument_entry.set_max_length(8);
 	instrument_entry.signal_changed().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_changed));
 	instrument_entry.signal_activate().connect(mem_fun(*this, &Toolbar::on_instrument_entry_text_entered));
-	shared_ptr<Gdk::Texture> dropdown_texture = Gdk::Texture::create_from_filename(ICON_PATH("DropdownButton.svg"));
+	shared_ptr<Gdk::Texture> dropdown_texture = Gdk::Texture::create_from_filename(ICON_PATH("MagnifyingGlass.svg"));
 	instrument_entry.set_icon_from_paintable(dropdown_texture, Entry::IconPosition::PRIMARY);
+	shared_ptr<Gdk::Texture> settings_texture = Gdk::Texture::create_from_filename(ICON_PATH("ThreeDots.svg"));
+	instrument_entry.set_icon_from_paintable(settings_texture, Entry::IconPosition::SECONDARY);
 	instrument_entry.set_icon_activatable(true);
 	instrument_entry.signal_icon_press().connect(mem_fun(*this, &Toolbar::on_instrument_entry_dropdown_pressed));
 	insmaker_toolbar.append(instrument_entry);
@@ -216,9 +265,10 @@ using namespace Gtk;
 	instrument_edit_menu.set_parent(instrument_entry);
 	shared_ptr<Gio::Menu> bank_edit_menu_model = Gio::Menu::create();
 	shared_ptr<Gio::Menu> instrument_edit_menu_model = Gio::Menu::create();
-	bank_edit_menu_model->append("Create Instrument", "actions.create_instrument");
-	bank_edit_menu_model->append("Delete Instrument", "actions.delete_instrument");
-	bank_edit_menu_model->append("Duplicate Instrument", "actions.duplicate_instrument");
+	bank_edit_menu_model->append("Create Instrument", "insmaker.create_instrument");
+	bank_edit_menu_model->append("Delete Instrument", "insmaker.delete_instrument");
+	bank_edit_menu_model->append("Rename Instrument", "insmaker.rename_instrument");
+	bank_edit_menu_model->append("Duplicate Instrument", "insmaker.duplicate_instrument");
 	instrument_edit_menu_model->append("Additive Synthesis", "insmaker.toggle_additive_synth");
 	menu_append_radio(instrument_edit_menu_model, "Melodic Mode", "insmaker.set_rhythm_mode", 0);
 	menu_append_radio(instrument_edit_menu_model, "Bass Drum Mode", "insmaker.set_rhythm_mode", 6);
@@ -269,6 +319,15 @@ using namespace Gtk;
 	action_group->add_action("load_bank", sigc::bind(mem_fun(*this, &MainWindow::on_load), true));
 	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::on_save_panel));
 	insert_action_group("actions", action_group);
+
+	insmaker_panel->action_group->add_action("create_instrument",
+		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::CREATE_INS));
+	insmaker_panel->action_group->add_action("delete_instrument",
+		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::DELETE_INS));
+	insmaker_panel->action_group->add_action("rename_instrument",
+		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::RENAME_INS));
+	insmaker_panel->action_group->add_action("duplicate_instrument",
+		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::DUPLICATE_INS));
 
 	insert_action_group("insmaker", insmaker_panel->action_group);
 

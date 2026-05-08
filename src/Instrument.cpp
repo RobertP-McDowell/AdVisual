@@ -36,7 +36,7 @@ void Bank::add_instrument(Instrument new_instrument) {
 	signal_bank_changed.emit();
 }
 
-void Bank::delete_instrument(char name[9]) {
+void Bank::delete_instrument(const char name[9]) {
 	for (auto insit = instruments.begin(); insit != instruments.end(); insit++) {
 		if (strcmp(insit->name, name) == 0) {
 			instruments.erase(insit);
@@ -57,14 +57,14 @@ Instrument* Bank::find_instrument(string name) {
 	memcpy(&char_name, name.c_str(), 9);
 	return find_instrument(char_name);
 }
-Instrument* Bank::find_instrument(char name[9]) {
+Instrument* Bank::find_instrument(const char name[9]) {
 	for (Instrument& ins : instruments) {
 		if (strcmp(name, ins.name) == 0) {
 			return &ins;
 		}
 	}
-	DBPRINT("No instrument found by the name " << name << ", returning default instrument in its stead.");
-	return &Instrument::default_instrument;
+	cerr << "No instrument found by the name " << name << "\n";
+	return nullptr;
 }
 
 void Bank::save_file(string save_path) {

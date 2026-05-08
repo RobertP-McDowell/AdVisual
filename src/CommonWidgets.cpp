@@ -131,7 +131,7 @@ void BankCtrl::on_lmb_down(int n_press, double x, double y) {
 	if (current_bank == nullptr || current_bank->instruments.empty()) { return; }
 	double half_item_height = item_height / 2.0;
 	int items_start = max(0, (int)floor(vadjust->get_value() / item_height) - 1);
-	selected_item_idx = clamp(items_start + (int)floor((y - half_item_height) / item_height), 0, (int)current_bank->instruments.size());
+	selected_item_idx = clamp(items_start + (int)floor((y - half_item_height) / item_height), 0, (int)current_bank->instruments.size() - 1);
 	instrument_selected.emit(&current_bank->instruments[selected_item_idx]);
 	draw_panel.queue_draw();
 }

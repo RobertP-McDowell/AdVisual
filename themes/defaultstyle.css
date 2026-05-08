@@ -56,10 +56,22 @@ statusbar {
 #insmaker {
 	background-color: rgba(0, 0, 0, 0.7);
 }
-.insmaker-slider {
+#insmaker-slider {
 	border-width: 2px;
 	border-color: rgba(255, 0, 0, 1.0);
-	background-color: var(--solid-black);
+	background-color: rgba(0, 0, 0, 0.5);
+}
+#insmaker-plus {
+	background-color: rgba(0, 0, 0, 0.2);
+}
+#insmaker-minus {
+	background-color: rgba(0, 0, 0, 0.2);
+}
+#insmaker-checkbox {
+	background-color: rgba(0, 0, 0, 0.4);
+}
+#insmaker-radio {
+	background-color: rgba(0, 0, 0, 0.4);
 }
 
 #mainframe {

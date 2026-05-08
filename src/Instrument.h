@@ -44,7 +44,6 @@ struct OPLFM {
 class Instrument {
 public:
 	Instrument() {}
-	
 	Instrument(OPLFM p_carrier, OPLFM p_modulator) : carrier(p_carrier), modulator(p_modulator) {}
 	uint8_t percussion_mode = 0; // 0=Melodic, 1=percussive.
 	uint8_t voice_number = 0; // Starts from 6 (percussive only).
@@ -66,10 +65,10 @@ public:
 	uint8_t file_version_minor = 0;
 	vector<Instrument> instruments = {};
 	void add_instrument(Instrument new_instrument);
-	void delete_instrument(char name[9]);
+	void delete_instrument(const char name[9]);
 	void clear_bank_data() { instruments.clear(); }
 	Instrument* find_instrument(string name);
-	Instrument* find_instrument(char name[9]);
+	Instrument* find_instrument(const char name[9]);
 	string file_path = "";
 protected:
 	void bnk_move_fields();

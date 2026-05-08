@@ -191,6 +191,25 @@ void InsmakerPanel::set_rhythm_mode(int value) {
 	action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
 }
 
+void InsmakerPanel::rename_instrument(const char new_name[9]) {
+	if (instrument_ptr == nullptr) {
+		cerr << "Can't rename instrument.\n";
+		return;
+	}
+	if (current_bank->find_instrument(new_name)) {
+		cerr << "The name '" << new_name << "' is already taken.\n";
+		return;
+	}
+	char old_name[9];
+	memcpy(old_name, instrument_ptr->name, 9);
+	memcpy(instrument_ptr->name, new_name, 9);
+	memcpy(new_instrument.name, new_name, 9);
+	Instrument* unsaved_ins = find_unsaved_instrument(old_name);
+	if (unsaved_ins) {
+		memcpy(unsaved_ins->name, new_name, 9);
+	}
+}
+
 Instrument* InsmakerPanel::find_unsaved_instrument(const char name[9]) {
 	for (Instrument& ins : unsaved_instruments) {
 		if (strcmp(ins.name, name) == 0) {

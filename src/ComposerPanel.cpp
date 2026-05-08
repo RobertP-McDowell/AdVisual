@@ -246,13 +246,6 @@ void GridPanel::on_mouse_motion(double x, double y) {
 			ghost_note->length = (start_offset - end_offset) + 1;
 			ghost_note->offset = end_offset;
 		}
-		//wxRect note_rect = get_note_rect(*editing_note);
-		//if (note_rect.x == old_note_rect.x && note_rect.width == old_note_rect.width) {
-		//	return; // There is no change, dont update.
-		//}
-		//wxRect final_rect(0, note_rect.y, 0, note_rect.height);
-		//line_exclusion(note_rect.x, note_rect.width, old_note_rect.x, old_note_rect.width, final_rect.x, final_rect.width);
-		//grid_panel->RefreshRect(final_rect, true);
 		queue_draw();
 	}
 	if (rmb_gesture->get_current_button() == GDK_BUTTON_SECONDARY) {
@@ -355,8 +348,10 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			cr->set_line_width(preview_line_width);
 			int line_y_offset = (preview_line_width * i) + note_line_width + 1;
 			for (Note& note : channel->notes) {
-				cr->move_to((note.offset * cell_size.x) + note_line_width, (note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
-				cr->line_to(((note.offset + note.length) * cell_size.x) - note_line_width, (note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
+				cr->move_to((note.offset * cell_size.x) + note_line_width - scroll_offset.x,
+						(note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
+				cr->line_to(((note.offset + note.length) * cell_size.x) - note_line_width - scroll_offset.x,
+						(note.pitch * cell_size.y) + line_y_offset - scroll_offset.y);
 				cr->stroke();
 			}
 		}

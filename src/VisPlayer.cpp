@@ -450,6 +450,9 @@ void CVisPlayer::SetVolume(int const voice, const uint8_t volume) {
 }
 //---------------------------------------------------------
 void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
+	if (instrument == nullptr) {
+		instrument = &Instrument::default_instrument;
+	}
 	const OPLFM& c = instrument->carrier;
 	const OPLFM& m = instrument->modulator;
 	if ((voice < kSnareDrumChannel) || !mRhythmMode) {

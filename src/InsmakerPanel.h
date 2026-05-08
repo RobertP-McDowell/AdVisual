@@ -63,10 +63,10 @@ public:
 		queue_draw();
 	}
 	OPLFMCheckbox(uint8_t* p_base_value, uint8_t* p_control_value) : OPLFMPropertyControl(p_base_value, p_control_value) {
-		add_css_class("insmaker-checkbox");
 		set_expand(true);
 		set_size_request(-1, -1);
 		set_halign(Gtk::Align::CENTER);
+		checkbox.set_name("insmaker-checkbox");
 		checkbox.signal_clicked().connect(sigc::mem_fun(*this, &OPLFMCheckbox::on_checkbox_toggled));
 		append(checkbox);
 		asterisk_picture = Gtk::Picture(ICON_PATH("UnsavedAsterisk.svg"));
@@ -102,6 +102,7 @@ protected:
 		Gtk::Picture pic = Gtk::Picture(ICON_PATH(img_name));
 		pic.set_size_request(-1, -1);
 		pic.set_content_fit(Gtk::ContentFit::COVER);
+		bttn->set_name("insmaker-radio");
 		bttn->set_child(pic);
 		bttn->signal_clicked().connect(sigc::bind(sigc::mem_fun(*this, &OPLFMRadio::on_radio_button_clicked), idx));
 		if (!buttons.empty()) { bttn->set_group(*buttons[0]); }
@@ -120,7 +121,6 @@ public:
 	}
 	OPLFMRadio(uint8_t* p_base_value, uint8_t* p_control_value) :
 				OPLFMPropertyControl(p_base_value, p_control_value), min_value(0), max_value(3) {
-		add_css_class("insmaker-radio");
 		set_expand(true);
 		set_size_request(-1, -1);
 		set_halign(Gtk::Align::CENTER);
@@ -260,7 +260,7 @@ protected:
 public:
 	virtual void set_new_value(int new_value) {
 		*control_value = clamp(new_value, int(min_value), int(max_value));
-		queue_draw();
+		draw_panel.queue_draw();
 	}
 	OPLFMSlider(uint8_t* p_base_value, uint8_t* p_control_value, uint8_t p_min_value = 0, uint8_t p_max_value = 100, bool p_inverted = false) :
 				OPLFMPropertyControl(p_base_value, p_control_value), min_value(p_min_value), max_value(p_max_value), inverted(p_inverted) {
@@ -276,7 +276,7 @@ public:
 		draw_panel.signal_state_flags_changed().connect(mem_fun(*this, &OPLFMSlider::on_draw_state_flags_changed));
 		draw_panel.set_draw_func(sigc::mem_fun(*this, &OPLFMSlider::on_draw));
 		draw_panel.set_expand(true);
-		draw_panel.add_css_class("insmaker-slider");
+		draw_panel.set_name("insmaker-slider");
 		
 		lmb_gesture = GestureClick::create();
 		lmb_gesture->set_button(GDK_BUTTON_PRIMARY);
@@ -296,11 +296,13 @@ public:
 		minus_pic.set_content_fit(Gtk::ContentFit::COVER);
 		minus_button.set_can_focus(false);
 		minus_button.set_child(minus_pic);
+		minus_button.set_name("insmaker-minus");
 		Picture plus_pic = Gtk::Picture(ICON_PATH("PlusButton.svg"));
 		plus_pic.set_size_request(-1, -1);
 		plus_pic.set_content_fit(Gtk::ContentFit::COVER);
 		plus_button.set_can_focus(false);
 		plus_button.set_child(plus_pic);
+		plus_button.set_name("insmaker-plus");
 		
 		minus_button.signal_clicked().connect(sigc::mem_fun(*this, &OPLFMSlider::on_minus_button_clicked));
 		plus_button.signal_clicked().connect(sigc::mem_fun(*this, &OPLFMSlider::on_plus_button_clicked));
@@ -321,12 +323,14 @@ class InsmakerPanel : public Gtk::Box {
 public:
 	InsmakerPanel();
 	Instrument* get_instrument_ptr() { return instrument_ptr; }
+	Instrument* get_instrument() { return &new_instrument; }
 	void set_instrument(Instrument* p_new_instrument);
 	void set_additive_synth(bool value);
 	void toggle_additive_synth();
 	void set_rhythm_mode(int value);
 	void save_current_instrument();
 	void save_instruments();
+	void rename_instrument(const char new_name[9]);
 	static Instrument* find_unsaved_instrument(const char name[9]);
 	shared_ptr<Gio::SimpleActionGroup> action_group;
 private:
