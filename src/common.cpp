@@ -1,7 +1,8 @@
 #include <common.h>
 
+shared_ptr<Gtk::Application> app;
+shared_ptr<Gtk::Label> status;
 vector<bool> enabled_channels = {};
-Gtk::Statusbar* status_bar;
 
 int sign(int val) {
 	return (val > 0) - (val < 0);
@@ -27,10 +28,6 @@ void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length)
 		out_length = max(l1 - l2, l2 - l1);
 	}
 }
-
-//wxBitmapBundle GetAsset(wxString asset_name, wxSize asset_size) {
-//	return wxBitmapBundle::FromSVGFile(ASSETS_PATH + asset_name, asset_size);
-//}
 
 string note_number_to_letter(int note_number) {
 	string note_symbol = "--1";

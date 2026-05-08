@@ -1,5 +1,6 @@
 :root {
 	--solid-black: rgba(15, 15, 15, 1.0);
+	font-family: monospace;
 }
 
 widget {
@@ -40,12 +41,13 @@ button:active {
 .toggle:focus:checked {
 	border-color: rgb(200, 20, 20);
 }
-
-statusbar {
-	background-color: var(--solid-black);
-}
 .toolbar {
 	background-color: var(--solid-black);
+}
+#statusbar {
+	background-color: rgb(0, 0, 0);
+	color: rgb(255, 255, 255);
+	font-family: monospace;
 }
 #event-header {
 	background-color: rgba(0, 0, 0, 0.7);

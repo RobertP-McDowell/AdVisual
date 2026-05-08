@@ -8,8 +8,10 @@ using namespace FileAccess;
 const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(0.4, 0.4, 1.0), RGBA(0.45, 0.3, 0.7),
 		RGBA(1.0, 0.4, 1.0), RGBA(1.0, 1.0, 0.4), RGBA(0.4, 1.0, 1.0), RGBA(1.0, 1.0, 1.0),
 		RGBA(1.0, 0.0, 0.0), RGBA(0.0, 1.0, 0.0), RGBA(0.0, 0.0, 1.0) };
+
 Track* current_track;
 Channel* current_channel;
+sigc::signal<void()> signal_track_changed;
 sigc::signal<void()> signal_channel_changed;
 
 Note::Note() {}
@@ -27,6 +29,7 @@ Track::Track() {
 	}
 	current_track = this;
 	current_channel = GetChannel(0);
+	signal_track_changed.emit();
 }
 
 #define insert_or_overwrite_event(tick_to_insert, event_map, value_to_insert) do { \
@@ -102,8 +105,8 @@ void Channel::clear_channel_data() {
 	notes.clear();
 }
 
-void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_position) {
-	insert_position = notes.size();
+int Channel::erase_notes(int eraser_offset, int eraser_length) {
+	int insert_position = notes.size();
 	for (int i = notes.size() - 1; i >= 0; i--) {
 		Note note = notes[i];
 		if (note.offset < eraser_offset + eraser_length && note.offset + note.length > eraser_offset) {
@@ -123,11 +126,11 @@ void Channel::erase_notes(int eraser_offset, int eraser_length, int& insert_posi
 			insert_position = i;
 		}
 	}
+	return insert_position;
 }
 
 void Channel::add_note(Note new_note) {
-	int insert_position = notes.size();
-	erase_notes(new_note.offset, new_note.length, insert_position);
+	int insert_position = erase_notes(new_note.offset, new_note.length);
 	notes.insert(notes.begin() + insert_position, new_note);
 }
 
@@ -158,6 +161,7 @@ void Track::load_file(string load_path) {
 	file_path = try_path;
 
 	ios_file.close();
+	signal_track_changed.emit();
 }
 
 void Track::rol_move_fields() {

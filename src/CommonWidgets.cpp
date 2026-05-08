@@ -53,6 +53,26 @@ void ChannelButton::set_pressed_channel(int channel) {
 	signal_channel_changed.emit();
 }
 
+void ChannelButton::update_percussion_mode() {
+	if (current_track->rhythm_mode == 0) {
+		for (int i = 0; i < buttons.size(); i++) {
+			buttons[i]->set_visible(true);
+			buttons[i]->queue_draw();
+		}
+	}
+	else {
+		for (int i = 6; i < 9; i++) { // We will need to redraw the text for BS and SD (now simply channel 8/9)
+			buttons[i]->queue_draw();
+		}
+		for (int i = 9; i < buttons.size(); i++) {
+			buttons[i]->set_visible(false);
+			if (buttons[i]->pressed == true) {
+				set_pressed_channel(0);
+			}
+		}
+	}
+}
+
 void ChannelButton::on_lmb_down(int n_press, double x, double y) {
 	set_pressed();
 }
@@ -86,7 +106,7 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 	shared_ptr<Pango::Layout> layout = create_pango_layout("");
 	layout->set_font_description(font);
 	string ch_txt = to_string(channel_index + 1);
-	if (channel_index > 5) {
+	if (current_track->rhythm_mode == 0 && channel_index > 5) {
 		if (channel_index == 6)  ch_txt = "BD";
 		if (channel_index == 7)  ch_txt = "SD";
 		if (channel_index == 8)  ch_txt = "TD";

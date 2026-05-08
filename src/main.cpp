@@ -32,9 +32,27 @@ public:
 		RENAME_INS,
 		DUPLICATE_INS
 	};
+	// Insmaker actions.
 	void set_instrument_entry_mode(InsEntryMode mode = InsEntryMode::FIND_INS) {
 		instrument_entry_mode = mode;
 		instrument_entry.grab_focus();
+		switch (instrument_entry_mode) {
+		case InsEntryMode::FIND_INS:
+			status->set_text("Find instrument to edit.");
+			break;
+		case InsEntryMode::CREATE_INS:
+			status->set_text("Press enter to create new instrument with name.");
+			break;
+		case InsEntryMode::DELETE_INS:
+			status->set_text("Press enter to confirm deletion!");
+			break;
+		case InsEntryMode::RENAME_INS:
+			status->set_text("Press enter to rename instrument with new name.");
+			break;
+		case InsEntryMode::DUPLICATE_INS:
+			status->set_text("Press enter to duplicate instrument with new name.");
+			break;
+		}
 	}
 private:
 	InsEntryMode instrument_entry_mode = InsEntryMode::FIND_INS;
@@ -94,6 +112,7 @@ private:
 			break; }
 		}
 		instrument_entry_mode = InsEntryMode::FIND_INS;
+		status->set_text("");
 	}
 	void on_bank_ctrl_instrument_selected(Instrument* instrument) {
 		instrument_entry.set_text((string)instrument->name);
@@ -129,6 +148,8 @@ private:
 	// Composer widgets.
 	Gtk::Box composer_toolbar;
 	Gtk::ToggleButton preview_channels_button;
+	Gtk::ToggleButton track_settings_button;
+	Gtk::ToggleButton audio_feedback_button;
 	// Insmaker widgets.
 	Gtk::Box insmaker_toolbar;
 	Gtk::Entry instrument_entry;
@@ -168,12 +189,14 @@ using namespace Gtk;
 	file_menu->append("Save Track", "actions.save_track");
 	file_menu->append("Load Bank", "actions.load_bank");
 	file_menu->append("Save Bank", "actions.save_bank");
-	append(file_button);
-	MenuButton help_button = create_image_menu_button("HelpBook.svg");
-	shared_ptr<Gio::Menu> help_menu = static_pointer_cast<Gio::Menu>(help_button.get_menu_model());
+	shared_ptr<Gio::Menu> help_menu = Gio::Menu::create();
 	help_menu->append("Docs", "actions.docs");
 	help_menu->append("About", "actions.about");
-	append(help_button);
+	file_menu->append_submenu("Help", help_menu);
+	file_menu->append("Settings", "actions.open_settings");
+	file_menu->append("Quit", "actions.quit");
+	append(file_button);
+
 	composer_button = create_image_button("ComposerIcon.svg");
 	composer_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_press_composer_panel));
 	composer_button.set_active();
@@ -204,6 +227,15 @@ using namespace Gtk;
 	preview_channels_button.set_active(true);
 	preview_channels_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_preview_channels_toggled));
 	composer_toolbar.append(preview_channels_button);
+	track_settings_button = create_image_button("Cassete.svg");
+	track_settings_button.set_action_name("composer.show_track_settings");
+	append(track_settings_button);
+	audio_feedback_button = create_image_button("AudioFeedback.svg");
+	append(audio_feedback_button);
+	
+	//composer_panel->track_settings_popover.set_parent(track_settings_button);
+	composer_panel->track_settings.signal_visible_change.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
+	signal_track_changed.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
 }
 
 void Toolbar::on_play_track() {
@@ -221,7 +253,6 @@ public:
 	MainWindow();
 	double opacity = 0.5;
 	shared_ptr<Toolbar> toolbar;
-	shared_ptr<Gtk::Statusbar> statusbar;
 	shared_ptr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
@@ -297,8 +328,13 @@ using namespace Gtk;
 
 	toolbar = make_shared<Toolbar>();
 
-	statusbar = make_shared<Statusbar>();
-	statusbar->set_valign(Align::END);
+	status = make_shared<Label>("Welcome to AdVisual!");
+	status->set_name("statusbar");
+	status->set_valign(Align::END);
+	status->set_halign(Align::FILL);
+	status->set_hexpand(true);
+	status->set_single_line_mode(true);
+	status->set_xalign(0);
 
 	composer_panel = make_shared<ComposerPanel>();
 	composer_panel->set_vexpand(true);
@@ -309,17 +345,18 @@ using namespace Gtk;
 	vertical_box.append(*toolbar);
 	vertical_box.append(*composer_panel);
 	vertical_box.append(*insmaker_panel);
-	vertical_box.append(*statusbar);
+	vertical_box.append(*status);
 	insmaker_panel->hide();
 	// Create adplayer after current_track and current_bank have been initialized.
 	adplayer = make_unique<AdPlayer>();
-
+// Create common actions.
 	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action("load_track", sigc::bind(mem_fun(*this, &MainWindow::on_load), false));
 	action_group->add_action("load_bank", sigc::bind(mem_fun(*this, &MainWindow::on_load), true));
 	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::on_save_panel));
+	action_group->add_action("quit", mem_fun(*app, &Application::quit));
 	insert_action_group("actions", action_group);
-
+// Create insmaker actions.
 	insmaker_panel->action_group->add_action("create_instrument",
 		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::CREATE_INS));
 	insmaker_panel->action_group->add_action("delete_instrument",
@@ -330,13 +367,16 @@ using namespace Gtk;
 		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::DUPLICATE_INS));
 
 	insert_action_group("insmaker", insmaker_panel->action_group);
+	insert_action_group("composer", composer_panel->action_group);
+// Create common shortcuts.
+	app->set_accel_for_action("actions.load_bank", "<Primary>l");
 
 	show();
 }
 
 int main(int argc, char* argv[]) {
 using namespace Gtk;
-	auto app = Application::create("com.github.advisual");
+	app = Application::create("com.github.advisual");
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 

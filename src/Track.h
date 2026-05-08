@@ -29,7 +29,7 @@ struct Channel {
 	map<int, float> volume_events = {{0, 1.0f}}; // Value = Volume mulitplier (0.0 - 1.0).
 	map<int, float> pitch_events = {{0, 1.0f}}; // Value = Pitch variation (0.0 - 2.0, nominal is 1.0).
 	void add_note(Note new_note);
-	void erase_notes(int offset, int length, int& insert_position);
+	int erase_notes(int offset, int length);
 	Note* get_note_on_tick(int at_tick) {
 		for (Note& note : notes) {
 			if (note.offset > at_tick) { return nullptr; }
@@ -78,4 +78,5 @@ protected:
 
 extern Track* current_track;
 extern Channel* current_channel;
+extern sigc::signal<void()> signal_track_changed;
 extern sigc::signal<void()> signal_channel_changed;

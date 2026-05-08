@@ -46,6 +46,74 @@ ComposerPanel::ComposerPanel() {
 	scroll_controller->signal_scroll().connect(mem_fun(*this, &ComposerPanel::on_mouse_scroll), true);
 	add_controller(scroll_controller);
 	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
+// Setup action group.
+	action_group = Gio::SimpleActionGroup::create();
+	action_group->add_action("cut_selection", mem_fun(*this, &ComposerPanel::cut_selection));
+	action_group->add_action("copy_selection", mem_fun(*this, &ComposerPanel::copy_selection));
+	action_group->add_action("paste_selection", mem_fun(*this, &ComposerPanel::paste_selection));
+	action_group->add_action("delete_selection", mem_fun(*this, &ComposerPanel::delete_selection));
+	action_group->add_action("show_track_settings", mem_fun(*this, &ComposerPanel::show_track_settings));
+// Set shortcuts.
+	app->set_accel_for_action("composer.cut_selection", "<Primary>x");
+	app->set_accel_for_action("composer.copy_selection", "<Primary>c");
+	app->set_accel_for_action("composer.paste_selection", "<Primary>v");
+	app->set_accel_for_action("composer.delete_selection", "x");
+	track_settings.signal_visible_change.connect(mem_fun(*grid_panel, &GridPanel::queue_draw));
+}
+
+void ComposerPanel::cut_selection() {
+	copy_selection();
+	delete_selection();
+}
+void ComposerPanel::copy_selection() {
+	copy_buffer.clear();
+	if (cursor_tick - cursor_end == 0) {
+		return; // Return if no range is selected.
+	}
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_end = (cursor_tick <= cursor_end ? cursor_end : cursor_tick);
+	for (int i = 0; i < current_channel->notes.size(); i++) {
+		Note& note = current_channel->notes[i];
+		if (note.offset < selection_end && note.offset + note.length > selection_start) {
+			Note copy_note = note;
+			copy_note.offset -= selection_start;
+			if (copy_note.offset < 0) {
+				copy_note.offset = 0;
+			}
+			if (copy_note.length > selection_end - selection_start) {
+				copy_note.length = selection_end - selection_start;
+			}
+			copy_buffer.push_back(copy_note);
+		}
+	}
+	if (!copy_buffer.empty()) {
+		copy_buffer_start_offset = selection_start - copy_buffer[0].offset;
+		copy_buffer_length = selection_end - selection_start;
+	}
+}
+void ComposerPanel::paste_selection() {
+	int ins_pos;
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_length = (cursor_tick <= cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end);
+	// Erase notes before pasting.
+	current_channel->erase_notes(selection_start, selection_length);
+	for (Note new_note : copy_buffer) {
+		new_note.offset += selection_start;
+		current_channel->add_note(new_note);
+	}
+	grid_panel->queue_draw();
+}
+void ComposerPanel::delete_selection() {
+	int selection_start = (cursor_tick <= cursor_end ? cursor_tick : cursor_end);
+	int selection_length = (cursor_tick <= cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end);
+	current_channel->erase_notes(selection_start, selection_length);
+	grid_panel->queue_draw();
+}
+void ComposerPanel::move_selection_semitone(int relative_semitones) {}
+void ComposerPanel::move_selection_tick(int relative_offset) {}
+void ComposerPanel::show_track_settings() {
+	track_settings.set_transient_for(*(app->get_run_window()));
+	track_settings.set_visible(true);
 }
 
 void ComposerPanel::on_show() {
@@ -96,14 +164,12 @@ bool ComposerPanel::on_mouse_scroll(double x, double y) {
 	} \
 	string new_hint = type_conversion_func(last_event_value); \
 	new_hint.resize(max_text_length); \
-	/* event_field.set_placeholder_text(new_hint); */ \
+	event_field.set_placeholder_text(new_hint); \
 } while(0)
 
-void EventPopup::init_spin_field(Grid& grid, string text, int entry_idx, SpinButton& spinbox) {
+void EventPopup::init_spin_field(Grid& grid, string text, int entry_idx, Entry& spinbox) {
 	Label label(text, Align::START);
 	grid.attach(label, 0, entry_idx);
-	spinbox.set_range(0.0, 10.0);
-	spinbox.set_increments(0.1, 0.5);
 	spinbox.add_css_class("field");
 	grid.attach(spinbox, 1, entry_idx);
 }
@@ -121,7 +187,6 @@ EventPopup::EventPopup() {
 	main_box.append(grid);
 	grid.set_vexpand(true);
 	// Initialize each event field.
-	tempo_field = SpinButton(0.2, 2);
 	tempo_field.set_name("field-tempo");
 	init_spin_field(grid, "Tempo", 0, tempo_field);
 	// Initialize Instrument event field.
@@ -130,8 +195,6 @@ EventPopup::EventPopup() {
 	instrument_field.set_name("field-instrument");
 	instrument_field.add_css_class("field");
 	grid.attach(instrument_field, 1, 1);
-	pitch_field = SpinButton(0.2, 2);
-	volume_field = SpinButton(0.2, 2);
 	pitch_field.set_name("field-pitch");
 	volume_field.set_name("field-volume");
 	init_spin_field(grid, "Pitch", 2, pitch_field);
@@ -151,13 +214,13 @@ void EventPopup::popup(int at_tick) {
 
 void EventPopup::on_closed() {
 	if (!tempo_field.get_text().empty())
-	current_track->set_tempo_event(editing_tick, clamp(tempo_field.get_value(), 0.01, 10.0));
+	current_track->set_tempo_event(editing_tick, get_float_from_string(tempo_field.get_text(), 0.0, 10.0));
 	if (!instrument_field.get_text().empty())
-	current_channel->set_instrument_event(editing_tick, (string)instrument_field.get_text());
+	current_channel->set_instrument_event(editing_tick, instrument_field.get_text());
 	if (!pitch_field.get_text().empty())
-	current_channel->set_pitch_event(editing_tick, clamp(pitch_field.get_value(), 0.0, 2.0));
+	current_channel->set_pitch_event(editing_tick, get_float_from_string(pitch_field.get_text(), 0.0, 2.0));
 	if (!volume_field.get_text().empty())
-	current_channel->set_volume_event(editing_tick, clamp(volume_field.get_value(), 0.0, 1.0));
+	current_channel->set_volume_event(editing_tick, get_float_from_string(volume_field.get_text(), 0.0, 1.0));
 	get_parent()->queue_draw();
 }
 
@@ -175,6 +238,7 @@ EventHeader::EventHeader() {
 	add_controller(rmb_gesture);
 	event_popup.set_parent(*this);
 	signal_channel_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
+	signal_track_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
 }
 
 
@@ -202,6 +266,7 @@ GridPanel::GridPanel() {
 	motion_event->signal_motion().connect(mem_fun(*this, &GridPanel::on_mouse_motion));
 	add_controller(motion_event);
 	signal_channel_changed.connect(mem_fun(*this, &GridPanel::queue_draw));
+	signal_track_changed.connect(mem_fun(*this, &GridPanel::queue_draw));
 }
 
 void GridPanel::on_lmb_down(int n_press, double x, double y) {
@@ -233,11 +298,10 @@ void GridPanel::on_rmb_up(int n_press, double x, double y) {
 }
 
 void GridPanel::on_mouse_motion(double x, double y) {
-	vec2 local_mouse_position = vec2(x + scroll_offset.x, y + scroll_offset.y);
+	vec2 mouse_position = vec2(x + scroll_offset.x, y + scroll_offset.y);
 	if (lmb_gesture->get_current_button() == GDK_BUTTON_PRIMARY) {
-		int start_offset = (mouse_down_start.x / cell_size.x);
-		int end_offset = (local_mouse_position.x / cell_size.x);
-		//wxRect old_note_rect = get_note_rect(*editing_note); // We will need to update this if the note gets shorter.
+		int start_offset = max(0, mouse_down_start.x / cell_size.x);
+		int end_offset = max(0, mouse_position.x / cell_size.x);
 		if (end_offset >= start_offset) {
 			ghost_note->length = (end_offset - start_offset) + 1;
 			ghost_note->offset = start_offset;
@@ -247,12 +311,16 @@ void GridPanel::on_mouse_motion(double x, double y) {
 			ghost_note->offset = end_offset;
 		}
 		queue_draw();
+		status->set_text(note_number_to_letter(ghost_note->pitch) + " " +
+			to_string(ghost_note->offset) + ":" + to_string(ghost_note->length));
+		return;
 	}
 	if (rmb_gesture->get_current_button() == GDK_BUTTON_SECONDARY) {
 		cursor_end = x / cell_size.x;
 		queue_draw();
+		return;
 	}
-	//status_bar->SetStatusText(note_number_to_letter(local_mouse_position.y / cell_size.y));
+	status->set_text(note_number_to_letter(mouse_position.y / cell_size.y) + " " + to_string(mouse_position.x / cell_size.x));
 }
 
 void cairo_round_rect(const shared_ptr<Cairo::Context>& cr, int x, int y, int width, int height, int radius) {
@@ -450,4 +518,70 @@ void EventHeader::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int h
 		cr->stroke();
 		event_ticks.push_back(event->first);
 	}
+}
+
+TrackSettings::TrackSettings() {
+	set_size_request(300, 100);
+	set_name("track-settings");
+	set_hide_on_close(true);
+	set_modal(true);
+	grid.insert_row(0);
+	grid.insert_row(0);
+	grid.insert_column(0);
+	grid.insert_column(0);
+	grid.set_expand(true);
+	signal_track_changed.connect(mem_fun(*this, &TrackSettings::on_track_changed));
+
+	tempo_spinner = SpinButton(0.2, 2);
+	add_spinbox_property("Tempo (bpm)", tempo_spinner, 120, 0.1, 1000.0, 1, 10, 0);
+	tempo_spinner.signal_value_changed().connect(mem_fun(*this, &TrackSettings::on_tempo_set));
+
+	beats_per_measure_spinner = SpinButton(0.2, 0);
+	add_spinbox_property("Beats per Measure", beats_per_measure_spinner, 4, 1, 1000.0, 1, 10, 1);
+	beats_per_measure_spinner.signal_value_changed().connect(mem_fun(*this, &TrackSettings::on_beats_per_measure_set));
+
+	ticks_per_beat_spinner = SpinButton(0.2, 0);
+	add_spinbox_property("Ticks per Beat", ticks_per_beat_spinner, 4, 1, 1000.0, 1, 10, 2);
+	ticks_per_beat_spinner.signal_value_changed().connect(mem_fun(*this, &TrackSettings::on_ticks_per_beat_set));
+
+	Label percussion_label("Percussion");
+	grid.attach(percussion_label, 0, 3);
+	grid.attach(percussion_checkbox, 1, 3);
+	percussion_checkbox.signal_toggled().connect(mem_fun(*this, &TrackSettings::on_percussion_toggled));
+
+	set_child(grid);
+}
+
+void TrackSettings::add_spinbox_property(string name, SpinButton& spinner, double val, double min, double max, double step, double page, int idx) {
+	Label label = Label(name);
+	spinner.set_range(min, max);
+	spinner.set_increments(step, page);
+	spinner.set_value(val);
+	spinner.set_hexpand(true);
+	grid.attach(label, 0, idx);
+	grid.attach(spinner, 1, idx);
+}
+
+void TrackSettings::on_track_changed() {
+	tempo_spinner.set_value(current_track->basic_tempo);
+	beats_per_measure_spinner.set_value(current_track->beats_per_measure);
+	ticks_per_beat_spinner.set_value(current_track->ticks_per_beat);
+	percussion_checkbox.set_active(current_track->rhythm_mode);
+}
+
+void TrackSettings::on_tempo_set() {
+	current_track->basic_tempo = tempo_spinner.get_value();
+	signal_visible_change.emit();
+}
+void TrackSettings::on_beats_per_measure_set() {
+	current_track->beats_per_measure = beats_per_measure_spinner.get_value();
+	signal_visible_change.emit();
+}
+void TrackSettings::on_ticks_per_beat_set() {
+	current_track->ticks_per_beat = ticks_per_beat_spinner.get_value();
+	signal_visible_change.emit();
+}
+void TrackSettings::on_percussion_toggled() {
+	current_track->rhythm_mode = percussion_checkbox.get_active();
+	signal_visible_change.emit();
 }
