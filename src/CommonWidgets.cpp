@@ -210,6 +210,8 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 	}
 }
 
+#include <AdPlayer.h>
+
 PianoCtrl::PianoCtrl(bool p_tall) : instrument(&Instrument::default_instrument), tall(p_tall) {
 	add_css_class("piano-ctrl");
 	set_draw_func(mem_fun(*this, &PianoCtrl::on_draw));
@@ -228,8 +230,6 @@ PianoCtrl::PianoCtrl(bool p_tall) : instrument(&Instrument::default_instrument),
 	motion_controller->signal_motion().connect(mem_fun(*this, &PianoCtrl::on_mouse_motion));
 	add_controller(motion_controller);
 }
-
-#include <AdPlayer.h>
 
 int PianoCtrl::get_note_number_at_position(double x, double y) {
 	if (tall == true) {
@@ -313,7 +313,7 @@ void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			int x = (key_width * middle_c) - (key_width * 1.25) - scroll_offset;
 			int y = deepness - (i * 6);
 			cr->move_to(x, y);
-			cr->line_to(x, y + key_width);
+			cr->line_to(x + key_width, y);
 			cr->stroke();
 		}
 	}

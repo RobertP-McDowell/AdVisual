@@ -137,7 +137,7 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	property_grid->set_expand(true);
 	property_grid->set_row_homogeneous(true);
 	append(*property_grid);
-	
+// Property, Sliders and Checkboxes init.
 	Label* car_label = make_managed<Label>("Carrier");
 	car_label->set_expand(true);
 	car_label->set_halign(Align::CENTER);
@@ -150,13 +150,34 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	
 	create_oplfm_editor();
 	update_oplfm_editor(nullptr, nullptr, nullptr, nullptr);
-	
+// PianoCtrl init.
 	piano_ctrl = make_managed<PianoCtrl>(false);
 	append(*piano_ctrl);
+// Scrollbar init.
+	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, pitch_range, 1, 10, 10);
+	hscrollbar = make_managed<Scrollbar>(hadjust, Orientation::HORIZONTAL);
+	hadjust->signal_value_changed().connect(mem_fun(*this, &InsmakerPanel::on_scroll_piano));
+	hadjust->set_value(middle_c); // Go to center of piano.
+	append(*hscrollbar);
 
+	scroll_controller = EventControllerScroll::create();
+	scroll_controller->set_flags(EventControllerScroll::Flags::VERTICAL);
+	scroll_controller->signal_scroll().connect(mem_fun(*this, &InsmakerPanel::on_mouse_scroll_piano), true);
+	piano_ctrl->add_controller(scroll_controller); // the piano_ctrl owns the scroll_controller.
+	hscrollbar->get_adjustment()->set_page_size(piano_ctrl->get_width() / piano_ctrl->get_key_width());
+// Setup actions.
 	action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action_bool("toggle_additive_synth", mem_fun(*this, &InsmakerPanel::toggle_additive_synth), false);
 	action_group->add_action_radio_integer("set_rhythm_mode", mem_fun(*this, &InsmakerPanel::set_rhythm_mode), 0);
+}
+
+void InsmakerPanel::on_scroll_piano() {
+	piano_ctrl->set_scroll_offset(hscrollbar->get_adjustment()->get_value() * piano_ctrl->get_key_width());
+	hscrollbar->get_adjustment()->set_page_size(piano_ctrl->get_width() / piano_ctrl->get_key_width());
+}
+bool InsmakerPanel::on_mouse_scroll_piano(double x, double y) {
+	hscrollbar->get_adjustment()->set_value(hscrollbar->get_adjustment()->get_value() + y);
+	return true;
 }
 
 int InsmakerPanel::get_number_of_unsaved_changes() {

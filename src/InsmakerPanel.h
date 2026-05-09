@@ -341,14 +341,19 @@ private:
 	void add_radio_property(string name);
 	void add_slider_property(string name, uint8_t p_min_value, uint8_t p_max_value, bool p_inverted = false);
 	void on_value_event();
+	void on_scroll_piano();
+	bool on_mouse_scroll_piano(double x, double y);
 	int get_number_of_unsaved_changes();
 	Instrument* instrument_ptr = nullptr;
 	Instrument new_instrument;
 	vector<unique_ptr<OPLFMPropertyControl>> carrier_properties;
 	vector<unique_ptr<OPLFMPropertyControl>> modulator_properties;
 	static vector<Instrument> unsaved_instruments;
-	
+
 	unique_ptr<Gtk::Grid> property_grid;
 	PianoCtrl* piano_ctrl;
+	Gtk::Scrollbar* hscrollbar;
+	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
+
 	int number_of_unsaved_changes = 0;
 };

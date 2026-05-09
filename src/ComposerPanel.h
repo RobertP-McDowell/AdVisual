@@ -102,7 +102,6 @@ protected:
 	void delete_selection();
 	void move_selection_semitone(int relative_semitones);
 	void move_selection_tick(int relative_offset);
-	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
 	vector<Note> copy_buffer;
 	int copy_buffer_start_offset = 0, copy_buffer_length = 0;
 
@@ -111,6 +110,7 @@ protected:
 	PianoCtrl* piano_ctrl;
 	Gtk::Scrollbar* hscrollbar;
 	Gtk::Scrollbar* vscrollbar;
+	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
 
 	double zoom = 1.0;
 };

@@ -50,34 +50,34 @@ button:active {
 	font-family: monospace;
 }
 #event-header {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.7);
 }
 #grid-panel {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.7);
 }
 #insmaker {
-	background-color: rgba(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.7);
 }
 #insmaker-slider {
 	border-width: 2px;
-	border-color: rgb(255, 0, 0);
-	background-color: rgb(0, 0, 0);
+	border-color: rgba(255, 0, 0, 1.0);
+	background-color: rgba(0, 0, 0, 0.5);
 }
 #insmaker-plus {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.2);
 }
 #insmaker-minus {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.2);
 }
 #insmaker-checkbox {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.4);
 }
 #insmaker-radio {
-	background-color: rgb(0, 0, 0);
+	background-color: rgba(0, 0, 0, 0.4);
 }
 
 #mainframe {
-	background-color: rgb(0, 0, 0, 0);
+	background-color: rgba(0, 0, 0, 0);
 }
 entry {
 	color: rgb(255, 255, 255);
@@ -99,5 +99,6 @@ entry {
 	border-color: rgb(0, 0, 255);
 }
 .piano-ctrl {
-	background-color: rgb(255, 255, 255);
+	background-color: rgba(255, 255, 255, 1.0);
+	background-color: rgba(255, 255, 255, 0.0);
 }
