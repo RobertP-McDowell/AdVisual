@@ -79,7 +79,7 @@ public:
 	static const uint8_t  kMaxVolume;
 
 	void SetBank(Bank* p_bank) { bank = p_bank; }
-	void SetTrack(Track* p_track) { track = p_track; }
+	void SetTrack(Track* p_track) { track = p_track; SetRhythmMode(!track->melodic_mode); }
 	void EnableChannel(int v);
 	void DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument = nullptr, float pitch_mult = 1.0, float volume_mult = 1.0);
 	void EnableAllChannels();
@@ -120,8 +120,7 @@ protected:
 		kTomtomChannel, kTomTomNote, kTomTomToSnare, kSnareNote;
 	Bank* bank;
 	Track* track;
-	vector<int> enabled_channels;
-	vector<int> dynamic_notes; // 1 per channel.
+	array<int, 11> dynamic_notes; // 1 per channel.
 	uint32_t tick;
 	float refresh_rate;
 };

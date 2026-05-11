@@ -11,24 +11,44 @@ const RGBA ChannelColors[11] = { RGBA(1.0, 0.4, 0.4), RGBA(0.4, 1.0, 0.4), RGBA(
 
 Track* current_track;
 Channel* current_channel;
+array<bool, 11> enabled_channels;
 sigc::signal<void()> signal_track_changed;
 sigc::signal<void()> signal_channel_changed;
 
 Note::Note() {}
 Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch), length(_length) {}
 
-Channel::Channel() {}
+Channel::Channel(int p_channel_number) : channel_number(p_channel_number) {
+	switch (channel_number) {
+	case 6:
+		instrument_events.begin()->second = "bdrum1";
+		break;
+	case 7:
+		instrument_events.begin()->second = "snare1";
+		break;
+	case 8:
+		instrument_events.begin()->second = "tom1";
+		break;
+	case 9:
+		instrument_events.begin()->second = "cymbal1";
+		break;
+	case 10:
+		instrument_events.begin()->second = "hihat1";
+		break;
+	default:
+		break;
+	}
+	color = ChannelColors[p_channel_number];
+	notes = {};
+}
 
 Track::Track() {
 	for (int i = 0; i < 11; i++) {
-		Channel new_channel;
-		new_channel.notes = {};
-		new_channel.color = ChannelColors[i];
-		new_channel.channel_number = i;
-		channels.push_back(new_channel);
+		channels.push_back(Channel(i));
 	}
 	current_track = this;
 	current_channel = GetChannel(0);
+	enabled_channels.fill(true);
 	signal_track_changed.emit();
 }
 
@@ -85,8 +105,8 @@ void Channel::set_volume_event(int at_tick, float value) {
 			return; \
 		} \
 	} \
-	ret_tick = 0; \
-	ret_value = event_map.begin()->second; \
+	ret_tick = event_map.rend()->first; \
+	ret_value = event_map.rend()->second; \
 } while(0)
 
 void Track::get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value)
@@ -97,6 +117,15 @@ void Channel::get_last_pitch_event(int start_tick, int& ret_tick, float& ret_val
 		{ get_last_event(start_tick, pitch_events, ret_tick, ret_value); }
 void Channel::get_last_volume_event(int start_tick, int& ret_tick, float& ret_value)
 		{ get_last_event(start_tick, volume_events, ret_tick, ret_value); }
+
+Instrument* Channel::get_instrument_at_tick(int at_tick) {
+	string last_ins_val;
+	int last_ins_tick;
+	get_last_instrument_event(at_tick, last_ins_tick, last_ins_val);
+	Instrument* last_ins = current_bank->find_instrument(last_ins_val);
+	if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
+	return last_ins;
+}
 
 void Channel::clear_channel_data() {
 	instrument_events.clear();
@@ -139,7 +168,7 @@ void Track::clear_track_data() {
 	for (Channel& channel : channels) {
 		channel.clear_channel_data();
 	}
-	rhythm_mode = 0;
+	melodic_mode = 0;
 }
 
 void Track::save_file(string save_path) {
@@ -174,7 +203,7 @@ void Track::rol_move_fields() {
 	fieldcpy_uint16(&editor_scale_y, 2);
 	fieldcpy_uint16(&editor_scale_x, 2);
 	fieldzero(1);            // unused.
-	fieldcpy_uint8(&rhythm_mode, 1);
+	fieldcpy_uint8(&melodic_mode, 1);
 	fieldzero(90 + 38 + 15); // unused, filler, filler. Specs don't specify how they're different.
 	basic_tempo = 60.0f;
 	fieldcpy_float(&basic_tempo);

@@ -262,7 +262,7 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 		if (instrument_ptr == nullptr) {
 			update_oplfm_editor(nullptr, nullptr, nullptr, nullptr);
 			number_of_unsaved_changes = 0;
-			//piano_ctrl->SetInstrument(&(Instrument::default_instrument));
+			piano_ctrl->set_instrument(&(Instrument::default_instrument));
 			return;
 		}
 		Instrument* unsaved_instrument = find_unsaved_instrument(instrument_ptr->name);
@@ -282,7 +282,7 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 		action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
 		action_group->change_action_state("toggle_additive_synth", Glib::Variant<bool>::create(new_instrument.modulator.additive_synth));
 		number_of_unsaved_changes = get_number_of_unsaved_changes(); // Might not be 0 if using unsaved instrument.
-		//piano_ctrl->set_instrument(&new_instrument);
+		piano_ctrl->set_instrument(&new_instrument);
 		queue_draw();
 	}
 }

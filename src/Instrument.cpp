@@ -63,7 +63,6 @@ Instrument* Bank::find_instrument(const char name[9]) {
 			return &ins;
 		}
 	}
-	cerr << "No instrument found by the name " << name << "\n";
 	return nullptr;
 }
 

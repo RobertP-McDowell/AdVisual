@@ -90,11 +90,14 @@ public:
 	void show_track_settings();
 	TrackSettings track_settings;
 protected:
+	// Signals.
 	void on_show() override;
 	void on_lmb_down();
 	void on_hscroll();
 	void on_vscroll();
 	bool on_mouse_scroll(double x, double y);
+	void on_track_changed();
+	void on_channel_changed();
 	// Actions.
 	void cut_selection();
 	void copy_selection();
@@ -102,12 +105,14 @@ protected:
 	void delete_selection();
 	void move_selection_semitone(int relative_semitones);
 	void move_selection_tick(int relative_offset);
+
 	vector<Note> copy_buffer;
 	int copy_buffer_start_offset = 0, copy_buffer_length = 0;
 
 	EventHeader* event_header;
 	GridPanel* grid_panel;
 	PianoCtrl* piano_ctrl;
+	Gtk::Label* instrument_hint;
 	Gtk::Scrollbar* hscrollbar;
 	Gtk::Scrollbar* vscrollbar;
 	shared_ptr<Gtk::EventControllerScroll> scroll_controller;

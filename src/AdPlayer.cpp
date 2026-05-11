@@ -35,7 +35,6 @@ int AdPlayer::adplug_process(short* p_buffer, unsigned int p_frames, unsigned in
 }
 
 void AdPlayer::mix_miniaudio(ma_device* p_device, void* p_output, const void* p_input, ma_uint32 frame_count) {
-	//cout << "Mini 1\n";
 	if (!active || !opl_playback) {
 		return; // Safety check.
 	}
@@ -91,9 +90,9 @@ AdPlayer::AdPlayer() {
 		stop();
 		return;
 	}
-	enabled_channels.resize(11, true);
 	opl_device->init();
 	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track, current_bank )));
+	opl_playback->DisableAllChannels(); // So if we play a note in editor the song wont start.
 }
 
 AdPlayer::~AdPlayer() {
@@ -112,15 +111,19 @@ void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 		if (instrument->percussion_mode != 0 || channel >= 9) {
 			opl_playback->SetRhythmMode(1);
 			channel = instrument->voice_number;
+			cout << "Perc: " << bool(instrument->percussion_mode) << " vn: " << int(instrument->voice_number) << "\n";
 		}
 	}
-	DBPRINT("Play dynamic note at channel: " << channel);
+	if (note_number != 0) { DBPRINT("Play dynamic note at channel: " << channel); }
+	else { DBPRINT("Stop dynamic note at channel: " << channel); }
 	opl_playback->DisableChannelAndPlayNote(channel, note_number, instrument);
 
-	towrite = RATE / opl_playback->getrefresh();
-
-	ma_device_start(&mini_device);
-	active = true;
+	if (!active) {
+		DBPRINT("Starting playback to play dynamic note");
+		towrite = RATE / opl_playback->getrefresh();
+		ma_device_start(&mini_device);
+		active = true;
+	}
 }
 
 void AdPlayer::set_channel_enable(int channel, bool enable) {
@@ -142,7 +145,6 @@ bool AdPlayer::play(string file_path, int start_from) {
 			opl_playback->DisableChannelAndPlayNote(v, 0, nullptr);
 		}
 	}
-	opl_playback->SetRhythmMode(current_track->rhythm_mode);
 	opl_playback->seek(start_from);
 
 	if (!opl_playback) {

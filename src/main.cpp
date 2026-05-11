@@ -245,8 +245,8 @@ using namespace Gtk;
 	audio_feedback_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_audio_feedback_toggled));
 	composer_toolbar.append(audio_feedback_button);
 	
-	composer_panel->track_settings.signal_visible_change.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
-	signal_track_changed.connect(sigc::ptr_fun(&ChannelButton::update_percussion_mode));
+	composer_panel->track_settings.signal_visible_change.connect(sigc::ptr_fun(&ChannelButton::update_melodic_mode));
+	signal_track_changed.connect(sigc::ptr_fun(&ChannelButton::update_melodic_mode));
 }
 
 void Toolbar::on_play_track() {

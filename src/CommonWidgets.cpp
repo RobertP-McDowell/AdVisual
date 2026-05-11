@@ -16,7 +16,7 @@ ChannelButton::ChannelButton(int p_channel_index) : channel_index(p_channel_inde
 	lmb_gesture->signal_pressed().connect(mem_fun(*this, &ChannelButton::on_lmb_down));
 	add_controller(lmb_gesture);
 
-	auto motion_event = Gtk::EventControllerMotion::create();
+	shared_ptr<EventControllerMotion> motion_event = Gtk::EventControllerMotion::create();
 	motion_event->signal_enter().connect(mem_fun(*this, &ChannelButton::on_mouse_entered));
 	motion_event->signal_leave().connect(mem_fun(*this, &ChannelButton::on_mouse_exited));
 	add_controller(motion_event);
@@ -53,8 +53,8 @@ void ChannelButton::set_pressed_channel(int channel) {
 	signal_channel_changed.emit();
 }
 
-void ChannelButton::update_percussion_mode() {
-	if (current_track->rhythm_mode == 0) {
+void ChannelButton::update_melodic_mode() {
+	if (!current_track->melodic_mode) {
 		for (int i = 0; i < buttons.size(); i++) {
 			buttons[i]->set_visible(true);
 			buttons[i]->queue_draw();
@@ -74,18 +74,26 @@ void ChannelButton::update_percussion_mode() {
 }
 
 void ChannelButton::on_lmb_down(int n_press, double x, double y) {
+	if (bool(lmb_gesture->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
+		enabled_channels[channel_index] = !enabled_channels[channel_index];
+		queue_draw();
+		return;
+	}
 	set_pressed();
 }
 
 void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
 	RGBA ch_color = current_track->GetChannel(channel_index)->color;
+	if (!enabled_channels[channel_index]) {
+		ch_color = RGBA(0.5, 0.5, 0.5, 1.0);
+	}
 	RGBA hover_color = ch_color;
 	hover_color.set_alpha(0.5);
 	double half_line_width = 2.0;
 	cr->set_line_width(half_line_width * 2.0);
-	Gdk::Cairo::set_source_rgba(cr, ch_color);
 	double diameter = height * 0.8;
 	double x_offset = min(diameter / 2.0, width - diameter);
+	Gdk::Cairo::set_source_rgba(cr, ch_color);
 	cr->arc(x_offset, height / 2, (diameter / 2) - half_line_width, 0.0, M_PI * 2);
 	cr->stroke();
 	if (pressed) {
@@ -106,7 +114,7 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 	shared_ptr<Pango::Layout> layout = create_pango_layout("");
 	layout->set_font_description(font);
 	string ch_txt = to_string(channel_index + 1);
-	if (current_track->rhythm_mode == 0 && channel_index > 5) {
+	if (current_track->melodic_mode == 0 && channel_index > 5) {
 		if (channel_index == 6)  ch_txt = "BD";
 		if (channel_index == 7)  ch_txt = "SD";
 		if (channel_index == 8)  ch_txt = "TD";
@@ -242,19 +250,19 @@ int PianoCtrl::get_note_number_at_position(double x, double y) {
 
 void PianoCtrl::on_lmb_down(int n_press, double x, double y) {
 	int note_number = get_note_number_at_position(x, y);
-	adplayer->play_note(note_number, ChannelButton::get_pressed_channel(), instrument);
+	adplayer->play_note(note_number, current_channel->channel_number, instrument);
 	playing_note = note_number;
 }
 
 void PianoCtrl::on_lmb_up(int n_press, double x, double y) {
-	adplayer->play_note(0, ChannelButton::get_pressed_channel(), instrument);
+	adplayer->play_note(0, current_channel->channel_number, instrument);
 	playing_note = 0;
 }
 
 void PianoCtrl::on_mouse_motion(double x, double y) {
 	int note_number = get_note_number_at_position(x, y);
 	if (lmb_gesture->get_current_button() && playing_note != note_number) {
-		adplayer->play_note(note_number, ChannelButton::get_pressed_channel(), instrument);
+		adplayer->play_note(note_number, current_channel->channel_number, instrument);
 		playing_note = note_number;
 	}
 	status->set_text(note_number_to_letter(note_number));

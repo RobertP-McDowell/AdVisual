@@ -127,7 +127,7 @@ public:
 		add_radio_button("FullSine.svg", 0);
 		add_radio_button("HalfSine.svg", 1);
 		add_radio_button("AbsSine.svg", 2);
-		add_radio_button("TriWave.svg", 3);
+		add_radio_button("PulseSine.svg", 3);
 		
 		asterisk_picture = Gtk::Picture(ICON_PATH("UnsavedAsterisk.svg"));
 		asterisk_picture.set_size_request(-1, -1);

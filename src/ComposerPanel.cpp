@@ -28,6 +28,9 @@ ComposerPanel::ComposerPanel() {
 	grid_panel = make_managed<GridPanel>();
 	grid_panel->set_expand(true);
 	attach(*grid_panel, 1, 1);
+// Init instrument_hint.
+	instrument_hint = make_managed<Label>("PIANO1");
+	attach(*instrument_hint, 0, 0);
 // Init piano_ctrl.
 	piano_ctrl = make_managed<PianoCtrl>(true);
 	attach(*piano_ctrl, 0, 1);
@@ -38,7 +41,7 @@ ComposerPanel::ComposerPanel() {
 	vscrollbar = make_managed<Scrollbar>(vadjust, Orientation::VERTICAL);
 	hadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_hscroll));
 	vadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_vscroll));
-	vadjust->set_value(middle_c); // Go to center of grid.
+	vadjust->set_value(middle_c - ((720 / cell_size.y) / 2.0)); // Go to center of grid.
 	attach(*hscrollbar, 0, 2, 3, 1);
 	attach(*vscrollbar, 2, 0, 1, 2);
 
@@ -60,7 +63,20 @@ ComposerPanel::ComposerPanel() {
 	app->set_accel_for_action("composer.paste_selection", "<Ctrl>v");
 	app->set_accels_for_action("composer.delete_selection", {"Delete", "BackSpace"});
 	track_settings.signal_visible_change.connect(mem_fun(*grid_panel, &GridPanel::queue_draw));
+	signal_track_changed.connect(mem_fun(*this, &ComposerPanel::on_track_changed));
+	signal_channel_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
 }
+
+void ComposerPanel::on_track_changed() {
+	on_channel_changed();
+}
+
+void ComposerPanel::on_channel_changed() {
+	Instrument* last_ins = current_channel->get_instrument_at_tick(hscrollbar->get_adjustment()->get_value());
+	piano_ctrl->set_instrument(last_ins);
+	instrument_hint->set_text((string)last_ins->name);
+}
+
 
 void ComposerPanel::cut_selection() {
 	copy_selection();
@@ -129,12 +145,9 @@ void ComposerPanel::on_hscroll() {
 	grid_panel->scroll_offset.x = new_x;
 	grid_panel->queue_draw();
 
-	string last_ins_val;
-	int last_ins_tick;
-	current_channel->get_last_instrument_event(hscrollbar->get_adjustment()->get_value(), last_ins_tick, last_ins_val);
-	Instrument* last_ins = current_bank->find_instrument(last_ins_val);
-	if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
+	Instrument* last_ins = current_channel->get_instrument_at_tick(hscrollbar->get_adjustment()->get_value());
 	piano_ctrl->set_instrument(last_ins);
+	instrument_hint->set_text((string)last_ins->name);
 }
 
 void ComposerPanel::on_vscroll() {
@@ -249,7 +262,6 @@ EventHeader::EventHeader() {
 	signal_track_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
 }
 
-
 void EventHeader::on_rmb_down(int n_press, double x, double y) {
 	int tick = int((x + scroll_offset) / cell_size.x);
 	event_popup.popup(tick);
@@ -284,35 +296,36 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 	ghost_note->pitch = clamp(mouse_down_start.y / cell_size.y, 0, pitch_range-1);
 	ghost_note->length = 1;
 	if (audio_feedback) {
-		string last_ins_val;
-		int last_ins_tick;
-		current_channel->get_last_instrument_event(x / cell_size.x, last_ins_tick, last_ins_val);
-		Instrument* last_ins = current_bank->find_instrument(last_ins_val);
-		if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
-		adplayer->play_note(ghost_note->pitch, ChannelButton::get_pressed_channel(), last_ins);
+		Instrument* last_ins = current_channel->get_instrument_at_tick(x / cell_size.x);
+		adplayer->play_note(ghost_note->pitch, current_channel->channel_number, last_ins);
 	}
 	queue_draw();
 }
 
 void GridPanel::on_lmb_up(int n_press, double x, double y) {
 	if (ghost_note != nullptr) {
-		current_channel->add_note(*ghost_note);
+		if (bool(lmb_gesture->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
+			current_channel->erase_notes(ghost_note->offset, ghost_note->length);
+		}
+		else {
+			current_channel->add_note(*ghost_note);
+		}
 	}
 	ghost_note = nullptr;
 	if (audio_feedback) {
-		adplayer->play_note(0, ChannelButton::get_pressed_channel(), nullptr);
+		adplayer->play_note(0, current_channel->channel_number, nullptr);
 	}
 	queue_draw();
 }
 
 void GridPanel::on_rmb_down(int n_press, double x, double y) {
-	cursor_tick = x / cell_size.x;
+	cursor_tick = (x + scroll_offset.x) / cell_size.x;
 	cursor_end = cursor_tick;
 	queue_draw();
 }
 
 void GridPanel::on_rmb_up(int n_press, double x, double y) {
-	cursor_end = x / cell_size.x;
+	cursor_end = (x + scroll_offset.x) / cell_size.x;
 	queue_draw();
 }
 
@@ -331,11 +344,11 @@ void GridPanel::on_mouse_motion(double x, double y) {
 		}
 		queue_draw();
 		status->set_text(note_number_to_letter(ghost_note->pitch) + " " +
-			to_string(ghost_note->offset) + ":" + to_string(ghost_note->length));
+			to_string(ghost_note->offset) + ":" + to_string(ghost_note->length) + ", Shift+lmb to erase.");
 		return;
 	}
 	if (rmb_gesture->get_current_button() == GDK_BUTTON_SECONDARY) {
-		cursor_end = x / cell_size.x;
+		cursor_end = (x + scroll_offset.x) / cell_size.x;
 		queue_draw();
 		return;
 	}
@@ -453,8 +466,8 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		cr->stroke();
 	}
 	// Start drawing Cursor & Selection.
-	int cursor_real_x = cursor_tick * cell_size.x;
-	int cursor_end_x = cursor_end * cell_size.x;
+	int cursor_real_x = (cursor_tick * cell_size.x) - scroll_offset.x;
+	int cursor_end_x = (cursor_end * cell_size.x) - scroll_offset.x;
 	Gdk::Cairo::set_source_rgba(cr, RGBA(0.6, 0.4, 0.4, 0.5));
 	cr->rectangle(cursor_real_x, 0, cursor_end_x - cursor_real_x, height);
 	cr->fill();
@@ -566,6 +579,7 @@ TrackSettings::TrackSettings() {
 	Label percussion_label("Percussion");
 	grid.attach(percussion_label, 0, 3);
 	grid.attach(percussion_checkbox, 1, 3);
+	percussion_checkbox.set_active(true);
 	percussion_checkbox.signal_toggled().connect(mem_fun(*this, &TrackSettings::on_percussion_toggled));
 
 	set_child(grid);
@@ -585,7 +599,7 @@ void TrackSettings::on_track_changed() {
 	tempo_spinner.set_value(current_track->basic_tempo);
 	beats_per_measure_spinner.set_value(current_track->beats_per_measure);
 	ticks_per_beat_spinner.set_value(current_track->ticks_per_beat);
-	percussion_checkbox.set_active(current_track->rhythm_mode);
+	percussion_checkbox.set_active(!current_track->melodic_mode);
 }
 
 void TrackSettings::on_tempo_set() {
@@ -601,6 +615,7 @@ void TrackSettings::on_ticks_per_beat_set() {
 	signal_visible_change.emit();
 }
 void TrackSettings::on_percussion_toggled() {
-	current_track->rhythm_mode = percussion_checkbox.get_active();
+	current_track->melodic_mode = !percussion_checkbox.get_active();
+	cout << "Melodic = " << bool(current_track->melodic_mode) << "\n";
 	signal_visible_change.emit();
 }

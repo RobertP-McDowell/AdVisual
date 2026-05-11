@@ -2,7 +2,6 @@
 
 shared_ptr<Gtk::Application> app;
 shared_ptr<Gtk::Label> status;
-vector<bool> enabled_channels = {};
 
 int sign(int val) {
 	return (val > 0) - (val < 0);

@@ -12,7 +12,7 @@ public:
 	static ChannelButton* currently_pressed;
 	static int get_pressed_channel() { return currently_pressed->channel_index; }
 	static void set_pressed_channel(int channel);
-	static void update_percussion_mode();
+	static void update_melodic_mode();
 	void set_pressed();
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);

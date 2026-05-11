@@ -23,7 +23,6 @@ public:
 	void set_channel_enable(int channel, bool enable);
 	bool get_channel_enable(int channel) const { return enabled_channels[channel]; }
 protected:
-	vector<bool> enabled_channels;
 	long towrite;
 	ma_device mini_device;
 	unique_ptr<CVisPlayer> opl_playback;
