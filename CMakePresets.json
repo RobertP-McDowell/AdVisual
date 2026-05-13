@@ -23,6 +23,18 @@
 		"cacheVariables": {
 			"CMAKE_BUILD_TYPE": "Release"
 		}
+	},
+	{
+		"name": "msys2-release",
+		"displayName": "MSYS2-Release",
+		"description": "Assumes the position of AdPlug and Libbinio, Build without breaks and asserts or debug symbols.",
+		"binaryDir": "${sourceDir}/bin",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Release",
+			"COPY_GTKMM_LIBRARIES": "ON",
+			"libbinio_DIR": "${sourceDir}/../libbinio/out/install/windows-x64/lib/cmake/libbinio",
+			"adplug_DIR": "${sourceDir}/../adplug/out/install/windows-x64/lib/cmake/adplug"
+		}
 	}
 	]
 }
