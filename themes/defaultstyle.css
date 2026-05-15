@@ -12,6 +12,10 @@ window {
 	background-color: var(--solid-black);
 }
 
+scrollbar {
+	background-color: var(--solid-black);
+}
+
 button {
 	background-color: var(--solid-black);
 	border-color: rgb(75, 75, 75);

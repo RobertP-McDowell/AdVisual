@@ -1,0 +1,25 @@
+# Boilerplate from CMake/Templates/CPackConfig.cmake.in
+@_CPACK_OTHER_VARIABLES_@
+
+if(NOT CPACK_PROPERTIES_FILE)
+  set(CPACK_PROPERTIES_FILE "@CMAKE_BINARY_DIR@/CPackProperties.cmake")
+endif()
+
+if(EXISTS ${CPACK_PROPERTIES_FILE})
+  include(${CPACK_PROPERTIES_FILE})
+endif()
+
+# Registery keys for windows.
+set(CPACK_PACKAGE_VENDOR "AdVisual")
+set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "AdVisual")
+
+# Start customization.
+set(CPACK_PACKAGE_NAME "AdVisual")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "AdVisual")
+
+set(CPACK_NSIS_MENU_LINKS "" "bin/advisual.exe" "advisual" "https://github.com/RobertP-McDowell/AdVisual" "GitHub" "https://ko-fi.com/robertpmcdowell" "Donate")
+set(CPACK_CREATE_DESKTOP_LINKS "advisual")
+
+set(CPACK_PACKAGE_ICON "@CMAKE_CURRENT_SOURCE_DIR@/icons/advisualicon.ico")
+set(CPACK_NSIS_MUI_FINISHPAGE_RUN "advisual")
+set(CPACK_NSIS_IGNORE_LICENSE_PAGE ON)

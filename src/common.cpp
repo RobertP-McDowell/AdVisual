@@ -3,6 +3,34 @@
 shared_ptr<Gtk::Application> app;
 shared_ptr<Gtk::Label> status;
 
+#ifdef WINDOWS
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+	#include <winreg.h>
+	string get_advisual_dir() {
+		// Note that INSTALL_PATH is unreliable at best on windows.
+		// Therefore we use a definition from the windows registry.
+		HKEY h_key;
+		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\AdVisual\\AdVisual", 0, KEY_READ, &h_key) != ERROR_SUCCESS) {
+			cerr << "Could not open AdVisual registry to get install path\n";
+			return (string)INSTALL_PATH; // Send INSTALL_PATH as last resort.
+		}
+		string str_key = ""; // Need the default key, so leave blank.
+		CHAR buffer[512];
+		DWORD buffer_size = sizeof(buffer);
+		if (RegQueryValueEx(h_key, str_key.c_str(), 0, NULL, (LPBYTE)buffer, &buffer_size) != ERROR_SUCCESS) {
+			cerr << "Could not get AdVisual install path from registry\n";
+			return (string)INSTALL_PATH; // Send INSTALL_PATH as last resort.
+		}
+		string str_value = buffer;
+		return str_value + "/";
+	}
+#else
+	string get_advisual_dir() {
+		return (string)INSTALL_PATH;
+	}
+#endif
+
 int sign(int val) {
 	return (val > 0) - (val < 0);
 }

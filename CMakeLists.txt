@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 3.26)
 cmake_policy(VERSION 3.26)
 cmake_policy(SET CMP0207 NEW)
 
-project(advisual LANGUAGES C CXX VERSION 1.0)
+project(advisual LANGUAGES C CXX VERSION 1.0 HOMEPAGE_URL "https://github.com/RobertP-McDowell/AdVisual")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
 
-add_executable(advisual src/main.cpp)
+add_executable(advisual src/main.cpp "windows_resource.o")
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
-#set(src_files "src/main.cpp")
 target_sources(advisual PUBLIC ${src_files})
 #target_sources(advisual PRIVATE windows_resource.rc)
 target_include_directories(advisual PUBLIC "include")
@@ -35,8 +34,7 @@ include_directories(${GTKMM_INCLUDE_DIRS})
 add_definitions(${GTKMM_CFLAGS_OTHER})
 target_link_libraries(advisual PRIVATE ${GTKMM_LIBRARIES})
 
-target_compile_definitions(advisual PUBLIC ICONS_PATH="${CMAKE_INSTALL_PREFIX}/share/advisual/icons/")
-target_compile_definitions(advisual PUBLIC THEMES_PATH="${CMAKE_INSTALL_PREFIX}/share/advisual/themes/")
+target_compile_definitions(advisual PUBLIC INSTALL_PATH="${CMAKE_INSTALL_PREFIX}/")
 
 # Install first party executable, icons and themes.
 install(TARGETS advisual DESTINATION bin
@@ -56,23 +54,23 @@ if (COPY_GTKMM_LIBRARIES)
 		file(GET_RUNTIME_DEPENDENCIES
 			LIBRARIES
 				$<TARGET_FILE:advisual>
-			RESOLVED_DEPENDENCIES_VAR _r_deps
-			UNRESOLVED_DEPENDENCIES_VAR _u_deps
+			RESOLVED_DEPENDENCIES_VAR resoloved_deps
+			UNRESOLVED_DEPENDENCIES_VAR unresolved_deps
 			DIRECTORIES
 				"C:/msys64/mingw64/bin"
 		)
-		foreach(_file ${_r_deps})
-			string(TOLOWER ${_file} _file_lower)
-			if(NOT ${_file_lower} MATCHES "c:[\\/]windows[\\/]system32.*")
+		foreach(file ${resoloved_deps})
+			string(TOLOWER ${file} file_lower)
+			if(NOT ${file_lower} MATCHES "c:[\\/]windows[\\/]system32.*")
 				file(INSTALL
 					DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
 					TYPE SHARED_LIBRARY
 					FOLLOW_SYMLINK_CHAIN
-					FILES "${_file}"
+					FILES "${file}"
 				)
 			endif()
 		endforeach()
-		message("UNRESOLVED_DEPENDENCIES_VAR: ${_u_deps}")
+		# message("UNRESOLVED_DEPENDENCIES_VAR: ${unresolved_deps}")
 	]])
 	set(PIXBUF_DEPENDS
 		"librsvg-2-2.dll"

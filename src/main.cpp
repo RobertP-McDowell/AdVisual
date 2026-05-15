@@ -329,7 +329,7 @@ using namespace Gtk;
 MainWindow::MainWindow() {
 using namespace Gtk;
 	// Initialize.
-	css_provider->load_from_path((string)THEMES_PATH + (string)"defaultstyle.css");
+	css_provider->load_from_path(get_advisual_dir() + (string)"share/advisual/themes/" + (string)"defaultstyle.css");
 	StyleProvider::add_provider_for_display(get_display(), css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 	set_name("mainframe");
 	set_title("AdVisual");
