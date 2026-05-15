@@ -111,7 +111,6 @@ void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 		if (instrument->percussion_mode != 0 || channel >= 9) {
 			opl_playback->SetRhythmMode(1);
 			channel = instrument->voice_number;
-			cout << "Perc: " << bool(instrument->percussion_mode) << " vn: " << int(instrument->voice_number) << "\n";
 		}
 	}
 	if (note_number != 0) { DBPRINT("Play dynamic note at channel: " << channel); }
@@ -152,8 +151,8 @@ bool AdPlayer::play(string file_path, int start_from) {
 		cerr << "Make sure 'standard.bnk' is in the same directory!\n";
 		return false;
 	}
-	towrite = RATE / opl_playback->getrefresh();
 
+	towrite = RATE / opl_playback->getrefresh();
 	ma_device_start(&mini_device);
 	active = true;
 

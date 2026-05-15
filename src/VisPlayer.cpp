@@ -221,6 +221,7 @@ void CVisPlayer::update_voice(int v) {
 		Instrument* instrument = bank->find_instrument(ins_value);
 		if (instrument == nullptr) {
 			cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
+			SetInstrument(v, &Instrument::default_instrument);
 		}
 		else {
 			SetInstrument(v, instrument);

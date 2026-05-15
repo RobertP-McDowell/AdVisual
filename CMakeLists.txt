@@ -35,6 +35,9 @@ add_definitions(${GTKMM_CFLAGS_OTHER})
 target_link_libraries(advisual PRIVATE ${GTKMM_LIBRARIES})
 
 target_compile_definitions(advisual PUBLIC INSTALL_PATH="${CMAKE_INSTALL_PREFIX}/")
+if (WIN32)
+	target_compile_definitions(advisual PUBLIC "WINDOWS")
+endif()
 
 # Install first party executable, icons and themes.
 install(TARGETS advisual DESTINATION bin

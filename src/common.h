@@ -13,7 +13,6 @@ using sigc::mem_fun;
 extern shared_ptr<Gtk::Application> app;
 extern shared_ptr<Gtk::Label> status;
 
-#define WINDOWS
 #define ICON_PATH(file_name) (get_advisual_dir() + (string)"share/advisual/icons/" + string(file_name))
 
 const int pitch_range = 108 - 12;

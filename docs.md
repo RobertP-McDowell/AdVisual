@@ -19,8 +19,8 @@ Then compile adplug:
 5. `cd ~ && git clone https://github.com/adplug/adplug.git && cd adplug && cmake --preset windows-x64 -Dlibbinio_DIR="~/libbinio/out/install/windows-x64/lib/cmake/libbinio" && cd out/build/windows-x64 && ninja install`
 5b. you will need to copy the include files from the adplug/out/build.../generated to .../out/install/... yourself.
 Finally we should be able to compile a windows version of AdVisual, portable between machines with CPack:
-6. `cd ~ && git clone https://github.com/RobertP-McDowell/AdVisual.git && cd AdVisual && cmake --preset msys2-release -Dlibbinio_DIR="~/libbinio/out/install/windows-x64/lib/cmake/libbinio" -Dadplug_DIR="~/adplug/out/install/windows-x64/lib/cmake/adplug" && cd bin && ninja install`
-7. (OPTIONAL) if you want to build the portable NSIS installer you can do that too.
+6. `cd ~ && git clone https://github.com/RobertP-McDowell/AdVisual.git && cd AdVisual && cmake --preset msys2-release -Dlibbinio_DIR="~/libbinio/out/install/windows-x64/lib/cmake/libbinio" -Dadplug_DIR="~/adplug/out/install/windows-x64/lib/cmake/adplug" && cd bin`
+7. Build the installer so it can run without msys2.
 `pacman -S mingw-w64-x86_64-nsis`
 `ninja package`
 
