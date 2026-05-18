@@ -191,14 +191,12 @@ int InsmakerPanel::get_number_of_unsaved_changes() {
 	return ret;
 }
 
-void InsmakerPanel::set_additive_synth(bool value) {
-	cout << "additive Synth set to " << value << "\n";
-}
 void InsmakerPanel::toggle_additive_synth() {
 	new_instrument.modulator.additive_synth = uint8_t(!bool(new_instrument.modulator.additive_synth));
 	action_group->change_action_state("toggle_additive_synth",
 				Glib::Variant<bool>::create(new_instrument.modulator.additive_synth));
 }
+
 void InsmakerPanel::set_rhythm_mode(int value) {
 	if (value >= 6) {
 		new_instrument.voice_number = value;
@@ -208,12 +206,14 @@ void InsmakerPanel::set_rhythm_mode(int value) {
 		new_instrument.voice_number = 0; 
 		new_instrument.percussion_mode = 0;
 	}
-	if (new_instrument.percussion_mode == 0 || new_instrument.voice_number == 6) {
-		update_oplfm_editor(&(instrument_ptr->carrier), &(instrument_ptr->modulator),
-			&(new_instrument.carrier), &(new_instrument.modulator));
-	}
-	else {
-		update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
+	if (instrument_ptr) {
+		if (new_instrument.percussion_mode == 0 || new_instrument.voice_number == 6) {
+			update_oplfm_editor(&(instrument_ptr->carrier), &(instrument_ptr->modulator),
+				&(new_instrument.carrier), &(new_instrument.modulator));
+		}
+		else {
+			update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
+		}
 	}
 	action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
 }

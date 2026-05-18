@@ -323,7 +323,6 @@ public:
 	Instrument* get_instrument_ptr() { return instrument_ptr; }
 	Instrument* get_instrument() { return &new_instrument; }
 	void set_instrument(Instrument* p_new_instrument);
-	void set_additive_synth(bool value);
 	void toggle_additive_synth();
 	void set_rhythm_mode(int value);
 	void save_current_instrument();
