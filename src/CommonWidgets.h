@@ -29,6 +29,7 @@ class BankCtrl : public Gtk::Box {
 public:
 	BankCtrl();
 	void update();
+	void search(string search_string);
 	sigc::signal<void(Instrument*)> instrument_selected;
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);

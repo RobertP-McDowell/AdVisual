@@ -1,13 +1,17 @@
-
-
-@define-color primary_bg rgba(30, 30, 30, 1.0);
 @define-color primary_fg rgba(255, 255, 255, 1.0);
+@define-color primary_bg rgba(30, 30, 30, 1.0);
 @define-color primary_border rgba(75, 75, 75, 1.0);
+
 @define-color secondary_fg rgba(150, 150, 150, 1.0);
 @define-color secondary_bg rgba(15, 15, 15, 1.0);
-@define-color active_border rgba(200, 20, 20, 1.0);
+@define-color secondary_border rgba(50, 50, 50, 1.0);
+
 @define-color active_bg rgba(80, 20, 20, 1.0);
+@define-color active_fg rgba(150, 30, 30, 1.0);
+@define-color active_border rgba(200, 20, 20, 1.0);
+
 @define-color hover_border rgba(100, 100, 100, 1.0);
+@define-color contents_bg rgba(15, 15, 15, 1.0);
 @define-color keynav_outline rgba(255, 255, 255, 0.25);
 
 :root {
@@ -50,33 +54,34 @@ headerbar:backdrop {
 	background: rgb(100, 100, 100);
 	color: rgb(255, 255, 255);
 }
-
-popover * {
-	background-color: @primary_bg;
-	color: @primary_fg;
-	border-color: @primary-border;
-}
-
-entry {
+popover .vertical, popover .horizontal {
 	background: @primary_bg;
 	color: @primary_fg;
+}
+popover > scrollbar {
+	background: @primary_bg;
 }
 
 scrollbar {
 	background: @primary_bg;
 	color: @active_border;
 }
+scrollbar > range > trough {
+	margin: 0px;
+	padding: 0px;
+}
 scrollbar > range > trough > slider {
 	background: @secondary_fg;
-	border-color: @primary_border;
-	border-width: 1px;
-	border-style: solid;
+	border-style: none;
+	box-shadow: none;
+	padding: 3px;
+	margin: 0px;
 }
 scrollbar:hover > range > trough > slider {
 	background: @hover_border;
 }
 scrollbar:active > range > trough > slider {
-	background: @active_border;
+	background: @active_fg;
 }
 
 button {
@@ -101,6 +106,9 @@ button:active, .toggle:checked, .toggle:focus:active, .toggle:focus:checked  {
 	background: @primary_bg;
 	color: @primary_fg;
 	font-family: monospace;
+	border-top-width: 1px;
+	border-style: solid;
+	border-color: @secondary_border;
 }
 #event-header {
 	background: @primary_bg;
@@ -129,7 +137,7 @@ button:active, .toggle:checked, .toggle:focus:active, .toggle:focus:checked  {
 }
 
 entry {
-	background: @secondary_bg;
+	background: @contents_bg;
 	color: @primary_fg;
 }
 entry selection {
@@ -142,7 +150,7 @@ entry:focus-within selection {
 }
 
 spinbutton {
-	background: @secondary_bg;
+	background: @contents_bg;
 	color: @primary_fg;
 }
 spinbutton selection {
@@ -175,4 +183,10 @@ spinbutton:focus-within selection {
 
 .piano-ctrl {
 	background: rgb(255, 255, 255);
+}
+.bank-ctrl > .drawing-area {
+	background: @contents_bg;
+	border-style: solid;
+	border-width: 1px;
+	border-color: @secondary_border;
 }

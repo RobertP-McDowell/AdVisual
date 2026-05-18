@@ -93,6 +93,7 @@ AdPlayer::AdPlayer() {
 	opl_device->init();
 	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track, current_bank )));
 	opl_playback->DisableAllChannels(); // So if we play a note in editor the song wont start.
+	opl_playback->SetRhythmMode(1);
 }
 
 AdPlayer::~AdPlayer() {
@@ -110,7 +111,7 @@ void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 	if (instrument != nullptr) {
 		if (instrument->percussion_mode != 0 || channel >= 9) {
 			opl_playback->SetRhythmMode(1);
-			channel = instrument->voice_number;
+			if (instrument->percussion_mode != 0) { channel = instrument->voice_number; }
 		}
 	}
 	if (note_number != 0) { DBPRINT("Play dynamic note at channel: " << channel); }

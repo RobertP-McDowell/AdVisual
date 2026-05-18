@@ -18,6 +18,7 @@ struct Note {
 	int length;
 	Note();
 	Note(int _offset, int _pitch, int _length);
+	int get_end_offset() const { return offset + length; }
 	static const int pitch_range = 107 - 12;
 };
 

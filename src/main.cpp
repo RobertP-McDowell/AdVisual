@@ -23,8 +23,6 @@ public:
 	Toolbar();
 	void create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel);
 	void create_insmaker_tools(shared_ptr<InsmakerPanel> p_insmaker_panel);
-	void show_composer_tools();
-	void show_insmaker_tools();
 	enum InsEntryMode {
 		FIND_INS,
 		CREATE_INS,
@@ -54,13 +52,13 @@ public:
 			break;
 		}
 	}
+	Gtk::Box composer_toolbar;
+	Gtk::Box insmaker_toolbar;
 private:
 	InsEntryMode instrument_entry_mode = InsEntryMode::FIND_INS;
 	// General signals.
 	void on_file_pressed();
 	void on_help_pressed();
-	void on_press_composer_panel();
-	void on_press_insmaker_panel();
 	void on_play_track();
 	// Composer signals.
 	void on_preview_channels_toggled();
@@ -70,6 +68,7 @@ private:
 		bank_ctrl_popover.popup();
 		string text = instrument_entry.get_text();
 		string_to_upper(text);
+		bank_ctrl.search(text);
 		if (text == instrument_entry.get_text()) {
 			return; // Don't change text if it's already uppercase.
 		}
@@ -151,12 +150,10 @@ private:
 	Gtk::ToggleButton composer_button;
 	Gtk::ToggleButton play_button;
 	// Composer widgets.
-	Gtk::Box composer_toolbar;
 	Gtk::ToggleButton preview_channels_button;
 	Gtk::ToggleButton track_settings_button;
 	Gtk::ToggleButton audio_feedback_button;
 	// Insmaker widgets.
-	Gtk::Box insmaker_toolbar;
 	Gtk::Entry instrument_entry;
 	Gtk::PopoverMenu instrument_edit_menu;
 	Gtk::Popover bank_ctrl_popover;
@@ -164,22 +161,6 @@ private:
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
 };
-
-void Toolbar::on_press_composer_panel() {
-	if (!insmaker_panel || !composer_panel) return;
-	insmaker_panel->hide();
-	insmaker_toolbar.hide();
-	composer_panel->show();
-	composer_toolbar.show();
-}
-
-void Toolbar::on_press_insmaker_panel() {
-	if (!insmaker_panel || !composer_panel) return;
-	composer_panel->hide();
-	composer_toolbar.hide();
-	insmaker_panel->show();
-	insmaker_toolbar.show();
-}
 
 void Toolbar::on_preview_channels_toggled() {
 	composer_panel->set_preview_channels(preview_channels_button.get_active());
@@ -206,12 +187,13 @@ using namespace Gtk;
 	append(file_button);
 
 	composer_button = create_image_button("ComposerIcon.svg");
-	composer_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_press_composer_panel));
 	composer_button.set_active();
+	composer_button.set_action_name("actions.open_panel");
+	composer_button.set_action_target_value(Glib::create_variant(0));
 	append(composer_button);
 	ToggleButton insmaker_button = create_image_button("InsmakerIcon.svg");
-	insmaker_button.signal_toggled().connect(mem_fun(*this, &Toolbar::on_press_insmaker_panel));
-	insmaker_button.set_group(composer_button);
+	insmaker_button.set_action_name("actions.open_panel");
+	insmaker_button.set_action_target_value(Glib::create_variant(1));
 	append(insmaker_button);
 	play_button = create_image_button("PlayButton.svg");
 	append(play_button);
@@ -268,7 +250,9 @@ public:
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
+	shared_ptr<Gio::SimpleActionGroup> action_group;
 protected:
+	void open_panel(int p_panel);
 	void load();
 	void save();
 	void load_panel();
@@ -365,13 +349,16 @@ using namespace Gtk;
 	// Create adplayer after current_track and current_bank have been initialized.
 	adplayer = make_unique<AdPlayer>();
 // Create common actions.
-	shared_ptr<Gio::SimpleActionGroup> action_group = Gio::SimpleActionGroup::create();
+// File actions.
+	action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action("load", mem_fun(*this, &MainWindow::load));
 	action_group->add_action("save", mem_fun(*this, &MainWindow::save));
 	action_group->add_action("save_as", mem_fun(*this, &MainWindow::save_as));
 	action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
 	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
 	action_group->add_action("quit", mem_fun(*app, &Application::quit));
+// Toolbar actions.
+	action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
 	insert_action_group("actions", action_group);
 // Create insmaker actions.
 	insmaker_panel->action_group->add_action("create_instrument",
@@ -396,6 +383,27 @@ int main(int argc, char* argv[]) {
 using namespace Gtk;
 	app = Application::create("com.github.advisual");
 	return app->make_window_and_run<MainWindow>(argc, argv);
+}
+
+void MainWindow::open_panel(int p_panel) {
+	if (!insmaker_panel || !composer_panel) return;
+	if (p_panel == 0) {
+		composer_panel->show();
+		insmaker_panel->hide();
+		toolbar->composer_toolbar.show();
+		toolbar->insmaker_toolbar.hide();
+		insert_action_group("composer", composer_panel->action_group);
+		remove_action_group("insmaker");
+	}
+	if (p_panel == 1) {
+		insmaker_panel->show();
+		composer_panel->hide();
+		toolbar->insmaker_toolbar.show();
+		toolbar->composer_toolbar.hide();
+		insert_action_group("insmaker", insmaker_panel->action_group);
+		remove_action_group("composer");
+	}
+	action_group->change_action_state("open_panel", Glib::Variant<int>::create(p_panel));
 }
 
 void MainWindow::load() {

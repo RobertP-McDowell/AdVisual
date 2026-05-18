@@ -16,6 +16,7 @@ public:
 	void popup(int at_tick);
 protected:
 	void on_closed();
+	void on_instrument_field_text_changed();
 	void on_bank_ctrl_instrument_selected(Instrument* ins);
 	void init_spin_field(Gtk::Grid& grid, string text, int entry_idx, Gtk::Entry& entry);
 	int editing_tick = 0;
@@ -89,6 +90,11 @@ public:
 	shared_ptr<Gio::SimpleActionGroup> action_group;
 	void show_track_settings();
 	TrackSettings track_settings;
+	enum PasteMode {
+		OVERWRITE_SELECTION,
+		OVERWRITE_BUFFER_LENGTH,
+		OVERWRITE_BUFFER_NOTES
+	};
 protected:
 	// Signals.
 	void on_show() override;
@@ -100,14 +106,14 @@ protected:
 	void on_channel_changed();
 	// Actions.
 	void cut_selection();
-	void copy_selection();
-	void paste_selection();
-	void delete_selection();
-	void move_selection_semitone(int relative_semitones);
-	void move_selection_tick(int relative_offset);
+	void copy_selection(vector<Note>* p_copy_buffer, bool remove_whitespace);
+	void paste_selection(vector<Note>* p_copy_buffer, PasteMode paste_mode = OVERWRITE_BUFFER_LENGTH);
+	void erase_selection();
+	void move_selection_semitone(int pitch_offset);
+	void move_selection_tick(int tick_offset);
+	void unselect();
 
 	vector<Note> copy_buffer;
-	int copy_buffer_start_offset = 0, copy_buffer_length = 0;
 
 	EventHeader* event_header;
 	GridPanel* grid_panel;

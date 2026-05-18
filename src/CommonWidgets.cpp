@@ -133,11 +133,13 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 #include <Instrument.h>
 
 BankCtrl::BankCtrl() : Box(Orientation::HORIZONTAL) {
+	add_css_class("bank-ctrl");
 	set_size_request(200, 400);
 	draw_panel.set_size_request(-1, -1);
 	draw_panel.set_expand(true);
 	draw_panel.set_draw_func(mem_fun(*this, &BankCtrl::on_draw));
 	append(draw_panel);
+	draw_panel.add_css_class("drawing-area");
 	vadjust = Adjustment::create(0.0, 0.0, item_height);
 	vadjust->signal_value_changed().connect(mem_fun(draw_panel, &BankCtrl::queue_draw));
 	vscrollbar = Scrollbar(vadjust, Orientation::VERTICAL);
@@ -177,6 +179,26 @@ void BankCtrl::update() {
 	vadjust->set_upper(current_bank->instruments.size() * item_height);
 	draw_panel.queue_draw();
 }
+
+void BankCtrl::search(string search_string) {
+	int best_match_idx = -1;
+	int best_match_len = -1;
+	for (int insi = 0; insi < current_bank->instruments.size(); insi++) {
+		const Instrument& ins = current_bank->instruments.at(insi);
+		int ins_strlen = strlen(ins.name);
+		for (int stri = 0; stri < search_string.length(); stri++) {
+			if (stri > ins_strlen || search_string[stri] != ins.name[stri]) { break; }
+			if (stri > best_match_len) {
+				best_match_idx = insi;
+				best_match_len = stri;
+			}
+		}
+	}
+	if (best_match_idx != -1) {
+		vadjust->set_value((best_match_idx + 1) * item_height);
+	}
+}
+
 #include <InsmakerPanel.h>
 void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
 	if (current_bank == nullptr || current_bank->instruments.empty()) { return; }
