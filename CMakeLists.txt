@@ -7,7 +7,11 @@ project(advisual LANGUAGES C CXX VERSION 1.0 HOMEPAGE_URL "https://github.com/Ro
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
 
-add_executable(advisual src/main.cpp "windows_resource.o")
+if (WIN32)
+	add_executable(advisual src/main.cpp "windows_resource.o")
+else()
+	add_executable(advisual src/main.cpp)
+endif()
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 target_sources(advisual PUBLIC ${src_files})
 #target_sources(advisual PRIVATE windows_resource.rc)
