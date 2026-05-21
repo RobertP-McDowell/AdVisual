@@ -15,8 +15,44 @@ array<bool, 11> enabled_channels;
 sigc::signal<void()> signal_track_changed;
 sigc::signal<void()> signal_channel_changed;
 
+const Note Note::Invalid(0, -1, 0);
 Note::Note() {}
 Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch), length(_length) {}
+bool Note::is_valid() const { return pitch > 0; }
+int Note::get_end_offset() const { return offset + length; }
+
+void NoteGroup::trim(int start_tick, int end_tick) {
+	for (Note& note : notes) {
+		if (note.offset < end_tick) {
+			if (note.offset < start_tick) {
+				note.offset = start_tick;
+			}
+			if (note.get_end_offset() > end_tick) {
+				note.length = end_tick - note.offset;
+			}
+		}
+		else { break; }
+	}
+}
+void NoteGroup::remove_whitespace(int extra_offset) {
+	if (notes.empty()) { return; }
+	int start_offset = notes[0].offset - extra_offset;
+	for (Note& note : notes) {
+		note.offset -= start_offset;
+	}
+}
+void NoteGroup::offset_pitch(int add_pitch) {
+	if (notes.empty()) { return; }
+	for (Note& note : notes) {
+		note.pitch += add_pitch;
+	}
+}
+void NoteGroup::offset_tick(int add_tick) {
+	if (notes.empty()) { return; }
+	for (Note& note : notes) {
+		note.offset += add_tick;
+	}
+}
 
 Channel::Channel(int p_channel_number) : channel_number(p_channel_number) {
 	switch (channel_number) {
@@ -127,6 +163,23 @@ Instrument* Channel::get_instrument_at_tick(int at_tick) {
 	return last_ins;
 }
 
+Note* Channel::get_note_on_tick(int at_tick, int& ret_idx) {
+	for (ret_idx = 0; ret_idx < notes.size(); ret_idx++) {
+		Note& note = notes[ret_idx];
+		if (note.offset > at_tick) { return nullptr; }
+		if (note.offset + note.length > at_tick) { return &note; }
+	}
+	return nullptr;
+}
+
+Note* Channel::get_note_on_tick(int at_tick) {
+	for (Note& note : notes) {
+		if (note.offset > at_tick) { return nullptr; }
+		if (note.offset + note.length > at_tick) { return &note; }
+	}
+	return nullptr;
+}
+
 void Channel::clear_channel_data() {
 	instrument_events.clear();
 	pitch_events.clear();
@@ -158,9 +211,56 @@ int Channel::erase_notes(int eraser_offset, int eraser_length) {
 	return insert_position;
 }
 
-void Channel::add_note(Note new_note) {
+int Channel::add_note(Note new_note) {
 	int insert_position = erase_notes(new_note.offset, new_note.length);
 	notes.insert(notes.begin() + insert_position, new_note);
+	return insert_position;
+}
+
+NoteGroup Channel::copy(int start_tick, int end_tick) {
+	NoteGroup copy_buffer;
+	if (start_tick - end_tick == 0) {
+		return copy_buffer; // Return if no range is set.
+	}
+	int first_note_idx = -1;
+	get_note_on_tick(start_tick, first_note_idx);
+	for (int i = first_note_idx; i < notes.size(); i++) {
+		Note& note = notes[i];
+		if (note.get_end_offset() > start_tick) {
+			if (note.offset < end_tick) {
+				copy_buffer.notes.push_back(note);
+			}
+			else {
+				break;
+			}
+		}
+	}
+	return copy_buffer;
+}
+
+void Channel::paste(NoteGroup* paste_buffer, int paste_start, int paste_length, int relative_start) {
+	if (!paste_buffer || paste_buffer->notes.empty()) { return; }
+	if (paste_length <= 0) {
+		paste_length = (paste_buffer->notes.back().get_end_offset() - relative_start);
+	}
+	int paste_end = paste_start + paste_length;
+	for (Note new_note : paste_buffer->notes) {
+		new_note.offset += paste_start - relative_start;
+		if (new_note.offset >= paste_end) { break; }
+		if (new_note.get_end_offset() >= paste_end) {
+			new_note.length = (paste_end) - new_note.offset;
+			add_note(new_note);
+			break;
+		}
+		add_note(new_note);
+	}
+}
+
+Note Channel::get_note_or_invalid(int at_idx) {
+	if (at_idx < 0 || at_idx >= notes.size() || notes.empty()) {
+		return Note::Invalid;
+	}
+	return notes[at_idx];
 }
 
 void Track::clear_track_data() {
@@ -278,4 +378,38 @@ void Track::rol_move_fields() {
 		DBPRINT("Finished copying channel " << voice_idx << ", file position: " << file.pos());
 	}
 	DBPRINT("Finished moving rol file\n");
+}
+
+void Track::add_undo(UndoCommand new_undo) {
+	if (undo_index != undo_buffer.size()) {
+		undo_buffer.erase(undo_buffer.begin() + undo_index, undo_buffer.end());
+	}
+	undo_index += 1;
+	undo_buffer.push_back(new_undo);
+}
+
+void UndoCommand::undo() {
+	for (Note& note : new_notes.notes) {
+		channel->erase_notes(note.offset, note.length);
+	}
+	for (Note& note : old_notes.notes) {
+		channel->add_note(note);
+	}
+}
+void UndoCommand::redo() {
+	if (command & RedoCommand::ERASE_OLD) {
+		for (Note& note : old_notes.notes) {
+			channel->erase_notes(note.offset, note.length);
+		}
+	}
+	if (command & RedoCommand::WRITE_NEW) {
+		for (Note& note : new_notes.notes) {
+			channel->add_note(note);
+		}
+	}
+	else if (command & RedoCommand::ERASE_NEW) {
+		for (Note& note : new_notes.notes) {
+			channel->erase_notes(note.offset, note.length);
+		}
+	}
 }

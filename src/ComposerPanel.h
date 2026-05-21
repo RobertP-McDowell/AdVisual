@@ -105,15 +105,22 @@ protected:
 	void on_track_changed();
 	void on_channel_changed();
 	// Actions.
-	void cut_selection();
-	void copy_selection(vector<Note>* p_copy_buffer, bool remove_whitespace);
-	void paste_selection(vector<Note>* p_copy_buffer, PasteMode paste_mode = OVERWRITE_BUFFER_LENGTH);
+	void cut();
+	void copy();
+	void paste();
 	void erase_selection();
 	void move_selection_semitone(int pitch_offset);
 	void move_selection_tick(int tick_offset);
 	void unselect();
+	void undo();
+	void redo();
+	// General.
+	int selection_start() const { return (cursor_tick < cursor_end ? cursor_tick : cursor_end); }
+	int selection_end() const { return (cursor_tick < cursor_end ? cursor_end : cursor_tick); }
+	int selection_length() const { return (cursor_tick < cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end); }
 
-	vector<Note> copy_buffer;
+	int copy_buffer_offset = 0;
+	NoteGroup copy_buffer;
 
 	EventHeader* event_header;
 	GridPanel* grid_panel;

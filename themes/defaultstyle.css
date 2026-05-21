@@ -13,6 +13,7 @@
 @define-color hover_border rgba(100, 100, 100, 1.0);
 @define-color contents_bg rgba(15, 15, 15, 1.0);
 @define-color keynav_outline rgba(255, 255, 255, 0.25);
+@define-color placeholder_color rgba(120, 120, 120, 1);
 
 :root {
 	font-family: monospace;
@@ -147,6 +148,9 @@ entry selection {
 entry:focus-within selection {
 	background: @active_border;
 	color: @primary_fg;
+}
+entry > text > placeholder {
+	color: @placeholder_color;
 }
 
 spinbutton {
