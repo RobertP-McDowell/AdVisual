@@ -9,6 +9,9 @@ int cursor_end = 0;
 
 static vec2 note_size;
 static vec2 cell_size;
+int ComposerPanel::undo_index = 0;
+bool ComposerPanel::continuous_undo = false;
+vector<unique_ptr<UndoCommand>> composer_undo = {};
 
 ComposerPanel::ComposerPanel() {
 	current_track = new Track();
@@ -29,7 +32,7 @@ ComposerPanel::ComposerPanel() {
 	grid_panel->set_expand(true);
 	attach(*grid_panel, 1, 1);
 // Init instrument_hint.
-	instrument_hint = make_managed<Label>("PIANO1");
+	instrument_hint = make_managed<Label>("piano1");
 	attach(*instrument_hint, 0, 0);
 // Init piano_ctrl.
 	piano_ctrl = make_managed<PianoCtrl>(true);
@@ -60,6 +63,8 @@ ComposerPanel::ComposerPanel() {
 	action_group->add_action("move_selection_semitone_down", bind(mem_fun(*this, &ComposerPanel::move_selection_semitone), 1));
 	action_group->add_action("move_selection_tick_left", bind(mem_fun(*this, &ComposerPanel::move_selection_tick), -1));
 	action_group->add_action("move_selection_tick_right", bind(mem_fun(*this, &ComposerPanel::move_selection_tick), 1));
+	action_group->add_action("move_selection_measure_left", bind(mem_fun(*this, &ComposerPanel::move_selection_tick), -16));
+	action_group->add_action("move_selection_measure_right", bind(mem_fun(*this, &ComposerPanel::move_selection_tick), 16));
 	action_group->add_action("unselect", mem_fun(*this, &ComposerPanel::unselect));
 	action_group->add_action("undo", mem_fun(*this, &ComposerPanel::undo));
 	action_group->add_action("redo", mem_fun(*this, &ComposerPanel::redo));
@@ -73,16 +78,33 @@ ComposerPanel::ComposerPanel() {
 	app->set_accel_for_action("composer.move_selection_semitone_down", "Down");
 	app->set_accel_for_action("composer.move_selection_tick_left", "Left");
 	app->set_accel_for_action("composer.move_selection_tick_right", "Right");
+	app->set_accel_for_action("composer.move_selection_measure_left", "<Ctrl>Left");
+	app->set_accel_for_action("composer.move_selection_measure_right", "<Ctrl>Right");
 	app->set_accel_for_action("composer.unselect", "Escape");
 	app->set_accel_for_action("composer.undo", "<Ctrl>z");
 	app->set_accel_for_action("composer.redo", "<Ctrl><Shift>z");
 	track_settings.signal_visible_change.connect(mem_fun(*grid_panel, &GridPanel::queue_draw));
 	signal_track_changed.connect(mem_fun(*this, &ComposerPanel::on_track_changed));
 	signal_channel_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
+	signal_bank_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
 }
 
 void ComposerPanel::on_track_changed() {
 	on_channel_changed();
+}
+
+void ComposerPanel::add_undo(unique_ptr<UndoCommand> new_undo, bool is_continuous) {
+	if (undo_index != composer_undo.size()) {
+		composer_undo.erase(composer_undo.begin() + undo_index, composer_undo.end());
+	}
+	undo_index += 1;
+	composer_undo.push_back(move(new_undo));
+	continuous_undo = is_continuous;
+}
+
+UndoCommand::Reason ComposerPanel::get_last_undo_reason() {
+	if (undo_index <= 0 || composer_undo.empty()) { return UndoCommand::Reason::REASON_INVALID; }
+	return composer_undo.at(undo_index - 1)->get_reason();
 }
 
 void ComposerPanel::on_channel_changed() {
@@ -103,52 +125,68 @@ void ComposerPanel::copy() {
 }
 void ComposerPanel::paste() {
 	if (copy_buffer.notes.empty()) { return; }
-	UndoCommand undo(current_channel);
-	undo.old_notes = current_channel->copy(selection_start(), selection_end());
+	unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::PASTE_SELECTION);
+	undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	current_channel->paste(&copy_buffer, selection_start(), selection_length(), copy_buffer.notes.front().offset);
-	undo.new_notes = current_channel->copy(selection_start(), selection_end());
-	current_track->add_undo(undo);
+	undo->new_notes = current_channel->copy(selection_start(), selection_end());
+	add_undo(move(undo));
 	grid_panel->queue_draw();
 }
 
 void ComposerPanel::erase_selection() {
-	UndoCommand undo(current_channel, UndoCommand::RedoCommand::ERASE_NEW);
-	undo.old_notes = current_channel->copy(selection_start(), selection_end());
+	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::ERASE_SELECTION,
+		UndoNotes::RedoCommand::ERASE_NEW);
+	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	current_channel->erase_notes(selection_start(), selection_length());
-	undo.new_notes = NoteGroup({Note(selection_start(), 0, selection_length())});
-	current_track->add_undo(undo);
+	new_undo->new_notes = NoteGroup({Note(selection_start(), 0, selection_length())});
+	add_undo(move(new_undo));
 	grid_panel->queue_draw();
 }
 void ComposerPanel::move_selection_semitone(int pitch_offset) {
-	UndoCommand undo(current_channel, UndoCommand::RedoCommand::WRITE_NEW);
-	undo.old_notes = current_channel->copy(selection_start(), selection_end());
-	if (cursor_tick == cursor_end || undo.old_notes.notes.empty()) { return; }
-	undo.new_notes = undo.old_notes;
-	undo.new_notes.trim(selection_start(), selection_end());
-	undo.new_notes.offset_pitch(pitch_offset);
-	current_channel->paste(&undo.new_notes, selection_start(), selection_length(), selection_start());
-	current_track->add_undo(undo);
+	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::MOVE_PITCH,
+		UndoNotes::RedoCommand::WRITE_NEW);
+	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
+	if (cursor_tick == cursor_end || new_undo->old_notes.notes.empty()) { return; }
+	new_undo->new_notes = new_undo->old_notes;
+	new_undo->new_notes.trim(selection_start(), selection_end());
+	new_undo->new_notes.offset_pitch(pitch_offset);
+	current_channel->paste(&new_undo->new_notes, selection_start(), selection_length(), selection_start());
+	add_undo(move(new_undo));
 	grid_panel->queue_draw();
 }
 void ComposerPanel::move_selection_tick(int tick_offset) {
-	UndoCommand undo(current_channel, UndoCommand::RedoCommand::WRITE_NEW | UndoCommand::RedoCommand::ERASE_OLD);
+	if (cursor_tick == cursor_end) {
+		cursor_tick = max(0, cursor_tick + tick_offset); cursor_end = cursor_tick;
+		grid_panel->queue_draw(); return;
+	}
+	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
+		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::ERASE_OLD_SELECTION);
+	if (continuous_undo && new_undo->match_reason(get_last_undo_reason())) {
+		UndoSelection* prior_undo = static_cast<UndoSelection*>(composer_undo.at(undo_index - 1).get());
+		new_undo.reset(new UndoSelection(*prior_undo));
+		tick_offset += selection_start() - prior_undo->old_cursor_start;
+		undo();
+	}
 	int range_affected_start = (tick_offset < 0 ? selection_start() + tick_offset - 1 : selection_start() - 1);
 	int range_affected_end = (tick_offset > 0 ? selection_end() + tick_offset + 1 : selection_end() + 1);
-	undo.old_notes = current_channel->copy(range_affected_start, range_affected_end);
-	if (cursor_tick == cursor_end || undo.old_notes.notes.empty()) {
-		cursor_tick = max(0, cursor_tick + tick_offset);
-		cursor_end = cursor_tick;
-		grid_panel->queue_draw();
-		return;
-	}
-	current_channel->erase_notes(selection_start(), selection_length());
-	NoteGroup paste_buffer = undo.old_notes;
-	paste_buffer.trim(selection_start(), selection_end());
-	cursor_tick = max(0, cursor_tick + tick_offset);
-	cursor_end = max(0, cursor_end + tick_offset);
-	current_channel->paste(&paste_buffer, selection_start(), selection_length(), selection_start() - tick_offset);
-	undo.new_notes = current_channel->copy(range_affected_start, range_affected_end);
-	current_track->add_undo(undo);
+	new_undo->setup_for_continue(selection_start(), selection_end(), current_channel->copy(range_affected_start, range_affected_end));
+	current_channel->erase_notes(new_undo->old_cursor_start, new_undo->old_cursor_end - new_undo->old_cursor_start);
+	NoteGroup paste_buffer = new_undo->oldest_notes;
+	paste_buffer.trim(new_undo->old_cursor_start, new_undo->old_cursor_end);
+	int sel_start = selection_start(); // We need to make sure cursor doesn't go negative.
+	cursor_tick = (cursor_tick + tick_offset) - min(0, sel_start + tick_offset);
+	cursor_end = (cursor_end + tick_offset) - min(0, sel_start + tick_offset);
+	//if (insert_mode == true) {
+	//	current_channel->notes.make_gap(selection_start(), selection_length());
+	//	new_undo->gap_start = selection_start();
+	//	new_undo->gap_length = selection_length();
+	//	cursor_tick += selection_length();
+	//	cursor_end += selection_length();
+	//}
+	current_channel->paste(&paste_buffer, selection_start(), selection_length(), new_undo->old_cursor_start);
+	new_undo->new_notes = paste_buffer;
+	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_cursor_start);
+	add_undo(move(new_undo), true);
 	grid_panel->queue_draw();
 }
 void ComposerPanel::unselect() {
@@ -156,15 +194,16 @@ void ComposerPanel::unselect() {
 	grid_panel->queue_draw();
 }
 void ComposerPanel::undo() {
-	if (current_track->undo_index <= 0) { return; }
-	current_track->undo_index -= 1;
-	current_track->undo_buffer.at(current_track->undo_index).undo();
+	if (undo_index <= 0) { return; }
+	undo_index -= 1;
+	composer_undo.at(undo_index)->undo();
+	continuous_undo = false;
 	grid_panel->queue_draw();
 }
 void ComposerPanel::redo() {
-	if (current_track->undo_index >= current_track->undo_buffer.size()) { return; }
-	current_track->undo_buffer.at(current_track->undo_index).redo();
-	current_track->undo_index += 1;
+	if (undo_index >= composer_undo.size()) { return; }
+	composer_undo.at(undo_index)->redo();
+	undo_index += 1;
 	grid_panel->queue_draw();
 }
 
@@ -358,18 +397,20 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 void GridPanel::on_lmb_up(int n_press, double x, double y) {
 	if (ghost_note != nullptr) {
 		if (bool(lmb_gesture->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
-			UndoCommand undo(current_channel, UndoCommand::RedoCommand::ERASE_NEW);
-			undo.old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
+			unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoNotes::Reason::ERASE_NOTE,
+				UndoNotes::RedoCommand::ERASE_NEW);
+			undo->old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
 			current_channel->erase_notes(ghost_note->offset, ghost_note->length);
-			undo.new_notes = NoteGroup({*ghost_note});
-			current_track->add_undo(undo);
+			undo->new_notes = NoteGroup({*ghost_note});
+			ComposerPanel::add_undo(move(undo));
 		}
 		else {
-			UndoCommand undo(current_channel);
-			undo.old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
+			unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoNotes::Reason::CREATE_NOTE,
+				UndoNotes::RedoCommand::WRITE_NEW);
+			undo->old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
 			current_channel->add_note(*ghost_note);
-			undo.new_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
-			current_track->add_undo(undo);
+			undo->new_notes = NoteGroup({*ghost_note});
+			ComposerPanel::add_undo(move(undo));
 		}
 	}
 	ghost_note = nullptr;
@@ -380,6 +421,7 @@ void GridPanel::on_lmb_up(int n_press, double x, double y) {
 }
 
 void GridPanel::on_rmb_down(int n_press, double x, double y) {
+	ComposerPanel::set_continuous_undo(false);
 	cursor_tick = (x + scroll_offset.x) / cell_size.x;
 	cursor_end = cursor_tick;
 	queue_draw();

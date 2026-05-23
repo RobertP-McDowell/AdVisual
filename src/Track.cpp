@@ -20,20 +20,54 @@ Note::Note() {}
 Note::Note(int _offset, int _pitch, int _length) : offset(_offset), pitch(_pitch), length(_length) {}
 bool Note::is_valid() const { return pitch > 0; }
 int Note::get_end_offset() const { return offset + length; }
+void Note::set_end_offset(int value) { length = (value - offset); }
 
 void NoteGroup::trim(int start_tick, int end_tick) {
-	for (Note& note : notes) {
-		if (note.offset < end_tick) {
+	for (auto it = notes.rbegin(); it != notes.rend(); it++) {
+		Note& note = *it;
+		if (note.offset < end_tick && note.get_end_offset() > start_tick) {
 			if (note.offset < start_tick) {
 				note.offset = start_tick;
 			}
 			if (note.get_end_offset() > end_tick) {
 				note.length = end_tick - note.offset;
 			}
+			if (note.length <= 0) {
+				notes.erase(next(it).base());
+			}
 		}
-		else { break; }
+		else { notes.erase(next(it).base()); }
 	}
 }
+void NoteGroup::make_gap(int start_tick, int gap_length) {
+	if (notes.empty()) { return; }
+	start_tick = (gap_length > 0 ? start_tick : start_tick + gap_length);
+	int end_tick = (gap_length > 0 ? start_tick + gap_length : start_tick);
+	Iterator it = split(start_tick);
+	for (it; it != end(); it++) {
+		Note& note = *it;
+		if (note.offset > start_tick) {
+			note.offset += gap_length;
+		}
+	}
+}
+NoteGroup::Iterator NoteGroup::split(int tick, Iterator start_pos) {
+	Iterator pos = start_pos;
+	for (pos; pos != begin(); pos++) {
+		Note& note = *pos;
+		if (note.get_end_offset() > tick) {
+			if (note.offset < tick) {
+				Note new_note = note;
+				new_note.offset = tick;
+				new_note.length = note.length;
+				note.set_end_offset(tick);
+			}
+			break;
+		}
+	}
+	return pos;
+}
+
 void NoteGroup::remove_whitespace(int extra_offset) {
 	if (notes.empty()) { return; }
 	int start_offset = notes[0].offset - extra_offset;
@@ -141,8 +175,8 @@ void Channel::set_volume_event(int at_tick, float value) {
 			return; \
 		} \
 	} \
-	ret_tick = event_map.rend()->first; \
-	ret_value = event_map.rend()->second; \
+	ret_tick = event_map.begin()->first; \
+	ret_value = event_map.begin()->second; \
 } while(0)
 
 void Track::get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value)
@@ -195,12 +229,12 @@ int Channel::erase_notes(int eraser_offset, int eraser_length) {
 			insert_position = i;
 			if (note.offset < eraser_offset) {
 				Note note_slice1(note.offset, note.pitch, eraser_offset - note.offset);
-				notes.insert(notes.begin() + i + 1, note_slice1);
+				notes.insert(notes.notes.begin() + i + 1, note_slice1);
 				insert_position = i + 1;
 			}
 			if (note.offset + note.length > eraser_offset + eraser_length) {
 				Note note_slice2(eraser_offset + eraser_length, note.pitch, (note.offset + note.length) - (eraser_offset + eraser_length));
-				notes.insert(notes.begin() + insert_position + 1, note_slice2);
+				notes.insert(notes.notes.begin() + insert_position + 1, note_slice2);
 			}
 			notes.erase(notes.begin() + i);
 		}
@@ -378,38 +412,4 @@ void Track::rol_move_fields() {
 		DBPRINT("Finished copying channel " << voice_idx << ", file position: " << file.pos());
 	}
 	DBPRINT("Finished moving rol file\n");
-}
-
-void Track::add_undo(UndoCommand new_undo) {
-	if (undo_index != undo_buffer.size()) {
-		undo_buffer.erase(undo_buffer.begin() + undo_index, undo_buffer.end());
-	}
-	undo_index += 1;
-	undo_buffer.push_back(new_undo);
-}
-
-void UndoCommand::undo() {
-	for (Note& note : new_notes.notes) {
-		channel->erase_notes(note.offset, note.length);
-	}
-	for (Note& note : old_notes.notes) {
-		channel->add_note(note);
-	}
-}
-void UndoCommand::redo() {
-	if (command & RedoCommand::ERASE_OLD) {
-		for (Note& note : old_notes.notes) {
-			channel->erase_notes(note.offset, note.length);
-		}
-	}
-	if (command & RedoCommand::WRITE_NEW) {
-		for (Note& note : new_notes.notes) {
-			channel->add_note(note);
-		}
-	}
-	else if (command & RedoCommand::ERASE_NEW) {
-		for (Note& note : new_notes.notes) {
-			channel->erase_notes(note.offset, note.length);
-		}
-	}
 }

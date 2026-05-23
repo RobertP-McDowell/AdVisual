@@ -4,11 +4,13 @@
 #include <cairomm/context.h>
 #include <Track.h>
 #include <CommonWidgets.h>
+#include <Util/UndoComposer.h>
 
 using namespace std;
 
 extern int cursor_tick;
 extern int cursor_end;
+extern vector<unique_ptr<UndoCommand>> composer_undo;
 
 class EventPopup : public Gtk::Popover {
 public:
@@ -95,6 +97,14 @@ public:
 		OVERWRITE_BUFFER_LENGTH,
 		OVERWRITE_BUFFER_NOTES
 	};
+	static void add_undo(unique_ptr<UndoCommand> new_command, bool is_continuous = false);
+	static void set_continuous_undo(bool value) { continuous_undo = value; }
+	static bool get_continuous_undo() { return continuous_undo; }
+	static UndoCommand::Reason get_last_undo_reason();
+	// General.
+	static int selection_start() { return (cursor_tick < cursor_end ? cursor_tick : cursor_end); }
+	static int selection_end() { return (cursor_tick < cursor_end ? cursor_end : cursor_tick); }
+	static int selection_length() { return (cursor_tick < cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end); }
 protected:
 	// Signals.
 	void on_show() override;
@@ -114,13 +124,12 @@ protected:
 	void unselect();
 	void undo();
 	void redo();
-	// General.
-	int selection_start() const { return (cursor_tick < cursor_end ? cursor_tick : cursor_end); }
-	int selection_end() const { return (cursor_tick < cursor_end ? cursor_end : cursor_tick); }
-	int selection_length() const { return (cursor_tick < cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end); }
 
+	bool insert_mode = true;
 	int copy_buffer_offset = 0;
 	NoteGroup copy_buffer;
+	static int undo_index;
+	static bool continuous_undo;
 
 	EventHeader* event_header;
 	GridPanel* grid_panel;
@@ -132,3 +141,4 @@ protected:
 
 	double zoom = 1.0;
 };
+
