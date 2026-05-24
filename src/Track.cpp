@@ -22,6 +22,34 @@ bool Note::is_valid() const { return pitch > 0; }
 int Note::get_end_offset() const { return offset + length; }
 void Note::set_end_offset(int value) { length = (value - offset); }
 
+int NoteGroup::erase(int eraser_offset, int eraser_length) {
+	int insert_position = notes.size();
+	for (int i = notes.size() - 1; i >= 0; i--) {
+		Note note = notes[i];
+		if (note.offset < eraser_offset + eraser_length && note.offset + note.length > eraser_offset) {
+			insert_position = i;
+			if (note.offset < eraser_offset) {
+				Note note_slice1(note.offset, note.pitch, eraser_offset - note.offset);
+				notes.insert(notes.begin() + i + 1, note_slice1);
+				insert_position = i + 1;
+			}
+			if (note.offset + note.length > eraser_offset + eraser_length) {
+				Note note_slice2(eraser_offset + eraser_length, note.pitch, (note.offset + note.length) - (eraser_offset + eraser_length));
+				notes.insert(notes.begin() + insert_position + 1, note_slice2);
+			}
+			notes.erase(notes.begin() + i);
+		}
+		else if (note.offset > eraser_offset) {
+			insert_position = i;
+		}
+	}
+	return insert_position;
+}
+int NoteGroup::add(Note new_note) {
+	int insert_position = erase(new_note.offset, new_note.length);
+	notes.insert(notes.begin() + insert_position, new_note);
+	return insert_position;
+}
 void NoteGroup::trim(int start_tick, int end_tick) {
 	for (auto it = notes.rbegin(); it != notes.rend(); it++) {
 		Note& note = *it;
@@ -39,28 +67,54 @@ void NoteGroup::trim(int start_tick, int end_tick) {
 		else { notes.erase(next(it).base()); }
 	}
 }
-void NoteGroup::make_gap(int start_tick, int gap_length) {
+void NoteGroup::make_gap(int start_tick, unsigned int gap_length) {
 	if (notes.empty()) { return; }
-	start_tick = (gap_length > 0 ? start_tick : start_tick + gap_length);
-	int end_tick = (gap_length > 0 ? start_tick + gap_length : start_tick);
 	Iterator it = split(start_tick);
+	it = begin();
 	for (it; it != end(); it++) {
 		Note& note = *it;
-		if (note.offset > start_tick) {
-			note.offset += gap_length;
+		if (note.offset >= start_tick) {
+			break;
 		}
+	}
+	for (it; it != end(); it++) {
+		Note& note = *it;
+		note.offset += gap_length;
+	}
+}
+void NoteGroup::erase_gap(int start_tick, unsigned int gap_length) {
+	if (notes.empty()) { return; }
+	//Iterator it = split(start_tick);
+	erase(start_tick, gap_length);
+	if (start_tick - gap_length < 0) {
+		erase(start_tick, -(start_tick - gap_length));
+	}
+	start_tick = start_tick + gap_length;
+	Iterator it = begin();
+	for (it; it != end(); it++) {
+		Note& note = *it;
+		if (note.offset >= start_tick) {
+			break;
+		}
+	}
+	for (it; it != end(); it++) {
+		Note& note = *it;
+		note.offset -= gap_length;
 	}
 }
 NoteGroup::Iterator NoteGroup::split(int tick, Iterator start_pos) {
 	Iterator pos = start_pos;
-	for (pos; pos != begin(); pos++) {
+	for (pos; pos != end(); pos++) {
 		Note& note = *pos;
 		if (note.get_end_offset() > tick) {
 			if (note.offset < tick) {
 				Note new_note = note;
 				new_note.offset = tick;
-				new_note.length = note.length;
+				new_note.length = note.get_end_offset() - tick;
 				note.set_end_offset(tick);
+				insert(pos+1, new_note);
+				print_notes();
+				cout << "SPLIT\n";
 			}
 			break;
 		}
@@ -86,6 +140,14 @@ void NoteGroup::offset_tick(int add_tick) {
 	for (Note& note : notes) {
 		note.offset += add_tick;
 	}
+}
+
+void NoteGroup::print_notes() {
+	cout << "NoteGroup<" << notes.size() << ">: { ";
+	for (Note& note : notes) {
+		cout << "(" << note.offset << "," << note.pitch << "," << note.length << ")" << " ";
+	}
+	cout << " }\n";
 }
 
 Channel::Channel(int p_channel_number) : channel_number(p_channel_number) {
@@ -222,33 +284,11 @@ void Channel::clear_channel_data() {
 }
 
 int Channel::erase_notes(int eraser_offset, int eraser_length) {
-	int insert_position = notes.size();
-	for (int i = notes.size() - 1; i >= 0; i--) {
-		Note note = notes[i];
-		if (note.offset < eraser_offset + eraser_length && note.offset + note.length > eraser_offset) {
-			insert_position = i;
-			if (note.offset < eraser_offset) {
-				Note note_slice1(note.offset, note.pitch, eraser_offset - note.offset);
-				notes.insert(notes.notes.begin() + i + 1, note_slice1);
-				insert_position = i + 1;
-			}
-			if (note.offset + note.length > eraser_offset + eraser_length) {
-				Note note_slice2(eraser_offset + eraser_length, note.pitch, (note.offset + note.length) - (eraser_offset + eraser_length));
-				notes.insert(notes.notes.begin() + insert_position + 1, note_slice2);
-			}
-			notes.erase(notes.begin() + i);
-		}
-		else if (note.offset > eraser_offset) {
-			insert_position = i;
-		}
-	}
-	return insert_position;
+	return notes.erase(eraser_offset, eraser_length);
 }
 
 int Channel::add_note(Note new_note) {
-	int insert_position = erase_notes(new_note.offset, new_note.length);
-	notes.insert(notes.begin() + insert_position, new_note);
-	return insert_position;
+	return notes.add(new_note);
 }
 
 NoteGroup Channel::copy(int start_tick, int end_tick) {

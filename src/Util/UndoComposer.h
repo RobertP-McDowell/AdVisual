@@ -7,7 +7,9 @@ struct UndoNotes : public UndoCommand {
 		ERASE_OLD = 1,
 		WRITE_NEW = 2,
 		ERASE_NEW = 4,
-		ERASE_OLD_SELECTION = 8 // UndoSelection only.
+		INSERT_MODE = 8,
+		ERASE_OLD_SELECTION = 16, // UndoSelection only.
+		ERASE_GAP = 32
 	};
 	UndoNotes(Channel* p_channel, Reason p_reason, int p_redo_command = RedoCommand::WRITE_NEW) :
 			channel(p_channel), redo_command(p_redo_command), UndoCommand(p_reason) {}
@@ -25,12 +27,9 @@ struct UndoSelection : public UndoNotes {
 	NoteGroup oldest_notes;
 	int old_cursor_start = -1;
 	int old_cursor_end = -1;
-	int new_gap_start = 0;
-	int new_gap_length = 0;
+	int tick_offset = 0;
 	virtual void undo() override;
 	virtual void redo() override;
 	void setup_for_continue(int p_old_cursor_start, int p_old_cursor_end, NoteGroup p_old_notes);
-	int new_cursor_start = -1;
-	int new_cursor_end = -1;
 protected:
 };

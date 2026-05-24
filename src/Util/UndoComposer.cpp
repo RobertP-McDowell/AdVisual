@@ -28,23 +28,33 @@ void UndoNotes::redo() {
 }
 
 void UndoSelection::undo() {
-	UndoNotes::undo();
+	int selection_length = old_cursor_end - old_cursor_start;
+	for (Note& note : new_notes.notes) {
+		channel->erase_notes(note.offset, note.length);
+	}
+	if (redo_command & RedoCommand::ERASE_GAP && tick_offset != 0) {
+		channel->notes.make_gap(old_cursor_start + tick_offset, selection_length);
+		channel->notes.erase_gap(old_cursor_start, selection_length);
+	}
+	for (Note& note : old_notes.notes) {
+		channel->add_note(note);
+	}
 	for (Note& note : oldest_notes.notes) {
 		channel->add_note(note);
 	}
-	new_cursor_start = ComposerPanel::selection_start();
-	new_cursor_end = ComposerPanel::selection_end();
 	cursor_tick = old_cursor_start;
 	cursor_end = old_cursor_end;
 }
 
 void UndoSelection::redo() {
-	UndoNotes::redo();
-	if (redo_command & RedoCommand::ERASE_OLD_SELECTION) {
-		channel->erase_notes(old_cursor_start, old_cursor_end - old_cursor_start);
+	int selection_length = old_cursor_end - old_cursor_start;
+	if (redo_command & RedoCommand::ERASE_GAP && tick_offset != 0) {
+		current_channel->notes.erase_gap(old_cursor_start, selection_length);
+		current_channel->notes.make_gap(old_cursor_start + tick_offset, selection_length);
 	}
-	cursor_tick = new_cursor_start;
-	cursor_end = new_cursor_end;
+	UndoNotes::redo();
+	cursor_tick = old_cursor_start + tick_offset;
+	cursor_end = old_cursor_end + tick_offset;
 }
 
 void UndoSelection::setup_for_continue(int p_old_cursor_start, int p_old_cursor_end, NoteGroup p_old_notes) {
@@ -56,7 +66,7 @@ void UndoSelection::setup_for_continue(int p_old_cursor_start, int p_old_cursor_
 	}
 	else {
 		DBPRINT("Continuing continuous undo.");
-		undo();
+		//undo();
 	}
 	old_notes = p_old_notes;
 }

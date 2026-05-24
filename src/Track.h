@@ -63,13 +63,18 @@ struct NoteGroup {
 	Note& operator [](int i) { return notes[i]; }
 	const Note& operator [](int i) const { return notes[i]; }
 	// Group editing notes.
+	int erase(int offset, int length);
+	int add(Note new_note);
 	void trim(int start_tick, int end_tick);
-	void make_gap(int start_tick, int gap_length);
+	void make_gap(int start_tick, unsigned int gap_length);
+	void erase_gap(int start_tick, unsigned int gap_length);
 	Iterator split(int tick) { return split(tick, begin()); }
 	Iterator split(int tick, Iterator start_pos);
 	void remove_whitespace(int extra_offset = 0);
 	void offset_pitch(int add_pitch);
 	void offset_tick(int add_tick);
+	// Debug.
+	void print_notes();
 };
 
 struct Channel {

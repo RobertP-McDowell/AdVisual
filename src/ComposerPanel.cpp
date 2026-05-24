@@ -160,29 +160,28 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 		grid_panel->queue_draw(); return;
 	}
 	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
-		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::ERASE_OLD_SELECTION);
+		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::ERASE_OLD_SELECTION | UndoNotes::RedoCommand::ERASE_GAP);
 	if (continuous_undo && new_undo->match_reason(get_last_undo_reason())) {
 		UndoSelection* prior_undo = static_cast<UndoSelection*>(composer_undo.at(undo_index - 1).get());
 		new_undo.reset(new UndoSelection(*prior_undo));
-		tick_offset += selection_start() - prior_undo->old_cursor_start;
 		undo();
 	}
-	int range_affected_start = (tick_offset < 0 ? selection_start() + tick_offset - 1 : selection_start() - 1);
-	int range_affected_end = (tick_offset > 0 ? selection_end() + tick_offset + 1 : selection_end() + 1);
+	int range_affected_start = (new_undo->tick_offset < 0 ? selection_start() + new_undo->tick_offset - 1 : selection_start() - 1);
+	int range_affected_end = (new_undo->tick_offset > 0 ? selection_end() + new_undo->tick_offset + 1 : selection_end() + 1);
 	new_undo->setup_for_continue(selection_start(), selection_end(), current_channel->copy(range_affected_start, range_affected_end));
 	current_channel->erase_notes(new_undo->old_cursor_start, new_undo->old_cursor_end - new_undo->old_cursor_start);
 	NoteGroup paste_buffer = new_undo->oldest_notes;
 	paste_buffer.trim(new_undo->old_cursor_start, new_undo->old_cursor_end);
+	new_undo->tick_offset += tick_offset;
+	if (insert_mode == true) {
+		current_channel->notes.erase_gap(selection_start(), selection_length());
+	}
 	int sel_start = selection_start(); // We need to make sure cursor doesn't go negative.
-	cursor_tick = (cursor_tick + tick_offset) - min(0, sel_start + tick_offset);
-	cursor_end = (cursor_end + tick_offset) - min(0, sel_start + tick_offset);
-	//if (insert_mode == true) {
-	//	current_channel->notes.make_gap(selection_start(), selection_length());
-	//	new_undo->gap_start = selection_start();
-	//	new_undo->gap_length = selection_length();
-	//	cursor_tick += selection_length();
-	//	cursor_end += selection_length();
-	//}
+	cursor_tick = (cursor_tick + new_undo->tick_offset) - min(0, sel_start + new_undo->tick_offset);
+	cursor_end = (cursor_end + new_undo->tick_offset) - min(0, sel_start + new_undo->tick_offset);
+	if (insert_mode == true) {
+		current_channel->notes.make_gap(selection_start(), selection_length());
+	}
 	current_channel->paste(&paste_buffer, selection_start(), selection_length(), new_undo->old_cursor_start);
 	new_undo->new_notes = paste_buffer;
 	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_cursor_start);
@@ -523,10 +522,24 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			cr->stroke();
 		}
 	}
-
-	RGBA ghost_note_color = RGBA(0.5, 0.5, 0.5, 0.7);
-	cr->unset_dash();
+	// Draw Cursors.
+	cr->set_dash(vertical_dashes, -vdash_gap / 2.0);
+	cr->set_line_width(grid_width);
+	int cursor_real_x = (cursor_tick * cell_size.x) - scroll_offset.x;
+	int cursor_end_x = (cursor_end * cell_size.x) - scroll_offset.x;
+	Gdk::Cairo::set_source_rgba(cr, current_channel->color);
+	//Gdk::Cairo::set_source_rgba(cr, RGBA(0.7, 0.7, 0.7, 1.0));
+	cr->set_line_width(cell_size.x / 4);
+	cr->move_to(cursor_end_x, 0);
+	cr->line_to(cursor_end_x, height);
+	cr->stroke();
+	//Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0, 1.0));
+	cr->set_line_width(cell_size.x / 4);
+	cr->move_to(cursor_real_x, 0);
+	cr->line_to(cursor_real_x, height);
+	cr->stroke();
 	// Note pen setup.
+	cr->unset_dash();
 	double note_line_width = note_size.y / 4.0;
 	cr->set_line_width(note_line_width);
 	vec2 note_visdiff = vec2((note_size.x - cell_size.x) / 2.0, (note_size.y - cell_size.x) / 2.0);
@@ -560,6 +573,7 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		}
 	}
 	// Ghost Note.
+	RGBA ghost_note_color = RGBA(0.5, 0.5, 0.5, 0.7);
 	if (ghost_note != nullptr) {
 		Gdk::Cairo::set_source_rgba(cr, ghost_note_color);
 		cr->set_line_width(cell_size.y);
@@ -568,22 +582,13 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		cr->line_to(((ghost_note->offset + ghost_note->length) * cell_size.x) - scroll_offset.x, y);
 		cr->stroke();
 	}
-	// Start drawing Cursor & Selection.
-	int cursor_real_x = (cursor_tick * cell_size.x) - scroll_offset.x;
-	int cursor_end_x = (cursor_end * cell_size.x) - scroll_offset.x;
-	Gdk::Cairo::set_source_rgba(cr, RGBA(0.4, 0.4, 0.4, 0.5));
-	cr->rectangle(cursor_real_x, 0, cursor_end_x - cursor_real_x, height);
-	cr->fill();
-	Gdk::Cairo::set_source_rgba(cr, RGBA(0.7, 0.7, 0.7, 1.0));
-	cr->set_line_width(cell_size.x / 4);
-	cr->move_to(cursor_end_x, 0);
-	cr->line_to(cursor_end_x, height);
-	cr->stroke();
-	Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0, 1.0));
-	cr->set_line_width(cell_size.x / 4);
-	cr->move_to(cursor_real_x, 0);
-	cr->line_to(cursor_real_x, height);
-	cr->stroke();
+	// Start Selection.
+	if (cursor_tick != cursor_end) {
+		Gdk::Cairo::set_source_rgba(cr, RGBA(0.4, 0.4, 0.4, 0.5));
+		cr->rectangle(cursor_real_x - (cell_size.x / 8) - 1, 0, (cursor_end_x - cursor_real_x) + (cell_size.x / 4), height);
+		cr->rectangle(cursor_real_x, 0, (cursor_end_x - cursor_real_x), height);
+		cr->fill();
+	}
 }
 
 void EventHeader::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
