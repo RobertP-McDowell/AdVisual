@@ -85,6 +85,17 @@ scrollbar:active > range > trough > slider {
 	background: @active_fg;
 }
 
+.small-image {
+	-gtk-icon-size: 16px;
+}
+.large-image {
+	-gtk-icon-size: 38px;
+}
+.grid {
+	margin: 0px;
+	padding: 0px;
+}
+
 button {
 	background: @primary_bg;
 	color: @primary_fg;

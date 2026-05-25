@@ -97,6 +97,7 @@ public:
 		OVERWRITE_BUFFER_LENGTH,
 		OVERWRITE_BUFFER_NOTES
 	};
+	void toggle_insert_mode();
 	static void add_undo(unique_ptr<UndoCommand> new_command, bool is_continuous = false);
 	static void set_continuous_undo(bool value) { continuous_undo = value; }
 	static bool get_continuous_undo() { return continuous_undo; }
@@ -126,7 +127,7 @@ protected:
 	void redo();
 
 	bool insert_mode = true;
-	int copy_buffer_offset = 0;
+	int copy_buffer_start_tick = 0, copy_buffer_length = 0;
 	NoteGroup copy_buffer;
 	static int undo_index;
 	static bool continuous_undo;

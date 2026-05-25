@@ -80,4 +80,5 @@ string note_number_to_letter(int note_number);
 float get_float_from_string(string str_val, float min = 0.0, float max = 1.0);
 string get_advisual_dir();
 
-Gtk::ToggleButton create_image_button(string image_name);
+Gtk::ToggleButton create_image_button(string image_name, bool large_icon = true);
+Gtk::ToggleButton create_picture_button(string picture_name);

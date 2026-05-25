@@ -84,7 +84,6 @@ void NoteGroup::make_gap(int start_tick, unsigned int gap_length) {
 }
 void NoteGroup::erase_gap(int start_tick, unsigned int gap_length) {
 	if (notes.empty()) { return; }
-	//Iterator it = split(start_tick);
 	erase(start_tick, gap_length);
 	if (start_tick - gap_length < 0) {
 		erase(start_tick, -(start_tick - gap_length));
@@ -113,8 +112,6 @@ NoteGroup::Iterator NoteGroup::split(int tick, Iterator start_pos) {
 				new_note.length = note.get_end_offset() - tick;
 				note.set_end_offset(tick);
 				insert(pos+1, new_note);
-				print_notes();
-				cout << "SPLIT\n";
 			}
 			break;
 		}

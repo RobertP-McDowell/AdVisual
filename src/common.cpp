@@ -93,11 +93,23 @@ float get_float_from_string(string str_val, float min, float max) {
 	return ret_float;
 }
 
-Gtk::ToggleButton create_image_button(string image_name) {
+Gtk::ToggleButton create_image_button(string image_name, bool large_icon) {
 using namespace Gtk;
 	ToggleButton bttn;
 	Image bttn_img(ICON_PATH(image_name));
-	bttn.set_child(bttn_img);
+	bttn_img.add_css_class(large_icon ? "large-image" : "small-image");
 	bttn_img.set_icon_size(IconSize::LARGE);
+	bttn.set_child(bttn_img);
+	return bttn;
+}
+
+Gtk::ToggleButton create_picture_button(string picture_name) {
+using namespace Gtk;
+	ToggleButton bttn;
+	Gtk::Picture pic = Gtk::Picture(ICON_PATH(picture_name));
+	pic.set_size_request(10, 10);
+	pic.set_can_shrink(true);
+	pic.set_content_fit(Gtk::ContentFit::SCALE_DOWN);
+	bttn.set_child(pic);
 	return bttn;
 }

@@ -212,21 +212,27 @@ using namespace Gtk;
 		channel_button->set_name(channel_name);
 		composer_toolbar.append(*channel_button);
 	}
+	Grid* grid = make_managed<Grid>();
 	ChannelButton::set_pressed_channel(0);
-	preview_channels_button = create_image_button("OpenedEye.svg");
+	preview_channels_button = create_image_button("OpenedEye.svg", false);
 	preview_channels_button.set_active(true);
 	preview_channels_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_preview_channels_toggled));
-	composer_toolbar.append(preview_channels_button);
+	grid->attach(preview_channels_button, 0, 0);
+
+	audio_feedback_button = create_image_button("AudioFeedback.svg", false);
+	audio_feedback_button.set_active(true);
+	audio_feedback_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_audio_feedback_toggled));
+	grid->attach(audio_feedback_button, 1, 0);
+
+	ToggleButton insert_mode_button = create_image_button("InsertMode.svg", false);
+	insert_mode_button.set_action_name("composer.toggle_insert_mode");
+	grid->attach(insert_mode_button, 0, 1);
+	composer_toolbar.append(*grid);
 
 	track_settings_button = create_image_button("Cassete.svg");
 	track_settings_button.set_action_name("composer.show_track_settings");
 	composer_toolbar.append(track_settings_button);
 
-	audio_feedback_button = create_image_button("AudioFeedback.svg");
-	audio_feedback_button.set_active(true);
-	audio_feedback_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_audio_feedback_toggled));
-	composer_toolbar.append(audio_feedback_button);
-	
 	composer_panel->track_settings.signal_visible_change.connect(sigc::ptr_fun(&ChannelButton::update_melodic_mode));
 	signal_track_changed.connect(sigc::ptr_fun(&ChannelButton::update_melodic_mode));
 }
@@ -360,7 +366,7 @@ using namespace Gtk;
 // Toolbar actions.
 	action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
 	insert_action_group("actions", action_group);
-// Create insmaker actions.
+// Create a few insmaker actions.
 	insmaker_panel->action_group->add_action("create_instrument",
 		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::CREATE_INS));
 	insmaker_panel->action_group->add_action("delete_instrument",

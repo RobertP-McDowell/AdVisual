@@ -55,6 +55,7 @@ ComposerPanel::ComposerPanel() {
 	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
 // Setup action group.
 	action_group = Gio::SimpleActionGroup::create();
+	action_group->add_action_bool("toggle_insert_mode", mem_fun(*this, &ComposerPanel::toggle_insert_mode), true);
 	action_group->add_action("cut_selection", mem_fun(*this, &ComposerPanel::cut));
 	action_group->add_action("copy_selection", mem_fun(*this, &ComposerPanel::copy));
 	action_group->add_action("paste_selection", mem_fun(*this, &ComposerPanel::paste));
@@ -89,7 +90,15 @@ ComposerPanel::ComposerPanel() {
 	signal_bank_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
 }
 
+void ComposerPanel::toggle_insert_mode() {
+	insert_mode = !insert_mode;
+	continuous_undo = false;
+	action_group->change_action_state("toggle_insert_mode", Glib::Variant<bool>::create(insert_mode));
+}
+
 void ComposerPanel::on_track_changed() {
+	composer_undo.clear();
+	continuous_undo = false;
 	on_channel_changed();
 }
 
@@ -122,23 +131,34 @@ void ComposerPanel::copy() {
 	if (selection_length() == 0) { return; }
 	copy_buffer = current_channel->copy(selection_start(), selection_end());
 	copy_buffer.trim(selection_start(), selection_end());
+	copy_buffer_start_tick = selection_start();
+	copy_buffer_length = selection_length();
 }
 void ComposerPanel::paste() {
 	if (copy_buffer.notes.empty()) { return; }
-	unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::PASTE_SELECTION);
-	undo->old_notes = current_channel->copy(selection_start(), selection_end());
-	current_channel->paste(&copy_buffer, selection_start(), selection_length(), copy_buffer.notes.front().offset);
-	undo->new_notes = current_channel->copy(selection_start(), selection_end());
-	add_undo(move(undo));
+	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::PASTE_SELECTION,
+		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP);
+	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
+	new_undo->set_insert_mode(insert_mode);
+	new_undo->set_old_cursors(selection_start(), selection_end());
+	new_undo->set_new_cursors(selection_start(), selection_length() != 0 ? selection_end() : selection_start() + copy_buffer_length);
+	new_undo->new_notes = copy_buffer;
+	new_undo->new_notes.offset_tick(selection_start() - copy_buffer_start_tick);
+	new_undo->new_notes.trim(selection_start(), new_undo->new_cursor_end);
+	new_undo->redo();
+	add_undo(move(new_undo));
 	grid_panel->queue_draw();
 }
 
 void ComposerPanel::erase_selection() {
-	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::ERASE_SELECTION,
-		UndoNotes::RedoCommand::ERASE_NEW);
+	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::ERASE_SELECTION,
+		UndoNotes::RedoCommand::ERASE_OLD_GAP);
+	new_undo->set_insert_mode(insert_mode);
+	new_undo->set_old_cursors(selection_start(), selection_end());
+	new_undo->set_new_cursors(selection_start(), selection_start());
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
-	current_channel->erase_notes(selection_start(), selection_length());
-	new_undo->new_notes = NoteGroup({Note(selection_start(), 0, selection_length())});
+	//new_undo->new_notes = NoteGroup({Note(selection_start(), 0, selection_length())});
+	new_undo->redo();
 	add_undo(move(new_undo));
 	grid_panel->queue_draw();
 }
@@ -160,31 +180,25 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 		grid_panel->queue_draw(); return;
 	}
 	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
-		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::ERASE_OLD_SELECTION | UndoNotes::RedoCommand::ERASE_GAP);
+		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP | UndoNotes::RedoCommand::ERASE_OLD_GAP);
 	if (continuous_undo && new_undo->match_reason(get_last_undo_reason())) {
 		UndoSelection* prior_undo = static_cast<UndoSelection*>(composer_undo.at(undo_index - 1).get());
 		new_undo.reset(new UndoSelection(*prior_undo));
 		undo();
 	}
-	int range_affected_start = (new_undo->tick_offset < 0 ? selection_start() + new_undo->tick_offset - 1 : selection_start() - 1);
-	int range_affected_end = (new_undo->tick_offset > 0 ? selection_end() + new_undo->tick_offset + 1 : selection_end() + 1);
+	new_undo->set_insert_mode(insert_mode);
+	tick_offset += new_undo->get_tick_offset();
+	int range_affected_start = (tick_offset < 0 ? selection_start() + tick_offset - 1 : selection_start() - 1);
+	int range_affected_end = (tick_offset > 0 ? selection_end() + tick_offset + 1 : selection_end() + 1);
 	new_undo->setup_for_continue(selection_start(), selection_end(), current_channel->copy(range_affected_start, range_affected_end));
-	current_channel->erase_notes(new_undo->old_cursor_start, new_undo->old_cursor_end - new_undo->old_cursor_start);
-	NoteGroup paste_buffer = new_undo->oldest_notes;
-	paste_buffer.trim(new_undo->old_cursor_start, new_undo->old_cursor_end);
-	new_undo->tick_offset += tick_offset;
-	if (insert_mode == true) {
-		current_channel->notes.erase_gap(selection_start(), selection_length());
-	}
 	int sel_start = selection_start(); // We need to make sure cursor doesn't go negative.
-	cursor_tick = (cursor_tick + new_undo->tick_offset) - min(0, sel_start + new_undo->tick_offset);
-	cursor_end = (cursor_end + new_undo->tick_offset) - min(0, sel_start + new_undo->tick_offset);
-	if (insert_mode == true) {
-		current_channel->notes.make_gap(selection_start(), selection_length());
-	}
-	current_channel->paste(&paste_buffer, selection_start(), selection_length(), new_undo->old_cursor_start);
-	new_undo->new_notes = paste_buffer;
+	cursor_tick = (cursor_tick + tick_offset) - min(0, sel_start + tick_offset);
+	cursor_end = (cursor_end + tick_offset) - min(0, sel_start + tick_offset);
+	new_undo->set_new_cursors(selection_start(), selection_end());
+	new_undo->new_notes = new_undo->oldest_notes;
+	new_undo->new_notes.trim(new_undo->old_cursor_start, new_undo->old_cursor_end);
 	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_cursor_start);
+	new_undo->redo();
 	add_undo(move(new_undo), true);
 	grid_panel->queue_draw();
 }
