@@ -148,6 +148,19 @@ button:active, .toggle:checked, .toggle:focus:active, .toggle:focus:checked  {
 	background: @secondary_bg;
 }
 
+textview {
+	background: @contents_bg;
+	color: @primary_fg;
+}
+textview selection {
+	background: @active_bg;
+	color: @primary_fg;
+}
+textview:focus-within selection {
+	background: @active_border;
+	color: @primary_fg;
+}
+
 entry {
 	background: @contents_bg;
 	color: @primary_fg;

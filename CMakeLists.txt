@@ -14,7 +14,6 @@ else()
 endif()
 file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 target_sources(advisual PUBLIC ${src_files})
-#target_sources(advisual PRIVATE windows_resource.rc)
 target_include_directories(advisual PUBLIC "include")
 target_include_directories(advisual PUBLIC "src")
 target_link_directories(advisual PUBLIC ${CMAKE_SOURCE_DIR}/lib)
@@ -32,7 +31,6 @@ target_link_libraries(advisual PRIVATE adplug::adplug)
 target_link_libraries(advisual PRIVATE libbinio::libbinio)
 
 # Include gtkmm-4.0
-
 link_directories(${GTKMM_LIBRARY_DIRS})
 include_directories(${GTKMM_INCLUDE_DIRS})
 add_definitions(${GTKMM_CFLAGS_OTHER})
@@ -54,6 +52,9 @@ install(DIRECTORY icons DESTINATION share/advisual
 install(DIRECTORY themes DESTINATION share/advisual
 	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ WORLD_EXECUTE
 	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install(FILES "docs.txt" DESTINATION share/advisual
+	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ)
 
 set(COPY_GTKMM_LIBRARIES OFF CACHE BOOL "Meant to be used for MSYS2 for windows")
 if (COPY_GTKMM_LIBRARIES)

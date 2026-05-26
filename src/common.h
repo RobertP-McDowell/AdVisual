@@ -12,8 +12,9 @@ using sigc::mem_fun;
 
 extern shared_ptr<Gtk::Application> app;
 extern shared_ptr<Gtk::Label> status;
+extern shared_ptr<Gio::SimpleActionGroup> common_action_group;
 
-#define ICON_PATH(file_name) (get_advisual_dir() + (string)"share/advisual/icons/" + string(file_name))
+#define ICON_PATH(file_name) (get_advisual_dir() + string("share/advisual/icons/") + string(file_name))
 
 const int pitch_range = 108 - 12;
 const int middle_c = pitch_range / 2;

@@ -11,6 +11,7 @@ static vec2 note_size;
 static vec2 cell_size;
 int ComposerPanel::undo_index = 0;
 bool ComposerPanel::continuous_undo = false;
+sigc::signal<void()> ComposerPanel::signal_cursor_moved;
 vector<unique_ptr<UndoCommand>> composer_undo = {};
 
 ComposerPanel::ComposerPanel() {
@@ -38,13 +39,15 @@ ComposerPanel::ComposerPanel() {
 	piano_ctrl = make_managed<PianoCtrl>(true);
 	attach(*piano_ctrl, 0, 1);
 // Init scrollbars.
-	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, 100, 1, 10, 10);
+	grid_panel->hadjust = Adjustment::create(0, 0, 100, 1, 10, 10);
+	grid_panel->hadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_hscroll));
+	hscrollbar = make_managed<Scrollbar>(grid_panel->hadjust, Orientation::HORIZONTAL);
+
 	shared_ptr<Adjustment> vadjust = Adjustment::create(0, 0, pitch_range, 1, 1, 0);
-	hscrollbar = make_managed<Scrollbar>(hadjust, Orientation::HORIZONTAL);
 	vscrollbar = make_managed<Scrollbar>(vadjust, Orientation::VERTICAL);
-	hadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_hscroll));
 	vadjust->signal_value_changed().connect(mem_fun(*this, &ComposerPanel::on_vscroll));
 	vadjust->set_value(middle_c - ((720 / cell_size.y) / 2.0)); // Go to center of grid.
+	vadjust->set_page_size(700 / cell_size.y);
 	attach(*hscrollbar, 0, 2, 3, 1);
 	attach(*vscrollbar, 2, 0, 1, 2);
 
@@ -52,7 +55,6 @@ ComposerPanel::ComposerPanel() {
 	scroll_controller->set_flags(EventControllerScroll::Flags::BOTH_AXES);
 	scroll_controller->signal_scroll().connect(mem_fun(*this, &ComposerPanel::on_mouse_scroll), true);
 	add_controller(scroll_controller);
-	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
 // Setup action group.
 	action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action_bool("toggle_insert_mode", mem_fun(*this, &ComposerPanel::toggle_insert_mode), true);
@@ -88,6 +90,12 @@ ComposerPanel::ComposerPanel() {
 	signal_track_changed.connect(mem_fun(*this, &ComposerPanel::on_track_changed));
 	signal_channel_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
 	signal_bank_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
+}
+
+void ComposerPanel::set_cursor_tick(int p_cursor_tick, int p_end_tick) {
+	cursor_tick = p_cursor_tick;
+	cursor_end = p_end_tick;
+	signal_cursor_moved.emit();
 }
 
 void ComposerPanel::toggle_insert_mode() {
@@ -147,7 +155,7 @@ void ComposerPanel::paste() {
 	new_undo->new_notes.trim(selection_start(), new_undo->new_cursor_end);
 	new_undo->redo();
 	add_undo(move(new_undo));
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 
 void ComposerPanel::erase_selection() {
@@ -157,10 +165,9 @@ void ComposerPanel::erase_selection() {
 	new_undo->set_old_cursors(selection_start(), selection_end());
 	new_undo->set_new_cursors(selection_start(), selection_start());
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
-	//new_undo->new_notes = NoteGroup({Note(selection_start(), 0, selection_length())});
 	new_undo->redo();
 	add_undo(move(new_undo));
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 void ComposerPanel::move_selection_semitone(int pitch_offset) {
 	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::MOVE_PITCH,
@@ -172,12 +179,12 @@ void ComposerPanel::move_selection_semitone(int pitch_offset) {
 	new_undo->new_notes.offset_pitch(pitch_offset);
 	current_channel->paste(&new_undo->new_notes, selection_start(), selection_length(), selection_start());
 	add_undo(move(new_undo));
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 void ComposerPanel::move_selection_tick(int tick_offset) {
 	if (cursor_tick == cursor_end) {
 		cursor_tick = max(0, cursor_tick + tick_offset); cursor_end = cursor_tick;
-		grid_panel->queue_draw(); return;
+		grid_panel->update_grid(); return;
 	}
 	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
 		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP | UndoNotes::RedoCommand::ERASE_OLD_GAP);
@@ -200,24 +207,24 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_cursor_start);
 	new_undo->redo();
 	add_undo(move(new_undo), true);
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 void ComposerPanel::unselect() {
 	cursor_end = cursor_tick;
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 void ComposerPanel::undo() {
 	if (undo_index <= 0) { return; }
 	undo_index -= 1;
 	composer_undo.at(undo_index)->undo();
 	continuous_undo = false;
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 void ComposerPanel::redo() {
 	if (undo_index >= composer_undo.size()) { return; }
 	composer_undo.at(undo_index)->redo();
 	undo_index += 1;
-	grid_panel->queue_draw();
+	grid_panel->update_grid();
 }
 
 void ComposerPanel::show_track_settings() {
@@ -358,16 +365,16 @@ EventHeader::EventHeader() {
 	set_name("event-header");
 	set_draw_func(sigc::mem_fun(*this, &EventHeader::on_draw));
 	set_size_request(-1, cell_size.y * 1.5);
-	rmb_gesture = GestureClick::create();
-	rmb_gesture->set_button(GDK_BUTTON_SECONDARY);
-	rmb_gesture->signal_pressed().connect(mem_fun(*this, &EventHeader::on_rmb_down));
-	add_controller(rmb_gesture);
+	lmb_gesture = GestureClick::create();
+	lmb_gesture->set_button(GDK_BUTTON_PRIMARY);
+	lmb_gesture->signal_pressed().connect(mem_fun(*this, &EventHeader::on_lmb_down));
+	add_controller(lmb_gesture);
 	event_popup.set_parent(*this);
 	signal_channel_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
 	signal_track_changed.connect(mem_fun(*this, &EventHeader::queue_draw));
 }
 
-void EventHeader::on_rmb_down(int n_press, double x, double y) {
+void EventHeader::on_lmb_down(int n_press, double x, double y) {
 	int tick = int((x + scroll_offset) / cell_size.x);
 	event_popup.popup(tick);
 	event_popup.set_pointing_to(Gdk::Rectangle((tick * cell_size.x) - scroll_offset, 0, cell_size.x, get_height()));
@@ -390,8 +397,9 @@ GridPanel::GridPanel() {
 	auto motion_event = Gtk::EventControllerMotion::create();
 	motion_event->signal_motion().connect(mem_fun(*this, &GridPanel::on_mouse_motion));
 	add_controller(motion_event);
-	signal_channel_changed.connect(mem_fun(*this, &GridPanel::queue_draw));
-	signal_track_changed.connect(mem_fun(*this, &GridPanel::queue_draw));
+	signal_channel_changed.connect(mem_fun(*this, &GridPanel::update_grid));
+	signal_track_changed.connect(mem_fun(*this, &GridPanel::update_grid));
+	ComposerPanel::signal_cursor_moved.connect(mem_fun(*this, &GridPanel::update_grid));
 }
 
 void GridPanel::on_lmb_down(int n_press, double x, double y) {
@@ -404,7 +412,7 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 		Instrument* last_ins = current_channel->get_instrument_at_tick(x / cell_size.x);
 		adplayer->play_note(ghost_note->pitch, current_channel->channel_number, last_ins);
 	}
-	queue_draw();
+	update_grid();
 }
 
 void GridPanel::on_lmb_up(int n_press, double x, double y) {
@@ -430,19 +438,20 @@ void GridPanel::on_lmb_up(int n_press, double x, double y) {
 	if (audio_feedback) {
 		adplayer->play_note(0, current_channel->channel_number, nullptr);
 	}
-	queue_draw();
+	update_grid();
 }
 
 void GridPanel::on_rmb_down(int n_press, double x, double y) {
+	adplayer->stop();
 	ComposerPanel::set_continuous_undo(false);
 	cursor_tick = (x + scroll_offset.x) / cell_size.x;
 	cursor_end = cursor_tick;
-	queue_draw();
+	update_grid();
 }
 
 void GridPanel::on_rmb_up(int n_press, double x, double y) {
 	cursor_end = (x + scroll_offset.x) / cell_size.x;
-	queue_draw();
+	update_grid();
 }
 
 void GridPanel::on_mouse_motion(double x, double y) {
@@ -469,6 +478,12 @@ void GridPanel::on_mouse_motion(double x, double y) {
 		return;
 	}
 	status->set_text(note_number_to_letter(mouse_position.y / cell_size.y) + " " + to_string(mouse_position.x / cell_size.x));
+}
+
+void GridPanel::update_grid() {
+	hadjust->set_upper(current_track->get_tick_count() +
+		max(20, current_track->beats_per_measure * current_track->ticks_per_beat));
+	queue_draw();
 }
 
 void cairo_round_rect(const shared_ptr<Cairo::Context>& cr, int x, int y, int width, int height, int radius) {
@@ -542,12 +557,10 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	int cursor_real_x = (cursor_tick * cell_size.x) - scroll_offset.x;
 	int cursor_end_x = (cursor_end * cell_size.x) - scroll_offset.x;
 	Gdk::Cairo::set_source_rgba(cr, current_channel->color);
-	//Gdk::Cairo::set_source_rgba(cr, RGBA(0.7, 0.7, 0.7, 1.0));
 	cr->set_line_width(cell_size.x / 4);
 	cr->move_to(cursor_end_x, 0);
 	cr->line_to(cursor_end_x, height);
 	cr->stroke();
-	//Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0, 1.0));
 	cr->set_line_width(cell_size.x / 4);
 	cr->move_to(cursor_real_x, 0);
 	cr->line_to(cursor_real_x, height);

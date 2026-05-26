@@ -15,7 +15,8 @@ class AdPlayer {
 public:
 	AdPlayer();
 	~AdPlayer();
-	bool play(string file_path, int start_from = 0); // Returns false if failed to play.
+	void toggle_play_song();
+	bool play(string file_path = "", int start_from = 0); // Returns false if failed to play.
 	void play_note(int note_number, int channel, Instrument* instrument);
 	void stop();
 	void seek(unsigned long p_tick);
@@ -27,7 +28,7 @@ protected:
 	ma_device mini_device;
 	unique_ptr<CVisPlayer> opl_playback;
 	unique_ptr<Copl> opl_device;
-	bool stereo = false, loop = false, active = false;
+	bool stereo = false, loop = false, active = false, playing_song = false;
 	int adplug_process(short* p_buffer, unsigned int p_frames, unsigned int p_buffer_offset);
 	friend class ma_device;
 };

@@ -64,7 +64,6 @@ void UndoSelection::redo() {
 	}
 	else { // We still need to at least erase where a closed gap would be.
 		if (redo_command & RedoCommand::ERASE_OLD_GAP) {
-			cout << "AAA\n";
 			current_channel->notes.erase(old_cursor_start, old_selection_length);
 		}
 	}

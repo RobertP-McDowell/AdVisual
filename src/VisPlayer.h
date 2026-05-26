@@ -1,6 +1,7 @@
 /*
  * Adplug - Replayer for many OPL2/OPL3 audio file formats.
  * Copyright (C) 1999 - 2008 Simon Peter, <dn.tlp@gmx.net>, et al.
+ * Copyright (C) 2026 Robert McDowell, GitHub(@RobertP-McDowell)
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,9 +17,11 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * forked from:
+ * Forked from adplug:
  * composer.h - AdLib Visual Composer synth class by OPLx <oplx@yahoo.com>
  *              with improvements by Stas'M <binarymaster@mail.ru> and Jepael
+ * Forked to AdVisual:
+ * VisPlayer.h - AdVisual synth class, modifications by GitHub(@RobertP-McDowell).
  *
  * Source references ADLIB.C from Adlib MSC SDK.
  */
@@ -67,6 +70,8 @@ public:
 	virtual float getrefresh() {
 		return refresh_rate;
 	};
+	virtual unsigned int getsubsongs() override { return track->get_tick_count(); }
+	virtual unsigned int getsubsong() override { return tick; }
 
 	virtual string gettype() { return string("AdVisual, AdLib Visual Composer"); }
 	virtual unsigned int getinstruments() { return 0; };
@@ -121,6 +126,6 @@ protected:
 	Bank* bank;
 	Track* track;
 	array<int, 11> dynamic_notes; // 1 per channel.
-	uint32_t tick;
+	unsigned int tick;
 	float refresh_rate;
 };

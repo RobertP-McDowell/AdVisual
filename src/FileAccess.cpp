@@ -8,6 +8,7 @@ namespace FileAccess {
 	fstream ios_file;
 	binwstream file(&ios_file);
 	bool writing = false;
+	int file_length = 0;
 };
 
 int FileAccess::catch_libbinio_errors() {
@@ -137,7 +138,8 @@ bool FileAccess::access_file(string file_path, bool write) {
 	file.setFlag(binio::BigEndian, false); // Setting BigEndian flag will reset FloatIEEE flag, so do it beforehand.
 	file.setFlag(binio::FloatIEEE, true);
 	file.seek(0, binio::End); // Go to end of file to get length.
-	DBPRINT("Access file, size: " << file.pos() << ", BigEndian: " << file.getFlag(binio::BigEndian) <<
+	file_length = file.pos();
+	DBPRINT("Access file, size: " << file_length << ", BigEndian: " << file.getFlag(binio::BigEndian) <<
 		", FloatIEEE: " << file.getFlag(binio::FloatIEEE));
 	file.seek(0, binio::Set);
 	return true;

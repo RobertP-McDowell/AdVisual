@@ -4,6 +4,7 @@
 #include <InsmakerPanel.h>
 #include <CommonWidgets.h>
 #include <AdPlayer.h>
+#include <Util/HelpWindow.h>
 
 class MainWindow;
 
@@ -146,7 +147,7 @@ private:
 			bank_ctrl_popover.set_visible(false);
 		}
 	}
-	// General buttons.
+	// General widgets.
 	Gtk::ToggleButton composer_button;
 	Gtk::ToggleButton play_button;
 	// Composer widgets.
@@ -178,10 +179,7 @@ using namespace Gtk;
 	file_menu->append("Save", "actions.save");
 	file_menu->append("Save Panel", "actions.save_panel");
 	file_menu->append("Save As", "actions.save_as");
-	shared_ptr<Gio::Menu> help_menu = Gio::Menu::create();
-	help_menu->append("Docs", "actions.docs");
-	help_menu->append("About", "actions.about");
-	file_menu->append_submenu("Help", help_menu);
+	file_menu->append("Help", "actions.show_help");
 	file_menu->append("Settings", "actions.open_settings");
 	file_menu->append("Quit", "actions.quit");
 	append(file_button);
@@ -196,8 +194,8 @@ using namespace Gtk;
 	insmaker_button.set_action_target_value(Glib::create_variant(1));
 	append(insmaker_button);
 	play_button = create_image_button("PlayButton.svg");
+	play_button.set_action_name("actions.toggle_play_song");
 	append(play_button);
-	play_button.signal_clicked().connect(mem_fun(*this, &Toolbar::on_play_track));
 	append(composer_toolbar);
 	append(insmaker_toolbar);
 	insmaker_toolbar.hide();
@@ -256,8 +254,9 @@ public:
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
-	shared_ptr<Gio::SimpleActionGroup> action_group;
 protected:
+	HelpWindow help_window;
+	void show_help();
 	void open_panel(int p_panel);
 	void load();
 	void save();
@@ -356,16 +355,18 @@ using namespace Gtk;
 	adplayer = make_unique<AdPlayer>();
 // Create common actions.
 // File actions.
-	action_group = Gio::SimpleActionGroup::create();
-	action_group->add_action("load", mem_fun(*this, &MainWindow::load));
-	action_group->add_action("save", mem_fun(*this, &MainWindow::save));
-	action_group->add_action("save_as", mem_fun(*this, &MainWindow::save_as));
-	action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
-	action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
-	action_group->add_action("quit", mem_fun(*app, &Application::quit));
+	common_action_group = Gio::SimpleActionGroup::create();
+	common_action_group->add_action_bool("toggle_play_song", mem_fun(*adplayer, &AdPlayer::toggle_play_song), false);
+	common_action_group->add_action("load", mem_fun(*this, &MainWindow::load));
+	common_action_group->add_action("save", mem_fun(*this, &MainWindow::save));
+	common_action_group->add_action("save_as", mem_fun(*this, &MainWindow::save_as));
+	common_action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
+	common_action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
+	common_action_group->add_action("show_help", mem_fun(*this, &MainWindow::show_help));
+	common_action_group->add_action("quit", mem_fun(*app, &Application::quit));
 // Toolbar actions.
-	action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
-	insert_action_group("actions", action_group);
+	common_action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
+	insert_action_group("actions", common_action_group);
 // Create a few insmaker actions.
 	insmaker_panel->action_group->add_action("create_instrument",
 		sigc::bind(mem_fun(*toolbar, &Toolbar::set_instrument_entry_mode), Toolbar::InsEntryMode::CREATE_INS));
@@ -391,6 +392,10 @@ using namespace Gtk;
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 
+void MainWindow::show_help() {
+	help_window.show();
+}
+
 void MainWindow::open_panel(int p_panel) {
 	if (!insmaker_panel || !composer_panel) return;
 	if (p_panel == 0) {
@@ -409,7 +414,7 @@ void MainWindow::open_panel(int p_panel) {
 		insert_action_group("insmaker", insmaker_panel->action_group);
 		remove_action_group("composer");
 	}
-	action_group->change_action_state("open_panel", Glib::Variant<int>::create(p_panel));
+	common_action_group->change_action_state("open_panel", Glib::Variant<int>::create(p_panel));
 }
 
 void MainWindow::load() {

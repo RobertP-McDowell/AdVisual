@@ -1,6 +1,7 @@
 /*
  * Adplug - Replayer for many OPL2/OPL3 audio file formats.
- * Copyright (C) 1999 - 2006 Simon Peter, <dn.tlp@gmx.net>, et al.
+ * Copyright (C) 1999 - 2008 Simon Peter, <dn.tlp@gmx.net>, et al.
+ * Copyright (C) 2026 Robert McDowell, GitHub(@RobertP-McDowell)
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,8 +17,11 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * forked from composer.cpp - AdLib Visual Composer synth class by OPLx <oplx@yahoo.com>
- *                with improvements by Stas'M <binarymaster@mail.ru> and Jepael
+ * Forked from adplug:
+ * composer.h - AdLib Visual Composer synth class by OPLx <oplx@yahoo.com>
+ *              with improvements by Stas'M <binarymaster@mail.ru> and Jepael
+ * Forked to AdVisual:
+ * VisPlayer.h - AdVisual synth class, modifications by GitHub(@RobertP-McDowell).
  *
  * Source references ADLIB.C from Adlib MSC SDK.
  */
@@ -220,7 +224,9 @@ void CVisPlayer::update_voice(int v) {
 	if (ins_tick == tick) {
 		Instrument* instrument = bank->find_instrument(ins_value);
 		if (instrument == nullptr) {
-			cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
+			if (ins_tick == tick) {
+				cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
+			}
 			SetInstrument(v, &Instrument::default_instrument);
 		}
 		else {
@@ -277,6 +283,31 @@ void CVisPlayer::rewind(int subsong) {
 	mKeyOnCache      = TBoolVector(kNumPercussiveVoices, false);
 
 	opl->init();         // initialize to melodic by default
+
+	int tempo_tick; // Reset properties to last events.
+	float tempo_value;
+	track->get_last_tempo_event(tick, tempo_tick, tempo_value);
+	refresh_rate = (track->ticks_per_beat * track->basic_tempo * tempo_value) / 60.0f;
+	for (int v = 0; v < 11; v++) {
+		Channel* channel = track->GetChannel(v);
+		int ins_tick, pitch_tick, volume_tick;
+		float pitch_value, volume_value;
+		string ins_value;
+		channel->get_last_instrument_event(tick, ins_tick, ins_value);
+		channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
+		channel->get_last_volume_event(tick, volume_tick, volume_value);
+		Instrument* instrument = bank->find_instrument(ins_value);
+		if (instrument == nullptr) {
+			cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
+			SetInstrument(v, &Instrument::default_instrument);
+		}
+		else {
+			SetInstrument(v, instrument);
+		}
+		SetVolume(v, uint8_t(kMaxVolume * volume_value));
+		ChangePitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+	}
+
 	SetRhythmMode(!track->melodic_mode);
 	opl->write(skOPL2_WaveCtrlBaseAddress, skOPL2_EnableWaveformSelectMask); // Enable waveform select
 }

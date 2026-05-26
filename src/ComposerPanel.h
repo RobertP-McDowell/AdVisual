@@ -37,6 +37,8 @@ public:
 	bool get_preview_channels() const { return preview_channels; }
 	void set_audio_feedback(bool value) { audio_feedback = value; }
 	bool get_audio_feedback() const { return audio_feedback; }
+	void update_grid();
+	shared_ptr<Gtk::Adjustment> hadjust;
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
 	void on_lmb_down(int n_press, double x, double y);
@@ -58,9 +60,8 @@ public:
 	int scroll_offset = 0;
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
-	void on_rmb_down(int n_press, double x, double y);
-	void on_rmb_up(int n_press, double x, double y);
-	shared_ptr<Gtk::GestureClick> rmb_gesture;
+	void on_lmb_down(int n_press, double x, double y);
+	shared_ptr<Gtk::GestureClick> lmb_gesture;
 	EventPopup event_popup;
 };
 
@@ -98,6 +99,7 @@ public:
 		OVERWRITE_BUFFER_NOTES
 	};
 	void toggle_insert_mode();
+	void update_grid_width();
 	static void add_undo(unique_ptr<UndoCommand> new_command, bool is_continuous = false);
 	static void set_continuous_undo(bool value) { continuous_undo = value; }
 	static bool get_continuous_undo() { return continuous_undo; }
@@ -106,6 +108,8 @@ public:
 	static int selection_start() { return (cursor_tick < cursor_end ? cursor_tick : cursor_end); }
 	static int selection_end() { return (cursor_tick < cursor_end ? cursor_end : cursor_tick); }
 	static int selection_length() { return (cursor_tick < cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end); }
+	static sigc::signal<void()> signal_cursor_moved;
+	static void set_cursor_tick(int p_cursor_tick, int p_end_tick);
 protected:
 	// Signals.
 	void on_show() override;

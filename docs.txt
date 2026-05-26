@@ -1,0 +1,101 @@
+--- About --------------------------------------------------------------------------------
+AdVisual is an AdLib/OPL2 Chiptune DAW.
+
+AdVisual has two main panels where you will do your work. The one you start off in is the
+Composer, here you will Create and edit the Tracks notes and events.
+
+The Insmaker panel allows you to create and edit instruments, and manage your bnk files.
+Click the saxophone icon in the toolbar to switch to it.
+
+You may find the source code for this project at https://github.com/RobertP-McDowell/AdVisual
+Read COMPILING.txt to find out how to compile your own modified version of AdVisual!
+
+--- Credits ------------------------------------------------------------------------------
+AdVisual is created and maintained by Robert McDowell:
+<Github: @RobertP-McDowell>, <email: teatimewithrobert@gmail.com>
+
+AdVisual depends on gtkmm4.0 (and it's dependencies) for UI,
+adplug (and it's sub-dependencies) as the audio backend,
+and miniaudio.h as the audio frontend.
+
+AdVisual is Free and Open Source under an MIT license! Read COPYING.txt for the license.
+
+--- Files --------------------------------------------------------------------------------
+The .rol file format is the only song type currently supported, it contains the tracks note
+and event info. You can load one of the sample rol files, or start editing from scratch.
+
+The .bnk file format contains Instrument data, which can be edited in the Insmaker panel.
+
+When loading and saving to dialogs will appear, one looking for track files and one for banks,
+you can simply press cancel on one of them to load only a track or bank file.
+
+---- Samples:
+You can find sample .ROL and .BNK files by downloading and extracting the original AdLib Visual:
+https://www.vgmpf.com/Wiki/index.php?title=File:AdLib_Visual_Composer_v1.51.zip
+
+--- Composer -----------------------------------------------------------------------------
+---- The Grid:
+The grid is made up one dashed vertical line for every beat, and one solid vertical line
+for every measure, you may change the frequency of ticks and beats in track options in the
+toolbar. Every dashed horizontal line represents a sharp note, if a note isn't directly
+on the line then it is a flat note. You can also use the piano guide on the left side as
+a more familiar reference; click on the piano guide to sample the sound of a note.
+
+Left click to create a note, hold it to change the length. You can enable audio-feedback
+in the toolbar to hear what new notes will sound like. Shift+Release to erase notes.
+
+Right click to place the cursor, hold it to select a range of notes, backspace to delete.
+Press Ctrl + X, C, V, to cut, copy and paste selection respectively.
+
+Press Ctrl+Z to undo your last action, Ctrl+Shift+Z to redo your last undo.
+
+Editing the event header, which is placed between the toolbar and the grid, allows you to
+change the tempo, instrument, pitch, and amplitude dynamically during playback!
+
+---- Toolbar:
+Notice the row of colorful radio buttons, each representing a different channel, click one
+to change the channel, Shift+Left Click to enable/disable a channel during playback.
+
+Next is a set of 4 small buttons, the top left eye button will show a preview of notes
+for every channel. The top right icon will toggle audio feedback on every new note placed.
+The bottom left button will toggle insert/overwrite mode;
+This affects most action on the grid that utilize any selected portion, including if
+deleting the selection should just erase notes, or all also erase the gap leftover. It also
+affects moving, pasting and more.
+
+Last on the toolbar is Track settings, you may set tempo (beats per minute), percussion and more.
+
+---- Percussion:
+The OPL2 can support up to 7 melodic channels (carrier * modulator), and 4
+percussion channels (modulator * modulator). Or you can disable percussion entirely in
+track settings and get 9 melodic channels as a tradeoff.
+
+--- Insmaker -----------------------------------------------------------------------------
+Select the instrument you want to edit in the text field in the toolbar, click the
+three dots on the right to create/delete an instrument. Click the magnifying glass on the
+left to search.
+
+---- Instruments:
+Instrument wide settings can be edited by clicking the three dots in the text field.
+
+Melodic instruments use two operators, the Carrier and the Modulator, whereas percussion
+instruments just use one; the Modulator (see "Composer->Percussion" section).
+
+You can also toggle Additive synthesis in instrument settings, switching between AM and FM.
+Additive synth (Amplitude modulation, or AM), Frequency modulation (FM).
+FM is the default and is usually preffered.
+
+---- FM / AM:
+An FM instrument's frequency of the carrier is controlled by the modulator,
+meaning the modulator changes the pitch of the carrier.
+An AM instrument adds the output of the carrier and modulator together,
+in other words adding the amplitude (volume) together.
+
+---- Envelopes:
+Envelope is a term that applies to both the Carrier and the Modulator.
+Both envelopes have almost exactly the same set of properties. mess around for a little
+and see what sounds good, you can use the arrow keys to navigate if you prefer.
+
+Use the piano guide below to sample the instrument.
+
+Unsaved envelope properties are represented by an asterisk(*) next to them.

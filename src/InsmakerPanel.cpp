@@ -157,7 +157,8 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	shared_ptr<Adjustment> hadjust = Adjustment::create(0, 0, pitch_range, 1, 10, 10);
 	hscrollbar = make_managed<Scrollbar>(hadjust, Orientation::HORIZONTAL);
 	hadjust->signal_value_changed().connect(mem_fun(*this, &InsmakerPanel::on_scroll_piano));
-	hadjust->set_value(middle_c); // Go to center of piano.
+	hadjust->set_value(middle_c - ((1024 / piano_ctrl->get_key_width()) / 2.0)); // Go to center of piano.
+	hadjust->set_page_size(1024 / piano_ctrl->get_key_width());
 	append(*hscrollbar);
 
 	scroll_controller = EventControllerScroll::create();

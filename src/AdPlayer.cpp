@@ -4,6 +4,7 @@
 #include <chrono>
 #include <adplug/fmopl.h>
 #include <common.h>
+#include <ComposerPanel.h>
 
 #define RATE	44100   // Output frequency in Hz
 #define BIT16	true    // true when 16bit samples should be used
@@ -41,7 +42,6 @@ void AdPlayer::mix_miniaudio(ma_device* p_device, void* p_output, const void* p_
 	unsigned long total_frames_processed = 0, frames_left = frame_count;
 	int used_bufsize = (stereo == true ? BUFSIZE * 2 : BUFSIZE);
 	int write = min((int)frames_left, used_bufsize);
-	//cout << "Mini 2\n";
 	while (active && frames_left != 0) {
 		long new_frames_processed = adplug_process(static_cast<short*>(p_output), write, total_frames_processed);
 		total_frames_processed += new_frames_processed;
@@ -54,13 +54,17 @@ void AdPlayer::mix_miniaudio(ma_device* p_device, void* p_output, const void* p_
 		
 		write = min((int)frames_left, used_bufsize);
 	}
+	int new_tick = opl_playback->getsubsong();
+	if (playing_song && new_tick != cursor_tick) {
+		ComposerPanel::set_cursor_tick(new_tick, new_tick);
+	}
 	return;
 }
-// cant seem to convert my member function ptr to a normal function ptr, so just forward it ig.
+
+// Forward the callback to AdPlayer member function.
 void mix_miniaudio_callback(ma_device* p_device, void* p_output, const void* p_input, ma_uint32 frame_count) {
 	static_cast<AdPlayer*>(p_device->pUserData)->mix_miniaudio(p_device, p_output, p_input, frame_count);
 }
-
 
 AdPlayer::AdPlayer() {
 	stereo = false;
@@ -136,6 +140,16 @@ void AdPlayer::set_channel_enable(int channel, bool enable) {
 	}
 }
 
+void AdPlayer::toggle_play_song() {
+	if (playing_song) {
+		stop();
+	}
+	else {
+		play("", cursor_tick);
+	}
+	common_action_group->change_action_state("toggle_play_song", Glib::Variant<bool>::create(playing_song));
+}
+
 bool AdPlayer::play(string file_path, int start_from) {
 	opl_playback->SetTrack(current_track);
 	opl_playback->SetBank(current_bank);
@@ -145,7 +159,7 @@ bool AdPlayer::play(string file_path, int start_from) {
 			opl_playback->DisableChannelAndPlayNote(v, 0, nullptr);
 		}
 	}
-	opl_playback->seek(start_from);
+	opl_playback->rewind(start_from);
 
 	if (!opl_playback) {
 		cerr << "Couldn't create Adplug playback for file! " << file_path << "\n";
@@ -156,6 +170,7 @@ bool AdPlayer::play(string file_path, int start_from) {
 	towrite = RATE / opl_playback->getrefresh();
 	ma_device_start(&mini_device);
 	active = true;
+	playing_song = true;
 
 	return true;
 }
@@ -176,4 +191,5 @@ void AdPlayer::stop() {
 	ma_device_stop(&mini_device);
 	towrite = 0;
 	active = false;
+	playing_song = false;
 }

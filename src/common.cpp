@@ -2,6 +2,7 @@
 
 shared_ptr<Gtk::Application> app;
 shared_ptr<Gtk::Label> status;
+shared_ptr<Gio::SimpleActionGroup> common_action_group;
 
 #ifdef WINDOWS
 	#define WIN32_LEAN_AND_MEAN

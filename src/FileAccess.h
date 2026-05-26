@@ -32,5 +32,6 @@ namespace FileAccess {
 	extern binwstream file;
 	extern fstream ios_file;
 	extern bool writing;
+	extern int file_length;
 };
 
