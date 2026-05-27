@@ -118,7 +118,7 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 		cr->fill();
 		Gdk::Cairo::set_source_rgba(cr, ch_color);
 	}
-	double text_scaler = ((double(width) - (diameter + line_width)) / double(width)) * 2.0;
+	double text_scaler = ((double(width) - (diameter + half_line_width)) / double(width)) * 2.0;
 	if (text_scaler <= 0.4 || width <= height) { return; } // Don't bother with writing text.
 	Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0));
 	Pango::FontDescription font;

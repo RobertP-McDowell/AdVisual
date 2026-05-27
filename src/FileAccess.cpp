@@ -139,8 +139,13 @@ bool FileAccess::access_file(string file_path, bool write) {
 	file.setFlag(binio::FloatIEEE, true);
 	file.seek(0, binio::End); // Go to end of file to get length.
 	file_length = file.pos();
-	DBPRINT("Access file, size: " << file_length << ", BigEndian: " << file.getFlag(binio::BigEndian) <<
-		", FloatIEEE: " << file.getFlag(binio::FloatIEEE));
 	file.seek(0, binio::Set);
+	DBPRINT("Access file, size: " << file_length << ", Starting from: " << file.pos() <<
+		", BigEndian: " << file.getFlag(binio::BigEndian) <<
+		", FloatIEEE: " << file.getFlag(binio::FloatIEEE));
 	return true;
+}
+
+void FileAccess::close_file() {
+	ios_file.close();
 }

@@ -71,7 +71,7 @@ void Bank::save_file(string save_path) {
 	if (!access_file(save_path, true)) return;
 	bnk_move_fields();
 	file_path = save_path;
-	ios_file.close();
+	close_file();
 }
 
 void Bank::load_file(string load_path) {
@@ -80,7 +80,7 @@ void Bank::load_file(string load_path) {
 	clear_bank_data();
 	bnk_move_fields();
 	file_path = load_path;
-	ios_file.close();
+	close_file();
 	signal_bank_changed.emit();
 	return;
 }

@@ -56,7 +56,7 @@ headerbar:backdrop {
 	background: @primary_bg;
 	color: rgb(255, 255, 255);
 }
-headerbar::backdrop * button {
+headerbar:backdrop * button {
 	color: @secondary_bg;
 }
 
@@ -116,12 +116,13 @@ scrollbar:active > range > trough > slider {
 }
 
 button {
+	margin: 0px;
+	padding: 0px;
 	min-height: 4px;
 	min-width: 4px;
 	background: @primary_bg;
 	color: @primary_fg;
 	border-color: @primary_border;
-	padding: 0px;
 	box-shadow: none;
 }
 button:focus, button:focus, button:hover, .toggle:focus, .toggle:hover {

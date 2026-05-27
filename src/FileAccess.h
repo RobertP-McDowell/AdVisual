@@ -28,6 +28,7 @@ namespace FileAccess {
 	extern void fieldcpy_float_events(map<int, float>& event_map, int loop_spacing);
 	// Opens file and initializes. returns false if opening file was unsuccessful.
 	extern bool access_file(string file_path, bool write);
+	extern void close_file();
 
 	extern binwstream file;
 	extern fstream ios_file;

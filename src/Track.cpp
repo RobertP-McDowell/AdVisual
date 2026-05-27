@@ -348,8 +348,7 @@ void Track::save_file(string save_path) {
 	if (!access_file(try_path, true)) return;
 	rol_move_fields();
 	file_path = try_path;
-
-	ios_file.close();
+	close_file();
 }
 
 void Track::load_file(string load_path) {
@@ -359,8 +358,7 @@ void Track::load_file(string load_path) {
 	clear_track_data();
 	rol_move_fields();
 	file_path = try_path;
-
-	ios_file.close();
+	close_file();
 	signal_track_changed.emit();
 }
 

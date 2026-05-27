@@ -225,6 +225,9 @@ using namespace Gtk;
 	ToggleButton insert_mode_button = create_image_button("InsertMode.svg", false);
 	insert_mode_button.set_action_name("composer.toggle_insert_mode");
 	grid->attach(insert_mode_button, 0, 1);
+
+	grid->set_row_spacing(0);
+	grid->set_column_spacing(0);
 	composer_toolbar.append(*grid);
 
 	track_settings_button = create_image_button("Cassete.svg");
