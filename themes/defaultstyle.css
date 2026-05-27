@@ -33,11 +33,12 @@ widget {
 window {
 	background: @secondary_bg;
 	color: @secondary_fg;
+	border-radius: 0px;
 }
 
 headerbar {
 	min-height: 0px;
-	background: rgb(80, 20, 20);
+	background: @active_fg;
 	color: rgb(255, 255, 255);
 	padding-top: 0;
 	padding-bottom: 0;
@@ -45,22 +46,31 @@ headerbar {
 }
 headerbar * button {
 	background: rgba(0, 0, 0, 0);
-	color: @primary_fg;
+	color: @primary_bg;
 	border-radius: 0px;
 }
 headerbar * button * {
 	border-radius: 0px;
 }
 headerbar:backdrop {
-	background: rgb(100, 100, 100);
+	background: @primary_bg;
 	color: rgb(255, 255, 255);
 }
+headerbar::backdrop * button {
+	color: @secondary_bg;
+}
+
 popover .vertical, popover .horizontal {
 	background: @primary_bg;
 	color: @primary_fg;
 }
 popover > scrollbar {
 	background: @primary_bg;
+}
+popover > contents, popover > arrow {
+	background: @primary_bg;
+	border-color: @primary_border;
+	border-width: 1px;
 }
 
 scrollbar {
@@ -86,17 +96,28 @@ scrollbar:active > range > trough > slider {
 }
 
 .small-image {
-	-gtk-icon-size: 16px;
+	-gtk-icon-size: 20px;
 }
 .large-image {
-	-gtk-icon-size: 38px;
+	-gtk-icon-size: 40px;
 }
 .grid {
 	margin: 0px;
 	padding: 0px;
+	min-height: 4px;
+	min-width: 4px;
+}
+
+.channel-button {
+	min-width: 60px;
+}
+.channel-button-percussion {
+	min-width: 64px;
 }
 
 button {
+	min-height: 4px;
+	min-width: 4px;
 	background: @primary_bg;
 	color: @primary_fg;
 	border-color: @primary_border;
@@ -164,6 +185,8 @@ textview:focus-within selection {
 entry {
 	background: @contents_bg;
 	color: @primary_fg;
+	border-color: @primary_border;
+	border-width: 1px;
 }
 entry selection {
 	background: @active_bg;
@@ -180,6 +203,8 @@ entry > text > placeholder {
 spinbutton {
 	background: @contents_bg;
 	color: @primary_fg;
+	border-color: @primary_border;
+	border-width: 1px;
 }
 spinbutton selection {
 	background: @active_bg;

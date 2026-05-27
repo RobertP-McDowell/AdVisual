@@ -8,7 +8,11 @@ vector<ChannelButton*> ChannelButton::buttons = {};
 ChannelButton* ChannelButton::currently_pressed = nullptr;
 
 ChannelButton::ChannelButton(int p_channel_index) : channel_index(p_channel_index) {
-	set_size_request(60, -1);
+	add_css_class("channel-button");
+	set_name("channel-button" + to_string(channel_index + 1));
+	if (current_track->melodic_mode == 0 && channel_index > 5) {
+		add_css_class("channel-button-percussion");
+	}
 	set_draw_func(sigc::mem_fun(*this, &ChannelButton::on_draw));
 
 	lmb_gesture = GestureClick::create();
@@ -56,12 +60,18 @@ void ChannelButton::set_pressed_channel(int channel) {
 void ChannelButton::update_melodic_mode() {
 	if (!current_track->melodic_mode) {
 		for (int i = 0; i < buttons.size(); i++) {
+			if (buttons[i]->channel_index > 5) {
+				buttons[i]->add_css_class("channel-button-percussion");
+			}
 			buttons[i]->set_visible(true);
 			buttons[i]->queue_draw();
 		}
 	}
 	else {
 		for (int i = 6; i < 9; i++) { // We will need to redraw the text for BS and SD (now simply channel 8/9)
+			if (buttons[i]->channel_index > 5) {
+				buttons[i]->remove_css_class("channel-button-percussion");
+			}
 			buttons[i]->queue_draw();
 		}
 		for (int i = 9; i < buttons.size(); i++) {
@@ -83,16 +93,18 @@ void ChannelButton::on_lmb_down(int n_press, double x, double y) {
 }
 
 void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
+	if (width == 0) { return; } // Probably cant happen, but just in case.
 	RGBA ch_color = current_track->GetChannel(channel_index)->color;
 	if (!enabled_channels[channel_index]) {
 		ch_color = RGBA(0.5, 0.5, 0.5, 1.0);
 	}
 	RGBA hover_color = ch_color;
 	hover_color.set_alpha(0.5);
-	double half_line_width = 2.0;
+	double line_width = 4.0;
+	double half_line_width = line_width / 2.0;
 	cr->set_line_width(half_line_width * 2.0);
-	double diameter = height * 0.8;
-	double x_offset = min(diameter / 2.0, width - diameter);
+	double diameter = (height < width ? height : width) - (line_width);
+	double x_offset = (diameter / 2.0);
 	Gdk::Cairo::set_source_rgba(cr, ch_color);
 	cr->arc(x_offset, height / 2, (diameter / 2) - half_line_width, 0.0, M_PI * 2);
 	cr->stroke();
@@ -106,6 +118,8 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 		cr->fill();
 		Gdk::Cairo::set_source_rgba(cr, ch_color);
 	}
+	double text_scaler = ((double(width) - (diameter + line_width)) / double(width)) * 2.0;
+	if (text_scaler <= 0.4 || width <= height) { return; } // Don't bother with writing text.
 	Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0));
 	Pango::FontDescription font;
 	font.set_family("Monospace");
@@ -122,11 +136,9 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 		if (channel_index == 10) ch_txt = "HH";
 	}
 	layout->set_text(ch_txt);
-	cr->move_to(diameter + (half_line_width * 2.0), 0);
-	if (ch_txt.length() == 2) {
-		cr->move_to(diameter, 0);
-		cr->scale(0.75, 1.0);
-	}
+	if (ch_txt.length() == 1) { text_scaler *= 2.0; }
+	cr->move_to(diameter - half_line_width, 0);
+	cr->scale(text_scaler, 1.0);
 	layout->show_in_cairo_context(cr);
 }
 
