@@ -181,7 +181,7 @@ bool InsmakerPanel::on_mouse_scroll_piano(double x, double y) {
 	return true;
 }
 
-int InsmakerPanel::get_number_of_unsaved_changes() {
+int InsmakerPanel::get_number_of_unsaved_changes() const {
 	int ret = 0;
 	for (auto&& prop : carrier_properties) {
 		ret += (prop->has_unsaved_change() ? 1 : 0);

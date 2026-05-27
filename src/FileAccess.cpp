@@ -83,6 +83,10 @@ void FileAccess::fieldzero(int field_size) {
 	catch_libbinio_errors();
 }
 
+void FileAccess::seek(int p_pos) {
+	file.seek(p_pos, binio::Set);
+}
+
 void FileAccess::fieldcpy_float_events(map<int, float>& event_map, int loop_spacing) {
 	uint16_t event_count = event_map.size();
 	fieldcpy_uint16(&event_count, 2);

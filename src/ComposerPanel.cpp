@@ -9,6 +9,7 @@ int cursor_end = 0;
 
 static vec2 note_size;
 static vec2 cell_size;
+int ComposerPanel::last_saved_undo_index = 0;
 int ComposerPanel::undo_index = 0;
 bool ComposerPanel::continuous_undo = false;
 sigc::signal<void()> ComposerPanel::signal_cursor_moved;
@@ -110,9 +111,14 @@ void ComposerPanel::on_track_changed() {
 	on_channel_changed();
 }
 
+void ComposerPanel::on_track_saved() {
+	last_saved_undo_index = undo_index;
+}
+
 void ComposerPanel::add_undo(unique_ptr<UndoCommand> new_undo, bool is_continuous) {
-	if (undo_index != composer_undo.size()) {
+	if (undo_index != composer_undo.size()) { // We split history.
 		composer_undo.erase(composer_undo.begin() + undo_index, composer_undo.end());
+		if (undo_index < last_saved_undo_index) { last_saved_undo_index = -1; }
 	}
 	undo_index += 1;
 	composer_undo.push_back(move(new_undo));
@@ -210,6 +216,9 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 	grid_panel->update_grid();
 }
 void ComposerPanel::unselect() {
+	if (cursor_end == cursor_tick) {
+		cursor_tick = 0;
+	}
 	cursor_end = cursor_tick;
 	grid_panel->update_grid();
 }
@@ -334,13 +343,9 @@ void EventPopup::popup(int at_tick) {
 }
 
 void EventPopup::on_closed() {
-	if (!tempo_field.get_text().empty())
 	current_track->set_tempo_event(editing_tick, get_float_from_string(tempo_field.get_text(), 0.0, 10.0));
-	if (!instrument_field.get_text().empty())
 	current_channel->set_instrument_event(editing_tick, instrument_field.get_text());
-	if (!pitch_field.get_text().empty())
 	current_channel->set_pitch_event(editing_tick, get_float_from_string(pitch_field.get_text(), 0.0, 2.0));
-	if (!volume_field.get_text().empty())
 	current_channel->set_volume_event(editing_tick, get_float_from_string(volume_field.get_text(), 0.0, 1.0));
 	get_parent()->queue_draw();
 }
@@ -585,7 +590,7 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			if (i == current_channel->channel_number) {
 				continue;
 			}
-			Channel* channel = current_track->GetChannel(i);
+			Channel* channel = current_track->get_channel(i);
 			Gdk::Cairo::set_source_rgba(cr, channel->color);
 			double preview_line_width = note_size.y / 8.0;
 			cr->set_line_width(preview_line_width);

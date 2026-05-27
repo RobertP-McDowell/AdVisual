@@ -52,7 +52,7 @@ void ChannelButton::set_pressed_channel(int channel) {
 	}
 	currently_pressed = buttons[channel];
 	currently_pressed->pressed = true;
-	current_channel = current_track->GetChannel(channel);
+	current_channel = current_track->get_channel(channel);
 	currently_pressed->queue_draw();
 	signal_channel_changed.emit();
 }
@@ -94,7 +94,7 @@ void ChannelButton::on_lmb_down(int n_press, double x, double y) {
 
 void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
 	if (width == 0) { return; } // Probably cant happen, but just in case.
-	RGBA ch_color = current_track->GetChannel(channel_index)->color;
+	RGBA ch_color = current_track->get_channel(channel_index)->color;
 	if (!enabled_channels[channel_index]) {
 		ch_color = RGBA(0.5, 0.5, 0.5, 1.0);
 	}
@@ -239,7 +239,7 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 		const Instrument& ins = current_bank->instruments[i];
 		RGBA instrument_color = RGBA(1.0, 1.0, 1.0, 1.0);
 		if (ins.percussion_mode == 1) {
-			instrument_color = current_track->GetChannel(ins.voice_number)->color;
+			instrument_color = current_track->get_channel(ins.voice_number)->color;
 		}
 		Gdk::Cairo::set_source_rgba(cr, instrument_color);
 		string ins_text = (string)ins.name;

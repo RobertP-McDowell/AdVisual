@@ -108,7 +108,7 @@ struct Channel {
 struct Track {
 	Track();
 	vector<Channel> channels;
-	Channel* GetChannel(int idx) {return &channels[idx];}
+	Channel* get_channel(int idx) {return &channels[idx];}
 	int get_channel_count() const {return channels.size();}
 	
 	void set_tempo_event(int at_tick, float value);

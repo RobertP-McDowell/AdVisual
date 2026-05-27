@@ -11,6 +11,9 @@
 @define-color active_border rgba(200, 20, 20, 1.0);
 
 @define-color hover_border rgba(100, 100, 100, 1.0);
+@define-color hover_fg rgba(200, 200, 200, 1.0);
+@define-color hover_bg rgba(35, 35, 35, 1.0);
+
 @define-color contents_bg rgba(15, 15, 15, 1.0);
 @define-color keynav_outline rgba(255, 255, 255, 0.25);
 @define-color placeholder_color rgba(120, 120, 120, 1);
@@ -96,7 +99,7 @@ scrollbar:active > range > trough > slider {
 }
 
 .small-image {
-	-gtk-icon-size: 20px;
+	-gtk-icon-size: 18px;
 }
 .large-image {
 	-gtk-icon-size: 40px;
@@ -127,6 +130,8 @@ button {
 }
 button:focus, button:focus, button:hover, .toggle:focus, .toggle:hover {
 	border-color: @hover_border;
+	background: @hover_bg;
+	color: @hover_fg;
 	box-shadow: none;
 }
 button:active, .toggle:checked, .toggle:focus:active, .toggle:focus:checked  {
@@ -238,6 +243,7 @@ spinbutton:focus-within selection {
 .piano-ctrl {
 	background: rgb(255, 255, 255);
 }
+
 .bank-ctrl > .drawing-area {
 	background: @contents_bg;
 	border-style: solid;

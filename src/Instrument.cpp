@@ -150,7 +150,10 @@ void Bank::bnk_move_fields() {
 	for (uint16_t insi = num_of_ins_used; insi < num_of_ins; insi++) {
 		fieldzero(2+1+9); // memzero unused instruments.
 	}
-	DBPRINT("data_offset: " << data_offset << " should equal current file position, which is: " << file.pos());
+	if (data_offset != file.pos()) {
+		DBPRINT("data_offset: " << data_offset << " doesn't equal the current file position: " << file.pos() << ", seeking to data_offset!");
+		seek(data_offset);
+	}
 	for (uint16_t insi = 0; insi < num_of_ins_used; insi++) {
 		Instrument& ins = instruments[data_indices.at(insi)];
 		fieldcpy_uint8(&ins.percussion_mode, 1);

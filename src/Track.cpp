@@ -176,7 +176,7 @@ Track::Track() {
 		channels.push_back(Channel(i));
 	}
 	current_track = this;
-	current_channel = GetChannel(0);
+	current_channel = get_channel(0);
 	enabled_channels.fill(true);
 	signal_track_changed.emit();
 }
@@ -374,12 +374,11 @@ void Track::rol_move_fields() {
 	fieldzero(1);            // unused.
 	fieldcpy_uint8(&melodic_mode, 1);
 	fieldzero(90 + 38 + 15); // unused, filler, filler. Specs don't specify how they're different.
-	basic_tempo = 60.0f;
 	fieldcpy_float(&basic_tempo);
 	DBPRINT("basic_tempo " << basic_tempo << " pos " << file.pos());
 	fieldcpy_float_events(tempo_events, 0);
 	for (int voice_idx = 0; voice_idx < 11; voice_idx++) {
-		Channel& voice = *GetChannel(voice_idx);
+		Channel& voice = *get_channel(voice_idx);
 		fieldzero(15); // filler.
 		uint16_t tick_count = voice.get_tick_count();
 		fieldcpy_uint16(&tick_count, 2);
@@ -436,6 +435,7 @@ void Track::rol_move_fields() {
 				fieldcpy_uint16(&event_tick, 2);
 				fieldcpy_char(&ins_name[0], 9);
 				fieldzero(1 + 2); // filler, unused, filler.
+				//if (i > 10) { return; }
 				DBPRINT("insi " << i << ", event_tick " << event_tick << ", ins_name " << ins_name);
 				voice.instrument_events.insert({event_tick, string(ins_name)});
 			}

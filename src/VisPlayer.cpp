@@ -164,7 +164,7 @@ void CVisPlayer::EnableChannel(int v) {
 	int ins_tick, pitch_tick, volume_tick;
 	float pitch_value, volume_value;
 	string ins_value;
-	Channel* channel = track->GetChannel(v);
+	Channel* channel = track->get_channel(v);
 	channel->get_last_instrument_event(tick, ins_tick, ins_value);
 	channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
 	channel->get_last_volume_event(tick, volume_tick, volume_value);
@@ -213,7 +213,7 @@ void CVisPlayer::DisableAllChannels() {
 }
 //---------------------------------------------------------
 void CVisPlayer::update_voice(int v) {
-	Channel* channel = track->GetChannel(v);
+	Channel* channel = track->get_channel(v);
 	int ins_tick, pitch_tick, volume_tick;
 	float pitch_value, volume_value;
 	string ins_value;
@@ -289,7 +289,7 @@ void CVisPlayer::rewind(int subsong) {
 	track->get_last_tempo_event(tick, tempo_tick, tempo_value);
 	refresh_rate = (track->ticks_per_beat * track->basic_tempo * tempo_value) / 60.0f;
 	for (int v = 0; v < 11; v++) {
-		Channel* channel = track->GetChannel(v);
+		Channel* channel = track->get_channel(v);
 		int ins_tick, pitch_tick, volume_tick;
 		float pitch_value, volume_value;
 		string ins_value;

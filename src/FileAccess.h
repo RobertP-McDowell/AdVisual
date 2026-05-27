@@ -25,6 +25,7 @@ namespace FileAccess {
 	extern void fieldcpy_float(float* object, binio::FType floating_type = binio::Single);
 	// Same as fieldcpy, but ensures little endianness for integer types.
 	extern void fieldzero(int field_size);
+	extern void seek(int pos);
 	extern void fieldcpy_float_events(map<int, float>& event_map, int loop_spacing);
 	// Opens file and initializes. returns false if opening file was unsuccessful.
 	extern bool access_file(string file_path, bool write);

@@ -328,10 +328,10 @@ public:
 	void save_current_instrument();
 	void save_instruments();
 	void rename_instrument(const char new_name[9]);
+	int get_unsaved_instrument_count() const { return unsaved_instruments.size() + (get_number_of_unsaved_changes() == 0 ? 0 : 1); }
 	static Instrument* find_unsaved_instrument(const char name[9]);
 	shared_ptr<Gio::SimpleActionGroup> action_group;
 private:
-	int get_unsaved_count();
 	void create_oplfm_editor();
 	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod, OPLFM* n_car, OPLFM* n_mod);
 	void update_oplfm_property(int idx, uint8_t* base_car_value_ptr, uint8_t* base_mod_value_ptr,
@@ -342,7 +342,7 @@ private:
 	void on_value_event();
 	void on_scroll_piano();
 	bool on_mouse_scroll_piano(double x, double y);
-	int get_number_of_unsaved_changes();
+	int get_number_of_unsaved_changes() const;
 	Instrument* instrument_ptr = nullptr;
 	Instrument new_instrument;
 	vector<unique_ptr<OPLFMPropertyControl>> carrier_properties;

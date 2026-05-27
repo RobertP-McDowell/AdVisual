@@ -182,19 +182,23 @@ using namespace Gtk;
 	file_menu->append("Help", "actions.show_help");
 	file_menu->append("Settings", "actions.open_settings");
 	file_menu->append("Quit", "actions.quit");
+	file_button.set_can_focus(false);
 	append(file_button);
 
 	composer_button = create_image_button("ComposerIcon.svg");
 	composer_button.set_active();
 	composer_button.set_action_name("actions.open_panel");
 	composer_button.set_action_target_value(Glib::create_variant(0));
+	composer_button.set_can_focus(false);
 	append(composer_button);
 	ToggleButton insmaker_button = create_image_button("InsmakerIcon.svg");
 	insmaker_button.set_action_name("actions.open_panel");
 	insmaker_button.set_action_target_value(Glib::create_variant(1));
+	insmaker_button.set_can_focus(false);
 	append(insmaker_button);
 	play_button = create_image_button("PlayButton.svg");
 	play_button.set_action_name("actions.toggle_play_song");
+	play_button.set_can_focus(false);
 	append(play_button);
 	append(composer_toolbar);
 	append(insmaker_toolbar);
@@ -204,6 +208,7 @@ using namespace Gtk;
 void Toolbar::create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel) {
 using namespace Gtk;
 	composer_panel = p_composer_panel;
+	composer_panel->set_can_focus(false);
 	for (int i = 0; i < 11; i++) {
 		string channel_name = "CH" + to_string(i + 1);
 		ChannelButton* channel_button = make_managed<ChannelButton>(i);
@@ -267,7 +272,9 @@ protected:
 	void save_panel();
 	void save_as();
 	void on_select_file(bool loading_bank, bool saving);
-	void on_file_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog, bool saving);
+	void on_file_selected(const shared_ptr<Gio::AsyncResult>& result, const shared_ptr<Gtk::FileDialog>& dialog, bool saving);
+	bool on_close_request();
+	void on_close_dialog_choose(const shared_ptr<Gio::AsyncResult>& result, const shared_ptr<Gtk::AlertDialog>& dialog);
 };
 
 shared_ptr<Gtk::GestureClick> MainWindow::global_lmb_gesture = nullptr;
@@ -366,7 +373,6 @@ using namespace Gtk;
 	common_action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
 	common_action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
 	common_action_group->add_action("show_help", mem_fun(*this, &MainWindow::show_help));
-	common_action_group->add_action("quit", mem_fun(*app, &Application::quit));
 // Toolbar actions.
 	common_action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
 	insert_action_group("actions", common_action_group);
@@ -383,8 +389,12 @@ using namespace Gtk;
 	insert_action_group("insmaker", insmaker_panel->action_group);
 	insert_action_group("composer", composer_panel->action_group);
 // Create common shortcuts.
-	app->set_accel_for_action("actions.load", "<Primary>l");
-	app->set_accel_for_action("actions.save", "<Primary>s");
+	app->set_accel_for_action("actions.toggle_play_song", "<Ctrl>space");
+	app->set_accel_for_action("actions.load", "<Ctrl>l");
+	app->set_accel_for_action("actions.save", "<Ctrl>s");
+	app->set_accel_for_action("actions.quit", "<Ctrl>q");
+// Signal handlers.
+	signal_close_request().connect(mem_fun(*this, &MainWindow::on_close_request), false);
 
 	show();
 }
@@ -434,7 +444,7 @@ void MainWindow::save() {
 
 	if (!current_bank->file_path.empty()) {
 		insmaker_panel->save_instruments();
-		current_bank->save_file(current_track->file_path);
+		current_bank->save_file(current_bank->file_path);
 	}
 	else { on_select_file(true, true); }
 }
@@ -462,13 +472,19 @@ using namespace Gtk;
 	filters->append(bank_filter);
 
 	dialog->set_filters(filters);
-	if (bank) { dialog->set_default_filter(bank_filter); }
-	else      { dialog->set_default_filter(track_filter); }
+	if (bank) {
+		dialog->set_default_filter(bank_filter);
+		dialog->set_accept_label(saving ? "Save Bank" : "Load Bank");
+	}
+	else      {
+		dialog->set_default_filter(track_filter);
+		dialog->set_accept_label(saving ? "Save Track" : "Load Track");
+	}
 	if (saving) { dialog->save(sigc::bind(mem_fun(*this, &MainWindow::on_file_selected), dialog, saving)); }
 	else { dialog->open(sigc::bind(mem_fun(*this, &MainWindow::on_file_selected), dialog, saving)); }
 }
 
-void MainWindow::on_file_selected(const Glib::RefPtr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog, bool saving) {
+void MainWindow::on_file_selected(const shared_ptr<Gio::AsyncResult>& result, const Glib::RefPtr<Gtk::FileDialog>& dialog, bool saving) {
 using namespace Gtk;
 	try {
 		shared_ptr<Gio::File> file = (saving ? dialog->save_finish(result) : dialog->open_finish(result));
@@ -486,7 +502,10 @@ using namespace Gtk;
 
 		// Compare file extension.
 		if (file_ext == "ROL") {
-			if (saving) { current_track->save_file(filename); }
+			if (saving) {
+				current_track->save_file(filename);
+				composer_panel->on_track_saved();
+			}
 			else  { current_track->load_file(filename); }
 		}
 		if (file_ext == "BNK") {
@@ -500,6 +519,31 @@ using namespace Gtk;
 	catch (const Gtk::DialogError& err) {
 		cout << "No file selected\n";
 	}
-	
 }
 
+bool MainWindow::on_close_request() {
+	if (composer_panel->is_unsaved() && insmaker_panel->get_unsaved_instrument_count() == 0) {
+		return false; // Both composer and insmaker are saved already, so allow quit.
+	}
+	cout << "You have unsaved changes!" << "\n";
+	shared_ptr<Gtk::AlertDialog> dialog = Gtk::AlertDialog::create("You have unsaved Track or Bank changes!");
+	dialog->set_buttons({"Quit", "Save", "Cancel"});
+	dialog->set_cancel_button(2);
+	dialog->set_default_button(2);
+	dialog->choose(*this, sigc::bind(mem_fun(*this, &MainWindow::on_close_dialog_choose), dialog));
+	
+	return true; // Don't quit.
+}
+
+void MainWindow::on_close_dialog_choose(const shared_ptr<Gio::AsyncResult>& result, const shared_ptr<Gtk::AlertDialog>& dialog) {
+	int pressed = dialog->choose_finish(result);
+	if (pressed == 2) { return; } // Cancel.
+	if (pressed == 1) {
+		save();
+		return;
+	}
+	if (pressed == 0) {
+		app->quit();
+		return;
+	}
+}

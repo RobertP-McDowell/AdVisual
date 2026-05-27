@@ -100,6 +100,8 @@ public:
 	};
 	void toggle_insert_mode();
 	void update_grid_width();
+	bool is_unsaved() { return (last_saved_undo_index == undo_index); }
+	void on_track_saved();
 	static void add_undo(unique_ptr<UndoCommand> new_command, bool is_continuous = false);
 	static void set_continuous_undo(bool value) { continuous_undo = value; }
 	static bool get_continuous_undo() { return continuous_undo; }
@@ -133,6 +135,7 @@ protected:
 	bool insert_mode = true;
 	int copy_buffer_start_tick = 0, copy_buffer_length = 0;
 	NoteGroup copy_buffer;
+	static int last_saved_undo_index;
 	static int undo_index;
 	static bool continuous_undo;
 
