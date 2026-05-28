@@ -56,6 +56,11 @@ install(DIRECTORY themes DESTINATION share/advisual
 install(FILES "docs.txt" DESTINATION share/advisual
 	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ)
 
+if (UNIX)
+	install(FILES "advisual.desktop" DESTINATION share/applications)
+	install(FILES "icons/advisual.svg" DESTINATION share/icons/hicolor/scalable/apps)
+endif()
+
 set(COPY_GTKMM_LIBRARIES OFF CACHE BOOL "Meant to be used for MSYS2 for windows")
 if (COPY_GTKMM_LIBRARIES)
 	install( CODE [[
