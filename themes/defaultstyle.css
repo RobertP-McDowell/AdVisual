@@ -52,6 +52,11 @@ headerbar * button {
 	color: @primary_bg;
 	border-radius: 0px;
 }
+headerbar * button:hover {
+	background: @hover_bg;
+	color: @primary_bg;
+	border-radius: 0px;
+}
 headerbar * button * {
 	border-radius: 0px;
 }
