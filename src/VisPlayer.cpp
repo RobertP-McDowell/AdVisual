@@ -155,23 +155,42 @@ CPlayer* CVisPlayer::factory(Copl* p_opl, Track* p_track, Bank* p_bank) {
 	return new CVisPlayer(p_opl, p_track, p_bank);
 }
 //---------------------------------------------------------
+void CVisPlayer::refresh_track_events() {
+	int tempo_tick; // Reset properties to last events.
+	float tempo_value;
+	track->get_last_tempo_event(tick, tempo_tick, tempo_value);
+	refresh_rate = (track->ticks_per_beat * track->basic_tempo * tempo_value) / 60.0f;
+	for (int v = 0; v < get_channel_count(); v++) {
+		refresh_voice_events(v);
+	}
+}
+void CVisPlayer::refresh_voice_events(int v) {
+	Channel* channel = track->get_channel(v);
+	int ins_tick, pitch_tick, volume_tick;
+	float pitch_value, volume_value;
+	string ins_value;
+	channel->get_last_instrument_event(tick, ins_tick, ins_value);
+	channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
+	channel->get_last_volume_event(tick, volume_tick, volume_value);
+	Instrument* instrument = bank->find_instrument(ins_value);
+	if (instrument == nullptr) {
+		cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
+		set_instrument(v, &Instrument::default_instrument);
+	}
+	else {
+		set_instrument(v, instrument);
+	}
+	set_volume(v, uint8_t(kMaxVolume * volume_value));
+	change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+}
+//---------------------------------------------------------
 void CVisPlayer::enable_channel(int v) {
 	if (v >= get_channel_count()) {
 		return;
 	}
 	note_off(v);
 	dynamic_notes[v] = -1;
-	int ins_tick, pitch_tick, volume_tick;
-	float pitch_value, volume_value;
-	string ins_value;
-	Channel* channel = track->get_channel(v);
-	channel->get_last_instrument_event(tick, ins_tick, ins_value);
-	channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
-	channel->get_last_volume_event(tick, volume_tick, volume_value);
-	Instrument* instrument = bank->find_instrument(ins_value);
-	set_instrument(v, instrument);
-	set_volume(v, uint8_t(kMaxVolume * volume_value));
-	change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+	refresh_voice_events(v);
 }
 //---------------------------------------------------------
 void CVisPlayer::channel_play_note(int channel, int note_pitch, Instrument* instrument, float pitch_mult, float volume_mult) {
@@ -284,32 +303,9 @@ void CVisPlayer::rewind(int subsong) {
 
 	opl->init();         // initialize to melodic by default
 
-	int tempo_tick; // Reset properties to last events.
-	float tempo_value;
-	track->get_last_tempo_event(tick, tempo_tick, tempo_value);
-	refresh_rate = (track->ticks_per_beat * track->basic_tempo * tempo_value) / 60.0f;
-	for (int v = 0; v < 11; v++) {
-		Channel* channel = track->get_channel(v);
-		int ins_tick, pitch_tick, volume_tick;
-		float pitch_value, volume_value;
-		string ins_value;
-		channel->get_last_instrument_event(tick, ins_tick, ins_value);
-		channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
-		channel->get_last_volume_event(tick, volume_tick, volume_value);
-		Instrument* instrument = bank->find_instrument(ins_value);
-		if (instrument == nullptr) {
-			cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
-			set_instrument(v, &Instrument::default_instrument);
-		}
-		else {
-			set_instrument(v, instrument);
-		}
-		set_volume(v, uint8_t(kMaxVolume * volume_value));
-		change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
-	}
-
 	set_rhythm_mode(!track->melodic_mode);
 	opl->write(skOPL2_WaveCtrlBaseAddress, skOPL2_EnableWaveformSelectMask); // Enable waveform select
+	refresh_track_events();
 }
 //---------------------------------------------------------
 int CVisPlayer::get_channel_count() const { return (mRhythmMode == 1 ? kNumPercussiveVoices : kNumMelodicVoices); }

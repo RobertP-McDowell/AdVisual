@@ -96,7 +96,9 @@ public:
 	uint8_t get_ksltl(const int voice, const uint8_t volume, const int carrier_ksltl);
 	void set_volume(const int voice, const uint8_t volume);
 protected:
-	void update_voice(int v);
+	void refresh_track_events();
+	void refresh_voice_events(const int voice);
+	void update_voice(const int voice);
 	bool update_track();
 	void note_on(const int voice, const int note);
 	void note_off(const int voice);
