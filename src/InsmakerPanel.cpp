@@ -289,11 +289,8 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 }
 
 void InsmakerPanel::save_current_instrument() {
-	for (auto&& prop : carrier_properties) {
-		prop->save_base_value();
-	}
-	for (auto&& prop : modulator_properties) {
-		prop->save_base_value();
+	if (instrument_ptr != nullptr) {
+		*instrument_ptr = new_instrument;
 	}
 }
 

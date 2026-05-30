@@ -155,11 +155,11 @@ CPlayer* CVisPlayer::factory(Copl* p_opl, Track* p_track, Bank* p_bank) {
 	return new CVisPlayer(p_opl, p_track, p_bank);
 }
 //---------------------------------------------------------
-void CVisPlayer::EnableChannel(int v) {
+void CVisPlayer::enable_channel(int v) {
 	if (v >= get_channel_count()) {
 		return;
 	}
-	NoteOff(v);
+	note_off(v);
 	dynamic_notes[v] = -1;
 	int ins_tick, pitch_tick, volume_tick;
 	float pitch_value, volume_value;
@@ -169,46 +169,46 @@ void CVisPlayer::EnableChannel(int v) {
 	channel->get_last_pitch_event(tick, pitch_tick, pitch_value);
 	channel->get_last_volume_event(tick, volume_tick, volume_value);
 	Instrument* instrument = bank->find_instrument(ins_value);
-	SetInstrument(v, instrument);
-	SetVolume(v, uint8_t(kMaxVolume * volume_value));
-	ChangePitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+	set_instrument(v, instrument);
+	set_volume(v, uint8_t(kMaxVolume * volume_value));
+	change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
 }
 //---------------------------------------------------------
-void CVisPlayer::DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument, float pitch_mult, float volume_mult) {
+void CVisPlayer::channel_play_note(int channel, int note_pitch, Instrument* instrument, float pitch_mult, float volume_mult) {
 	if (channel >= get_channel_count()) {
-		cerr << "DisableChannelAndPlayNote() voice " << channel << " >= " << get_channel_count() << "\n";
+		cerr << "disable_channel_and_play_note() voice " << channel << " >= " << get_channel_count() << "\n";
 		return;
 	}
-	if (note_pitch <= -1) { // Let the channel play as normal (if it's also enabled).
-		NoteOff(channel);
+	if (note_pitch <= -1) { // Let the channel play as normal.
+		note_off(channel);
 		dynamic_notes[channel] = -1;
 		return;
 	}
-	if (instrument != nullptr) {
-		SetInstrument(channel, instrument);
-	}
-	SetVolume(channel, uint8_t(kMaxVolume * volume_mult));
-	ChangePitch(channel, ( pitch_mult == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_mult) ));
 	if (note_pitch == 0) { // 0 still overrides the notes on the channel, but doesn't play anything.
-		NoteOff(channel);
+		note_off(channel);
 	}
 	else if (note_pitch > 0) { // Anything above 0 will play sound like a normal note.
-		NoteOn(channel, 107 - note_pitch);
+		if (instrument != nullptr) {
+			set_instrument(channel, instrument);
+		}
+		set_volume(channel, uint8_t(kMaxVolume * volume_mult));
+		change_pitch(channel, ( pitch_mult == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_mult) ));
+		note_on(channel, 107 - note_pitch);
 	}
 	dynamic_notes[channel] = note_pitch;
 }
 //---------------------------------------------------------
-void CVisPlayer::EnableAllChannels() {
+void CVisPlayer::enable_all_channels() {
 	for (int v = 0; v < kNumPercussiveVoices; v++) {
 		dynamic_notes[v] = -1;
-		NoteOff(v);
+		note_off(v);
 	}
 }
 //---------------------------------------------------------
-void CVisPlayer::DisableAllChannels() {
+void CVisPlayer::disable_all_channels() {
 	for (int v = 0; v < kNumPercussiveVoices; v++) {
 		dynamic_notes[v] = 0;
-		NoteOff(v);
+		note_off(v);
 	}
 }
 //---------------------------------------------------------
@@ -227,27 +227,27 @@ void CVisPlayer::update_voice(int v) {
 			if (ins_tick == tick) {
 				cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
 			}
-			SetInstrument(v, &Instrument::default_instrument);
+			set_instrument(v, &Instrument::default_instrument);
 		}
 		else {
-			SetInstrument(v, instrument);
+			set_instrument(v, instrument);
 		}
 	}
 	if (volume_tick == tick) {
-		SetVolume(v, uint8_t(kMaxVolume * volume_value));
+		set_volume(v, uint8_t(kMaxVolume * volume_value));
 	}
 	if (pitch_tick == tick) {
-		ChangePitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+		change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
 	}
 
 	Note* note_at_tick = channel->get_note_on_tick(tick);
 	if (note_at_tick == nullptr) { // Turned off.
 		if (channel->get_note_on_tick(tick-1) != nullptr) { // Just turned off.
-			NoteOff(v);
+			note_off(v);
 		}
 	}
 	else if (note_at_tick->offset == tick) { // Turned on.
-		NoteOn(v, 107 - note_at_tick->pitch);
+		note_on(v, 107 - note_at_tick->pitch);
 	}
 }
 
@@ -299,30 +299,30 @@ void CVisPlayer::rewind(int subsong) {
 		Instrument* instrument = bank->find_instrument(ins_value);
 		if (instrument == nullptr) {
 			cerr << "Channel " << v << " Couldn't find instrument of name " << ins_value << "\n";
-			SetInstrument(v, &Instrument::default_instrument);
+			set_instrument(v, &Instrument::default_instrument);
 		}
 		else {
-			SetInstrument(v, instrument);
+			set_instrument(v, instrument);
 		}
-		SetVolume(v, uint8_t(kMaxVolume * volume_value));
-		ChangePitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
+		set_volume(v, uint8_t(kMaxVolume * volume_value));
+		change_pitch(v, ( pitch_value == 1.0f ? kMidPitch : uint16_t((0x3fff >> 1) * pitch_value) ));
 	}
 
-	SetRhythmMode(!track->melodic_mode);
+	set_rhythm_mode(!track->melodic_mode);
 	opl->write(skOPL2_WaveCtrlBaseAddress, skOPL2_EnableWaveformSelectMask); // Enable waveform select
 }
 //---------------------------------------------------------
 int CVisPlayer::get_channel_count() const { return (mRhythmMode == 1 ? kNumPercussiveVoices : kNumMelodicVoices); }
 //---------------------------------------------------------
-void CVisPlayer::SetRhythmMode(int const mode)
+void CVisPlayer::set_rhythm_mode(int const mode)
 {
 	if (mode)
 	{
 		mAMVibRhythmCache |= skOPL2_RhythmMask;
 		opl->write(skOPL2_AmVibRhythmBaseAddress, mAMVibRhythmCache); // Enable rhythm mode
 
-		SetFreq(kTomtomChannel, kTomTomNote);
-		SetFreq(kSnareDrumChannel, kSnareNote);
+		set_freq(kTomtomChannel, kTomTomNote);
+		set_freq(kSnareDrumChannel, kSnareNote);
 	}
 	else
 	{
@@ -333,29 +333,29 @@ void CVisPlayer::SetRhythmMode(int const mode)
 	mRhythmMode = mode;
 }
 //---------------------------------------------------------
-void CVisPlayer::SetNote(int const voice, int const note)
+void CVisPlayer::set_note(int const voice, int const note)
 {
 	if ((voice < kBassDrumChannel) || !mRhythmMode)
 	{
-		SetNoteMelodic(voice, note);
+		set_note_melodic(voice, note);
 	}
 	else
 	{
-		SetNotePercussive(voice, note);
+		set_note_percussive(voice, note);
 	}
 }
 //---------------------------------------------------------
-void CVisPlayer::NoteOn(int const voice, int const note)
+void CVisPlayer::note_on(int const voice, int const note)
 {
-	SetNote(voice, note + kSilenceNote);
+	set_note(voice, note + kSilenceNote);
 }
 //---------------------------------------------------------
-void CVisPlayer::NoteOff(int const voice)
+void CVisPlayer::note_off(int const voice)
 {
-	SetNote(voice, kSilenceNote);
+	set_note(voice, kSilenceNote);
 }
 //---------------------------------------------------------
-void CVisPlayer::SetNotePercussive(int const voice, int const note)
+void CVisPlayer::set_note_percussive(int const voice, int const note)
 {
 	int const channel_bit_mask = 1 << (4-voice+kBassDrumChannel);
 	mAMVibRhythmCache &= ~channel_bit_mask;
@@ -367,11 +367,11 @@ void CVisPlayer::SetNotePercussive(int const voice, int const note)
 		switch(voice)
 		{
 			case kTomtomChannel:
-				SetFreq(kTomtomChannel, note);
-				SetFreq(kSnareDrumChannel, note + kTomTomToSnare);
+				set_freq(kTomtomChannel, note);
+				set_freq(kSnareDrumChannel, note + kTomTomToSnare);
 				break;
 			case kBassDrumChannel:
-				SetFreq(voice, note);
+				set_freq(voice, note);
 				break;
 			default:
 				// Does nothing
@@ -384,10 +384,10 @@ void CVisPlayer::SetNotePercussive(int const voice, int const note)
 	}
 }
 //---------------------------------------------------------
-void CVisPlayer::SetNoteMelodic(int const voice, int const note) {
+void CVisPlayer::set_note_melodic(int const voice, int const note) {
 	if (voice >= kNumMelodicVoices)
 	{
-		DBPRINT("COMPOSER: SetNoteMelodic() voice " << voice << " >= " << kNumMelodicVoices);
+		DBPRINT("COMPOSER: set_note_melodic() voice " << voice << " >= " << kNumMelodicVoices);
 		return;
 	}
 	opl->write(skOPL2_KeyOnFreqHiBaseAddress + voice, mKOnOctFNumCache[voice] & ~skOPL2_KeyOnMask);
@@ -395,11 +395,11 @@ void CVisPlayer::SetNoteMelodic(int const voice, int const note) {
 
 	if (note != kSilenceNote)
 	{
-		SetFreq(voice, note, true);
+		set_freq(voice, note, true);
 	}
 }
 //---------------------------------------------------------
-void CVisPlayer::SetPitchRange(uint8_t pitchRange) {
+void CVisPlayer::set_pitch_range(uint8_t pitchRange) {
 	if (pitchRange > 12)
 		pitchRange = 12;
 	if (pitchRange < 1)
@@ -408,7 +408,7 @@ void CVisPlayer::SetPitchRange(uint8_t pitchRange) {
 }
 //---------------------------------------------------------
 // From Adlib Music SDK's ADLIB.C ...
-void CVisPlayer::ChangePitch(int voice, uint16_t const pitchBend) {
+void CVisPlayer::change_pitch(int voice, uint16_t const pitchBend) {
 	int32_t const pitchBendLength = (int32_t)(pitchBend - kMidPitch) * mPitchRangeStep;
 
 	if ((voice >= kBassDrumChannel) && mRhythmMode)
@@ -445,10 +445,10 @@ void CVisPlayer::ChangePitch(int voice, uint16_t const pitchBend) {
 		mOldPitchBendLength = pitchBendLength;
 	}
 
-	SetFreq(voice, mNoteCache[voice], mKeyOnCache[voice]);
+	set_freq(voice, mNoteCache[voice], mKeyOnCache[voice]);
 }
 //---------------------------------------------------------
-void CVisPlayer::SetFreq(int const voice, int const note, bool const keyOn) {
+void CVisPlayer::set_freq(int const voice, int const note, bool const keyOn) {
 	int const biased_note = std::max(0, std::min((skMaxNotes-1), note + mHalfToneOffset[voice]));
 
 	uint16_t const frequency = *(mFNumFreqPtrList[voice] + skNoteIndex[biased_note]);
@@ -462,7 +462,7 @@ void CVisPlayer::SetFreq(int const voice, int const note, bool const keyOn) {
 	opl->write(skOPL2_KeyOnFreqHiBaseAddress + voice, mKOnOctFNumCache[voice] | (keyOn ? skOPL2_KeyOnMask : 0x0));
 }
 //---------------------------------------------------------
-uint8_t CVisPlayer::GetKSLTL(const int voice, const uint8_t volume, const int carrier_ksltl) {
+uint8_t CVisPlayer::get_ksltl(const int voice, const uint8_t volume, const int carrier_ksltl) {
 	uint16_t kslTL = skOPL2_TLMinLevel - (mKSLTLCache[voice] & skOPL2_TLMask); // amplitude
 
 	kslTL = mVolumeCache[voice] * kslTL;
@@ -474,18 +474,18 @@ uint8_t CVisPlayer::GetKSLTL(const int voice, const uint8_t volume, const int ca
 	return static_cast<uint8_t>(kslTL);
 }
 //---------------------------------------------------------
-void CVisPlayer::SetVolume(int const voice, const uint8_t volume) {
+void CVisPlayer::set_volume(int const voice, const uint8_t volume) {
 	if (voice >= kNumMelodicVoices && !mRhythmMode)
 	{
-		DBPRINT("COMPOSER: SetVolume() !mRhythmMode voice " << voice << " >= " << kNumMelodicVoices);
+		DBPRINT("COMPOSER: set_volume() !mRhythmMode voice " << voice << " >= " << kNumMelodicVoices);
 		return;
 	}
 	uint8_t const op_offset = (voice < kSnareDrumChannel || !mRhythmMode) ? op_table[voice] + skCarrierOpOffset : drum_op_table[voice - kSnareDrumChannel];
 	mVolumeCache[voice] = volume;
-	opl->write(skOPL2_KSLTLBaseAddress + op_offset, GetKSLTL(voice, volume, 0));
+	opl->write(skOPL2_KSLTLBaseAddress + op_offset, get_ksltl(voice, volume, 0));
 }
 //---------------------------------------------------------
-void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
+void CVisPlayer::set_instrument(const int voice, const Instrument* instrument) {
 	if (instrument == nullptr) {
 		instrument = &Instrument::default_instrument;
 	}
@@ -493,7 +493,7 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 	const OPLFM& m = instrument->modulator;
 	if ((voice < kSnareDrumChannel) || !mRhythmMode) {
 		if (voice >= kNumMelodicVoices) {
-			DBPRINT("COMPOSER: SetInstrument() !mRhythmMode voice " << voice << " >= " << kNumMelodicVoices);
+			DBPRINT("COMPOSER: set_instrument() !mRhythmMode voice " << voice << " >= " << kNumMelodicVoices);
 			return;
 		}
 		uint8_t const op_offset = op_table[voice];
@@ -509,7 +509,7 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 
 		opl->write(skOPL2_AaMultiBaseAddress  + op_offset + skCarrierOpOffset, c.reg20());
 		//opl->write(skOPL2_KSLTLBaseAddress    + op_offset + skCarrierOpOffset, c.reg40());
-		opl->write(skOPL2_KSLTLBaseAddress    + op_offset + skCarrierOpOffset, GetKSLTL(voice, 0, 0));
+		opl->write(skOPL2_KSLTLBaseAddress    + op_offset + skCarrierOpOffset, get_ksltl(voice, 0, 0));
 		opl->write(skOPL2_ArDrBaseAddress     + op_offset + skCarrierOpOffset, c.reg60());
 		opl->write(skOPL2_SlrrBaseAddress     + op_offset + skCarrierOpOffset, c.reg80());
 		opl->write(skOPL2_WaveformBaseAddress + op_offset + skCarrierOpOffset, c.regE0());
@@ -519,10 +519,10 @@ void CVisPlayer::SetInstrument(const int voice, const Instrument* instrument) {
 		mKSLTLCache[voice] = m.reg40();
 
 		opl->write(skOPL2_AaMultiBaseAddress  + op_offset, m.reg20());
-		opl->write(skOPL2_KSLTLBaseAddress    + op_offset, GetKSLTL(voice, 0, 0));
+		opl->write(skOPL2_KSLTLBaseAddress    + op_offset, get_ksltl(voice, 0, 0));
 		opl->write(skOPL2_ArDrBaseAddress     + op_offset, m.reg60());
 		opl->write(skOPL2_SlrrBaseAddress     + op_offset, m.reg80());
-		opl->write(skOPL2_FeedConBaseAddress  + voice    , m.regC0()); // TODO: Check if this should be uncommented.
+		//opl->write(skOPL2_FeedConBaseAddress  + voice    , m.regC0()); // TODO: Check if this should be uncommented.
 		opl->write(skOPL2_WaveformBaseAddress + op_offset, m.regE0());
 	}
 }

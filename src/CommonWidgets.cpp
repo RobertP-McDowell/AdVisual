@@ -201,13 +201,33 @@ void BankCtrl::search(string search_string) {
 		for (int stri = 0; stri < search_string.length(); stri++) {
 			if (stri > ins_strlen || search_string[stri] != ins.name[stri]) { break; }
 			if (stri > best_match_len) {
+				first_match_idx = insi;
 				best_match_idx = insi;
 				best_match_len = stri;
+			}
+			if (stri == best_match_len) {
+				last_match_idx = insi;
 			}
 		}
 	}
 	if (best_match_idx != -1) {
-		vadjust->set_value((best_match_idx + 1) * item_height);
+		ensure_range_visible(first_match_idx, last_match_idx);
+	}
+	else {
+		first_match_idx = -1;
+		last_match_idx = -1;
+	}
+	draw_panel.queue_draw();
+}
+
+void BankCtrl::ensure_range_visible(int first_item, int last_item) {
+	int first_scroll_offset = (first_item + 1) * item_height;
+	int last_scroll_offset = (last_item + 3) * item_height; // Plus 3, because of lower item height and a margin.
+	if (first_scroll_offset < vadjust->get_value()) {
+		vadjust->set_value(first_scroll_offset);
+	}
+	else if (last_scroll_offset > vadjust->get_value() + draw_panel.get_height()) {
+		vadjust->set_value(last_scroll_offset - draw_panel.get_height());
 	}
 }
 
@@ -215,6 +235,8 @@ void BankCtrl::search(string search_string) {
 void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {
 	if (current_bank == nullptr || current_bank->instruments.empty()) { return; }
 	RGBA select_color = RGBA(0.4, 0.4, 0.4, 1.0);
+	RGBA search_indicator_color = RGBA(0.7, 0.7, 0.7, 1.0);
+	double left_gap = 4;
 	double half_item_height = item_height / 2.0;
 	int items_start = max(0, (int)floor(vadjust->get_value() / item_height) - 1);
 	// Draw background for selected item.
@@ -226,11 +248,19 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 		cr->line_to(width, selected_start);
 		cr->stroke();
 	}
+	// Draw matching search items indicator.
+	if (first_match_idx != -1) {
+		Gdk::Cairo::set_source_rgba(cr, search_indicator_color);
+		cr->set_line_width(left_gap);
+		cr->move_to(left_gap / 2.0, (half_item_height - item_padding) + (first_match_idx - items_start) * item_height);
+		cr->line_to(left_gap / 2.0, (half_item_height - item_padding) + (last_match_idx - items_start + 1) * item_height);
+		cr->stroke();
+	}
 	// Draw text for each item.
 	Pango::FontDescription font;
 	font.set_family("Monospace");
 	font.set_weight(Pango::Weight::BOLD);
-	font.set_size((item_height) * PANGO_SCALE);
+	font.set_size((item_height - item_padding) * PANGO_SCALE);
 	shared_ptr<Pango::Layout> layout = create_pango_layout("");
 	layout->set_font_description(font);
 	int items_visible = (height / item_height) + 2;
@@ -247,7 +277,7 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 			ins_text += "*";
 		}
 		layout->set_text(ins_text);
-		cr->move_to(0, (i - items_start) * item_height);
+		cr->move_to(left_gap, (i - items_start) * item_height);
 		layout->show_in_cairo_context(cr);
 	}
 }

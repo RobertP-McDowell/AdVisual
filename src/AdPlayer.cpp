@@ -96,8 +96,8 @@ AdPlayer::AdPlayer() {
 	}
 	opl_device->init();
 	opl_playback.reset(static_cast<CVisPlayer*>(CVisPlayer::factory( opl_device.get(), current_track, current_bank )));
-	opl_playback->DisableAllChannels(); // So if we play a note in editor the song wont start.
-	opl_playback->SetRhythmMode(1);
+	opl_playback->disable_all_channels(); // So if we play a note in editor the song wont start.
+	opl_playback->set_rhythm_mode(1);
 }
 
 AdPlayer::~AdPlayer() {
@@ -113,14 +113,14 @@ AdPlayer::~AdPlayer() {
 
 void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 	if (instrument != nullptr) {
-		if (instrument->percussion_mode != 0 || channel >= 9) {
-			opl_playback->SetRhythmMode(1);
+		if (instrument->percussion_mode != 0 || channel > 7) {
+			if (opl_playback->get_rhythm_mode() != 1) { opl_playback->set_rhythm_mode(1); }
 			if (instrument->percussion_mode != 0) { channel = instrument->voice_number; }
 		}
 	}
 	if (note_number != 0) { DBPRINT("Play dynamic note at channel: " << channel); }
 	else { DBPRINT("Stop dynamic note at channel: " << channel); }
-	opl_playback->DisableChannelAndPlayNote(channel, note_number, instrument);
+	opl_playback->channel_play_note(channel, note_number, instrument);
 
 	if (!active) {
 		DBPRINT("Starting playback to play dynamic note");
@@ -133,10 +133,10 @@ void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
 void AdPlayer::set_channel_enable(int channel, bool enable) {
 	enabled_channels[channel] = enable;
 	if (enable == true) {
-		opl_playback->EnableChannel(channel);
+		opl_playback->enable_channel(channel);
 	}
 	else {
-		opl_playback->DisableChannelAndPlayNote(channel, 0, nullptr);
+		opl_playback->channel_play_note(channel, 0, nullptr);
 	}
 }
 
@@ -151,12 +151,12 @@ void AdPlayer::toggle_play_song() {
 }
 
 bool AdPlayer::play(string file_path, int start_from) {
-	opl_playback->SetTrack(current_track);
-	opl_playback->SetBank(current_bank);
-	opl_playback->EnableAllChannels();
+	opl_playback->set_track(current_track);
+	opl_playback->set_bank(current_bank);
+	opl_playback->enable_all_channels();
 	for (int v = 0; v < 11; v++) {
 		if (enabled_channels[v] == false) {
-			opl_playback->DisableChannelAndPlayNote(v, 0, nullptr);
+			opl_playback->channel_play_note(v, 0, nullptr);
 		}
 	}
 	opl_playback->rewind(start_from);
@@ -187,7 +187,7 @@ void AdPlayer::seek(unsigned long p_tick) {
 }
 
 void AdPlayer::stop() {
-	opl_playback->DisableAllChannels(); // So if we play a note in editor the song wont continue.
+	opl_playback->disable_all_channels(); // So if we play a note in editor the song wont continue.
 	ma_device_stop(&mini_device);
 	towrite = 0;
 	active = false;

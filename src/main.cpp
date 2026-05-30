@@ -208,7 +208,7 @@ using namespace Gtk;
 void Toolbar::create_composer_tools(shared_ptr<ComposerPanel> p_composer_panel) {
 using namespace Gtk;
 	composer_panel = p_composer_panel;
-	composer_panel->set_can_focus(false);
+	composer_toolbar.set_can_focus(false);
 	for (int i = 0; i < 11; i++) {
 		string channel_name = "CH" + to_string(i + 1);
 		ChannelButton* channel_button = make_managed<ChannelButton>(i);
@@ -401,7 +401,7 @@ using namespace Gtk;
 
 int main(int argc, char* argv[]) {
 using namespace Gtk;
-	app = Application::create("com.github.advisual");
+	app = Application::create("com.github.advisual", Application::Flags::NON_UNIQUE);
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 

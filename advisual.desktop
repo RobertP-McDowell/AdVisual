@@ -25,3 +25,9 @@ Terminal=false
 # Describes the categories in which this entry should be shown
 Categories=Development;
 Keywords=daw;editor;rol;bnk;adlib;
+
+Actions=new-window
+
+[Desktop Action new-window]
+Name=New Window
+Exec=advisual

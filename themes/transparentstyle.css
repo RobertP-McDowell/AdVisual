@@ -1,9 +1,9 @@
 @define-color primary_fg rgba(255, 255, 255, 1.0);
-@define-color primary_bg rgba(25, 5, 10, 0.9);
+@define-color primary_bg rgba(30, 30, 30, 0.5);
 @define-color primary_border rgba(75, 75, 75, 1.0);
 
 @define-color secondary_fg rgba(150, 150, 150, 1.0);
-@define-color secondary_bg rgba(15, 10, 15, 0.5);
+@define-color secondary_bg rgba(15, 15, 15, 0.0);
 @define-color secondary_border rgba(50, 50, 50, 1.0);
 
 @define-color active_bg rgba(80, 20, 20, 1.0);
@@ -246,7 +246,7 @@ spinbutton:focus-within selection {
 }
 
 .piano-ctrl {
-	background: rgba(255, 255, 255, 1.0);
+	background: rgb(255, 255, 255);
 }
 
 .bank-ctrl > .drawing-area {

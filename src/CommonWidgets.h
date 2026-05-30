@@ -30,6 +30,7 @@ public:
 	BankCtrl();
 	void update();
 	void search(string search_string);
+	void ensure_range_visible(int first_item, int last_item);
 	sigc::signal<void(Instrument*)> instrument_selected;
 protected:
 	void on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height);
@@ -40,8 +41,8 @@ protected:
 	shared_ptr<Gtk::Adjustment> vadjust;
 	shared_ptr<Gtk::GestureClick> lmb_gesture;
 	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
-	int selected_item_idx = -1;
-	double item_height = 10, item_gap = 6, panel_stretch = 1.2;
+	int selected_item_idx = -1, first_match_idx = -1, last_match_idx = -1;
+	double item_height = 12, item_padding = 2, panel_stretch = 1.2;
 };
 
 class PianoCtrl : public Gtk::DrawingArea {

@@ -83,27 +83,28 @@ public:
 	static const uint32_t kMidPitch;
 	static const uint8_t  kMaxVolume;
 
-	void SetBank(Bank* p_bank) { bank = p_bank; }
-	void SetTrack(Track* p_track) { track = p_track; SetRhythmMode(!track->melodic_mode); }
-	void EnableChannel(int v);
-	void DisableChannelAndPlayNote(int channel, int note_pitch, Instrument* instrument = nullptr, float pitch_mult = 1.0, float volume_mult = 1.0);
-	void EnableAllChannels();
-	void DisableAllChannels();
-	void SetRhythmMode(const int mode);
-	void SetPitchRange(uint8_t pitchRange);
-	void ChangePitch(int voice, const uint16_t pitchBend);
-	uint8_t GetKSLTL(const int voice, const uint8_t volume, const int carrier_ksltl);
-	void SetVolume(const int voice, const uint8_t volume);
+	void set_bank(Bank* p_bank) { bank = p_bank; }
+	void set_track(Track* p_track) { track = p_track; set_rhythm_mode(!track->melodic_mode); }
+	void enable_channel(int v);
+	void channel_play_note(int channel, int note_pitch, Instrument* instrument = nullptr, float pitch_mult = 1.0, float volume_mult = 1.0);
+	void enable_all_channels();
+	void disable_all_channels();
+	void set_rhythm_mode(const int mode);
+	int get_rhythm_mode() const { return mRhythmMode; }
+	void set_pitch_range(uint8_t pitchRange);
+	void change_pitch(int voice, const uint16_t pitchBend);
+	uint8_t get_ksltl(const int voice, const uint8_t volume, const int carrier_ksltl);
+	void set_volume(const int voice, const uint8_t volume);
 protected:
 	void update_voice(int v);
 	bool update_track();
-	void NoteOn(const int voice, const int note);
-	void NoteOff(const int voice);
-	void SetNote(const int voice, const int note);
-	void SetNoteMelodic(const int voice, const int note);
-	void SetNotePercussive(const int voice, const int note);
-	void SetFreq(const int voice, const int note, const bool keyOn=false);
-	void SetInstrument(const int voice, const Instrument* instrument);
+	void note_on(const int voice, const int note);
+	void note_off(const int voice);
+	void set_note(const int voice, const int note);
+	void set_note_melodic(const int voice, const int note);
+	void set_note_percussive(const int voice, const int note);
+	void set_freq(const int voice, const int note, const bool keyOn=false);
+	void set_instrument(const int voice, const Instrument* instrument);
 	int get_channel_count() const;
 
 	typedef const uint16_t*              TUint16ConstPtr;
