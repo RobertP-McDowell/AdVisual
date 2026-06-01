@@ -9,7 +9,8 @@
 using namespace std;
 
 extern int cursor_tick;
-extern int cursor_end;
+extern int selection1;
+extern int selection2;
 extern vector<unique_ptr<UndoCommand>> composer_undo;
 
 class EventPopup : public Gtk::Popover {
@@ -107,11 +108,12 @@ public:
 	static bool get_continuous_undo() { return continuous_undo; }
 	static UndoCommand::Reason get_last_undo_reason();
 	// General.
-	static int selection_start() { return (cursor_tick < cursor_end ? cursor_tick : cursor_end); }
-	static int selection_end() { return (cursor_tick < cursor_end ? cursor_end : cursor_tick); }
-	static int selection_length() { return (cursor_tick < cursor_end ? cursor_end - cursor_tick : cursor_tick - cursor_end); }
+	static int selection_start() { return (selection1 < selection2 ? selection1 : selection2); }
+	static int selection_end() { return (selection1 < selection2 ? selection2 : selection1); }
+	static int selection_length() { return (selection1 < selection2 ? selection2 - selection1 : selection1 - selection2); }
+	static bool has_selection() { return selection1 != selection2; }
 	static sigc::signal<void()> signal_cursor_moved;
-	static void set_cursor_tick(int p_cursor_tick, int p_end_tick);
+	static void set_cursor_tick(int p_new_tick);
 protected:
 	// Signals.
 	void on_show() override;

@@ -15,7 +15,6 @@ class AdPlayer {
 public:
 	AdPlayer();
 	~AdPlayer();
-	void toggle_play_song();
 	bool play(string file_path = "", int start_from = 0); // Returns false if failed to play.
 	void play_note(int note_number, int channel, Instrument* instrument);
 	void stop();
@@ -23,6 +22,7 @@ public:
 	void mix_miniaudio(ma_device* p_device, void* p_output, const void* p_input, ma_uint32 frame_count);
 	void set_channel_enable(int channel, bool enable);
 	bool get_channel_enable(int channel) const { return enabled_channels[channel]; }
+	bool is_playing() const { return playing_song; }
 protected:
 	long towrite;
 	ma_device mini_device;

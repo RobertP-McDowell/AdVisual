@@ -197,7 +197,7 @@ using namespace Gtk;
 	insmaker_button.set_can_focus(false);
 	append(insmaker_button);
 	play_button = create_image_button("PlayButton.svg");
-	play_button.set_action_name("actions.toggle_play_song");
+	play_button.set_action_name("actions.playing_song");
 	play_button.set_can_focus(false);
 	append(play_button);
 	append(composer_toolbar);
@@ -275,6 +275,8 @@ protected:
 	void on_file_selected(const shared_ptr<Gio::AsyncResult>& result, const shared_ptr<Gtk::FileDialog>& dialog, bool saving);
 	bool on_close_request();
 	void on_close_dialog_choose(const shared_ptr<Gio::AsyncResult>& result, const shared_ptr<Gtk::AlertDialog>& dialog);
+	void continue_playback();
+	void restart_playback();
 };
 
 shared_ptr<Gtk::GestureClick> MainWindow::global_lmb_gesture = nullptr;
@@ -366,7 +368,9 @@ using namespace Gtk;
 // Create common actions.
 // File actions.
 	common_action_group = Gio::SimpleActionGroup::create();
-	common_action_group->add_action_bool("toggle_play_song", mem_fun(*adplayer, &AdPlayer::toggle_play_song), false);
+	common_action_group->add_action_bool("playing_song", mem_fun(*this, &MainWindow::continue_playback), false);
+	common_action_group->add_action("continue_playback", mem_fun(*this, &MainWindow::continue_playback));
+	common_action_group->add_action("restart_playback", mem_fun(*this, &MainWindow::restart_playback));
 	common_action_group->add_action("load", mem_fun(*this, &MainWindow::load));
 	common_action_group->add_action("save", mem_fun(*this, &MainWindow::save));
 	common_action_group->add_action("save_as", mem_fun(*this, &MainWindow::save_as));
@@ -389,7 +393,8 @@ using namespace Gtk;
 	insert_action_group("insmaker", insmaker_panel->action_group);
 	insert_action_group("composer", composer_panel->action_group);
 // Create common shortcuts.
-	app->set_accel_for_action("actions.toggle_play_song", "<Ctrl>space");
+	app->set_accel_for_action("actions.continue_playback", "space");
+	app->set_accel_for_action("actions.restart_playback", "<Shift>space");
 	app->set_accel_for_action("actions.load", "<Ctrl>l");
 	app->set_accel_for_action("actions.save", "<Ctrl>s");
 	app->set_accel_for_action("actions.quit", "<Ctrl>q");
@@ -407,6 +412,20 @@ using namespace Gtk;
 
 void MainWindow::show_help() {
 	help_window.show();
+}
+
+void MainWindow::continue_playback() {
+	if (adplayer->is_playing()) { adplayer->stop(); }
+	else {
+		if (cursor_tick >= ComposerPanel::selection_end() || cursor_tick < ComposerPanel::selection_start()) {
+			adplayer->play("", ComposerPanel::selection_start());
+		}
+		else { adplayer->play("", cursor_tick); }
+	}
+}
+
+void MainWindow::restart_playback() {
+	adplayer->play("", ComposerPanel::selection_start());
 }
 
 void MainWindow::open_panel(int p_panel) {

@@ -230,8 +230,10 @@ void InsmakerPanel::rename_instrument(const char new_name[9]) {
 	}
 	char old_name[9];
 	memcpy(old_name, instrument_ptr->name, 9);
-	memcpy(instrument_ptr->name, new_name, 9);
 	memcpy(new_instrument.name, new_name, 9);
+	current_bank->delete_instrument(old_name); // We need to delete and add to reorder it in the bank.
+	current_bank->add_instrument(new_instrument);
+	instrument_ptr = current_bank->find_instrument(new_name);
 	Instrument* unsaved_ins = find_unsaved_instrument(old_name);
 	if (unsaved_ins) {
 		memcpy(unsaved_ins->name, new_name, 9);
@@ -292,6 +294,7 @@ void InsmakerPanel::save_current_instrument() {
 	if (instrument_ptr != nullptr) {
 		*instrument_ptr = new_instrument;
 	}
+	update_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator, &new_instrument.carrier, &new_instrument.modulator);
 }
 
 void InsmakerPanel::save_instruments() {

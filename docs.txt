@@ -49,8 +49,10 @@ Press Ctrl + X, C, V, to cut, copy and paste selection respectively.
 
 Press Ctrl+Z to undo your last action, Ctrl+Shift+Z to redo your last undo.
 
+---- Events:
 Editing the event header, which is placed between the toolbar and the grid, allows you to
-change the tempo, instrument, pitch, and amplitude dynamically during playback!
+change the track tempo multiplier, instrument, pitch precision, and volume multiplier
+dynamically during playback. Pitch precision is for advanced usage,
 
 ---- Toolbar:
 Notice the row of colorful radio buttons, each representing a different channel, click one
@@ -66,9 +68,14 @@ affects moving, pasting and more.
 Last on the toolbar is Track settings, you may set tempo (beats per minute), percussion and more.
 
 ---- Percussion:
-The OPL2 can support up to 7 melodic channels (carrier * modulator), and 4
-percussion channels (modulator * modulator). Or you can disable percussion entirely in
+The OPL2 can support up to 7 melodic channels that use 2 Envelopes, and 4
+percussion channels that use one Envelope. Or you can disable percussion entirely in
 track settings and get 9 melodic channels as a tradeoff.
+It should be noted how the Tom Drum (TD) channel influences the other percussion channels.
+The Bass Drum channel is unaffected by the TD channel.
+The Tom Drum channel will use its own notes pitch as normal.
+The Cymbal channel will use the same pitch as the last TD note.
+The Snare Drum and Hi-Hat channels pitch will always be 7 semitones higher than the last TD note.
 
 --- Insmaker -----------------------------------------------------------------------------
 Select the instrument you want to edit in the text field in the toolbar, click the
@@ -93,8 +100,8 @@ in other words adding the amplitude (volume) together.
 
 ---- Envelopes:
 Envelope is a term that applies to both the Carrier and the Modulator.
-Both envelopes have almost exactly the same set of properties. mess around for a little
-and see what sounds good, you can use the arrow keys to navigate if you prefer.
+Both envelopes have almost the same set of properties. mess around for a little and see what
+sounds good, you can use the arrow keys to navigate if you prefer.
 
 Use the piano guide below to sample the instrument.
 

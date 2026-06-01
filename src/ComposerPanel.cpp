@@ -5,7 +5,8 @@
 using namespace Gtk;
 
 int cursor_tick = 0;
-int cursor_end = 0;
+int selection1 = 0;
+int selection2 = 0;
 
 static vec2 note_size;
 static vec2 cell_size;
@@ -93,9 +94,8 @@ ComposerPanel::ComposerPanel() {
 	signal_bank_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));
 }
 
-void ComposerPanel::set_cursor_tick(int p_cursor_tick, int p_end_tick) {
-	cursor_tick = p_cursor_tick;
-	cursor_end = p_end_tick;
+void ComposerPanel::set_cursor_tick(int p_new_tick) {
+	cursor_tick = p_new_tick;
 	signal_cursor_moved.emit();
 }
 
@@ -154,11 +154,11 @@ void ComposerPanel::paste() {
 		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP);
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	new_undo->set_insert_mode(insert_mode);
-	new_undo->set_old_cursors(selection_start(), selection_end());
-	new_undo->set_new_cursors(selection_start(), selection_length() != 0 ? selection_end() : selection_start() + copy_buffer_length);
+	new_undo->set_old_selection(selection_start(), selection_end());
+	new_undo->set_new_selection(selection_start(), selection_length() != 0 ? selection_end() : selection_start() + copy_buffer_length);
 	new_undo->new_notes = copy_buffer;
 	new_undo->new_notes.offset_tick(selection_start() - copy_buffer_start_tick);
-	new_undo->new_notes.trim(selection_start(), new_undo->new_cursor_end);
+	new_undo->new_notes.trim(selection_start(), new_undo->new_selection_end);
 	new_undo->redo();
 	add_undo(move(new_undo));
 	grid_panel->update_grid();
@@ -168,8 +168,8 @@ void ComposerPanel::erase_selection() {
 	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::ERASE_SELECTION,
 		UndoNotes::RedoCommand::ERASE_OLD_GAP);
 	new_undo->set_insert_mode(insert_mode);
-	new_undo->set_old_cursors(selection_start(), selection_end());
-	new_undo->set_new_cursors(selection_start(), selection_start());
+	new_undo->set_old_selection(selection_start(), selection_end());
+	new_undo->set_new_selection(selection_start(), selection_start());
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	new_undo->redo();
 	add_undo(move(new_undo));
@@ -179,7 +179,7 @@ void ComposerPanel::move_selection_semitone(int pitch_offset) {
 	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::MOVE_PITCH,
 		UndoNotes::RedoCommand::WRITE_NEW);
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
-	if (cursor_tick == cursor_end || new_undo->old_notes.notes.empty()) { return; }
+	if (selection_length() == 0 || new_undo->old_notes.notes.empty()) { return; }
 	new_undo->new_notes = new_undo->old_notes;
 	new_undo->new_notes.trim(selection_start(), selection_end());
 	new_undo->new_notes.offset_pitch(pitch_offset);
@@ -188,8 +188,8 @@ void ComposerPanel::move_selection_semitone(int pitch_offset) {
 	grid_panel->update_grid();
 }
 void ComposerPanel::move_selection_tick(int tick_offset) {
-	if (cursor_tick == cursor_end) {
-		cursor_tick = max(0, cursor_tick + tick_offset); cursor_end = cursor_tick;
+	if (selection_length() == 0) {
+		selection1 = max(0, selection1 + tick_offset); selection2 = selection1;
 		grid_panel->update_grid(); return;
 	}
 	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
@@ -204,22 +204,22 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 	int range_affected_start = (tick_offset < 0 ? selection_start() + tick_offset - 1 : selection_start() - 1);
 	int range_affected_end = (tick_offset > 0 ? selection_end() + tick_offset + 1 : selection_end() + 1);
 	new_undo->setup_for_continue(selection_start(), selection_end(), current_channel->copy(range_affected_start, range_affected_end));
-	int sel_start = selection_start(); // We need to make sure cursor doesn't go negative.
-	cursor_tick = (cursor_tick + tick_offset) - min(0, sel_start + tick_offset);
-	cursor_end = (cursor_end + tick_offset) - min(0, sel_start + tick_offset);
-	new_undo->set_new_cursors(selection_start(), selection_end());
+	int sel_start = selection_start(); // We need to make sure selection doesn't go negative.
+	selection1 = (selection1 + tick_offset) - min(0, sel_start + tick_offset);
+	selection2 = (selection2 + tick_offset) - min(0, sel_start + tick_offset);
+	new_undo->set_new_selection(selection_start(), selection_end());
 	new_undo->new_notes = new_undo->oldest_notes;
-	new_undo->new_notes.trim(new_undo->old_cursor_start, new_undo->old_cursor_end);
-	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_cursor_start);
+	new_undo->new_notes.trim(new_undo->old_selection_start, new_undo->old_selection_end);
+	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_selection_start);
 	new_undo->redo();
 	add_undo(move(new_undo), true);
 	grid_panel->update_grid();
 }
 void ComposerPanel::unselect() {
-	if (cursor_end == cursor_tick) {
-		cursor_tick = 0;
+	if (selection_length() == 0) {
+		selection1 = 0;
 	}
-	cursor_end = cursor_tick;
+	selection2 = selection1;
 	grid_panel->update_grid();
 }
 void ComposerPanel::undo() {
@@ -317,7 +317,7 @@ EventPopup::EventPopup() {
 	grid.set_vexpand(true);
 	// Initialize each event field.
 	tempo_field.set_name("field-tempo");
-	init_spin_field(grid, "Tempo", 0, tempo_field);
+	init_spin_field(grid, "Tempo (mul)", 0, tempo_field);
 	// Initialize Instrument event field.
 	Label ins_label("Instrument", Align::START);
 	grid.attach(ins_label, 0, 1);
@@ -327,8 +327,8 @@ EventPopup::EventPopup() {
 	grid.attach(instrument_field, 1, 1);
 	pitch_field.set_name("field-pitch");
 	volume_field.set_name("field-volume");
-	init_spin_field(grid, "Pitch", 2, pitch_field);
-	init_spin_field(grid, "Volume", 3, volume_field);
+	init_spin_field(grid, "Pitch (prec)", 2, pitch_field);
+	init_spin_field(grid, "Volume (mul)", 3, volume_field);
 	bank_ctrl.instrument_selected.connect(mem_fun(*this, &EventPopup::on_bank_ctrl_instrument_selected));
 	main_box.append(bank_ctrl);
 }
@@ -447,15 +447,14 @@ void GridPanel::on_lmb_up(int n_press, double x, double y) {
 }
 
 void GridPanel::on_rmb_down(int n_press, double x, double y) {
-	adplayer->stop();
 	ComposerPanel::set_continuous_undo(false);
-	cursor_tick = (x + scroll_offset.x) / cell_size.x;
-	cursor_end = cursor_tick;
+	selection1 = (x + scroll_offset.x) / cell_size.x;
+	selection2 = selection1;
 	update_grid();
 }
 
 void GridPanel::on_rmb_up(int n_press, double x, double y) {
-	cursor_end = (x + scroll_offset.x) / cell_size.x;
+	selection2 = (x + scroll_offset.x) / cell_size.x;
 	update_grid();
 }
 
@@ -478,7 +477,7 @@ void GridPanel::on_mouse_motion(double x, double y) {
 		return;
 	}
 	if (rmb_gesture->get_current_button() == GDK_BUTTON_SECONDARY) {
-		cursor_end = (x + scroll_offset.x) / cell_size.x;
+		selection2 = (x + scroll_offset.x) / cell_size.x;
 		queue_draw();
 		return;
 	}
@@ -556,19 +555,18 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 			cr->stroke();
 		}
 	}
-	// Draw Cursors.
+	// Draw selection.
 	cr->set_dash(vertical_dashes, -vdash_gap / 2.0);
 	cr->set_line_width(grid_width);
-	int cursor_real_x = (cursor_tick * cell_size.x) - scroll_offset.x;
-	int cursor_end_x = (cursor_end * cell_size.x) - scroll_offset.x;
+	int sel_start_x = (ComposerPanel::selection_start() * cell_size.x) - scroll_offset.x;
+	int sel_end_x = (ComposerPanel::selection_end() * cell_size.x) - scroll_offset.x;
 	Gdk::Cairo::set_source_rgba(cr, current_channel->color);
 	cr->set_line_width(cell_size.x / 4);
-	cr->move_to(cursor_end_x, 0);
-	cr->line_to(cursor_end_x, height);
+	cr->move_to(sel_end_x, 0);
+	cr->line_to(sel_end_x, height);
 	cr->stroke();
-	cr->set_line_width(cell_size.x / 4);
-	cr->move_to(cursor_real_x, 0);
-	cr->line_to(cursor_real_x, height);
+	cr->move_to(sel_start_x, 0);
+	cr->line_to(sel_start_x, height);
 	cr->stroke();
 	// Note pen setup.
 	cr->unset_dash();
@@ -614,13 +612,19 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		cr->line_to(((ghost_note->offset + ghost_note->length) * cell_size.x) - scroll_offset.x, y);
 		cr->stroke();
 	}
-	// Start Selection.
-	if (cursor_tick != cursor_end) {
+	// Draw selection overlay.
+	if (ComposerPanel::selection_length() != 0) {
 		Gdk::Cairo::set_source_rgba(cr, RGBA(0.4, 0.4, 0.4, 0.5));
-		cr->rectangle(cursor_real_x - (cell_size.x / 8) - 1, 0, (cursor_end_x - cursor_real_x) + (cell_size.x / 4), height);
-		cr->rectangle(cursor_real_x, 0, (cursor_end_x - cursor_real_x), height);
+		cr->rectangle(sel_start_x - (cell_size.x / 8) - 1, 0, (sel_end_x - sel_start_x) + (cell_size.x / 4) + 1, height);
 		cr->fill();
 	}
+	// Draw the cursor.
+	Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0, 1.0));
+	cr->set_line_width(cell_size.x / 4);
+	int cursor_start_x = (cursor_tick * cell_size.x) - scroll_offset.x;
+	cr->move_to(cursor_start_x, 0);
+	cr->line_to(cursor_start_x, height);
+	cr->stroke();
 }
 
 void EventHeader::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int height) {

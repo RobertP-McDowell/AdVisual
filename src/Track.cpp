@@ -221,21 +221,15 @@ void Channel::set_volume_event(int at_tick, float value) {
 
 // float get_last_float_event(int start_tick, map<int, void*>* event_map) {
 #define get_last_event(start_tick, event_map, ret_tick, ret_value) do { \
-	for (auto it = event_map.begin(); it != event_map.end(); it++) { \
-		if (it->first == start_tick) { \
-			ret_tick = it->first; \
-			ret_value = it->second; \
-			return; \
-		} \
-		if (it->first > start_tick) { \
-			it--; /* Checking value of prior event. */ \
+	for (auto it = event_map.rbegin(); it != event_map.rend(); it++) { \
+		if (it->first <= start_tick) { \
 			ret_tick = it->first; \
 			ret_value = it->second; \
 			return; \
 		} \
 	} \
-	ret_tick = event_map.begin()->first; \
-	ret_value = event_map.begin()->second; \
+	ret_tick = event_map.rend()->first; \
+	ret_value = event_map.rend()->second; \
 } while(0)
 
 void Track::get_last_tempo_event(int start_tick, int& ret_tick, float& ret_value)

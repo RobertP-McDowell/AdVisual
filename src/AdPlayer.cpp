@@ -56,7 +56,11 @@ void AdPlayer::mix_miniaudio(ma_device* p_device, void* p_output, const void* p_
 	}
 	int new_tick = opl_playback->getsubsong();
 	if (playing_song && new_tick != cursor_tick) {
-		ComposerPanel::set_cursor_tick(new_tick, new_tick);
+		ComposerPanel::set_cursor_tick(new_tick);
+		if (ComposerPanel::has_selection() && new_tick >= ComposerPanel::selection_end()) {
+			thread stop_thr(&AdPlayer::stop, this);
+			stop_thr.detach();
+		}
 	}
 	return;
 }
@@ -140,16 +144,6 @@ void AdPlayer::set_channel_enable(int channel, bool enable) {
 	}
 }
 
-void AdPlayer::toggle_play_song() {
-	if (playing_song) {
-		stop();
-	}
-	else {
-		play("", cursor_tick);
-	}
-	common_action_group->change_action_state("toggle_play_song", Glib::Variant<bool>::create(playing_song));
-}
-
 bool AdPlayer::play(string file_path, int start_from) {
 	opl_playback->set_track(current_track);
 	opl_playback->set_bank(current_bank);
@@ -171,7 +165,7 @@ bool AdPlayer::play(string file_path, int start_from) {
 	ma_device_start(&mini_device);
 	active = true;
 	playing_song = true;
-
+	common_action_group->change_action_state("playing_song", Glib::Variant<bool>::create(playing_song));
 	return true;
 }
 
@@ -192,4 +186,5 @@ void AdPlayer::stop() {
 	towrite = 0;
 	active = false;
 	playing_song = false;
+	common_action_group->change_action_state("playing_song", Glib::Variant<bool>::create(playing_song));
 }
