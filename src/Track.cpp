@@ -249,6 +249,18 @@ Instrument* Channel::get_instrument_at_tick(int at_tick) {
 	if (last_ins == nullptr) { last_ins = &Instrument::default_instrument; }
 	return last_ins;
 }
+float Channel::get_pitch_at_tick(int at_tick) {
+	int ret_tick;
+	float ret_value;
+	get_last_pitch_event(at_tick, ret_tick, ret_value);
+	return ret_value;
+}
+float Channel::get_volume_at_tick(int at_tick) {
+	int ret_tick;
+	float ret_value;
+	get_last_volume_event(at_tick, ret_tick, ret_value);
+	return ret_value;
+}
 
 Note* Channel::get_note_on_tick(int at_tick, int& ret_idx) {
 	for (ret_idx = 0; ret_idx < notes.size(); ret_idx++) {

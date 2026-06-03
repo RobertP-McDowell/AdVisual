@@ -49,10 +49,11 @@ class PianoCtrl : public Gtk::DrawingArea {
 protected:
 	int key_width = 20, deepness = 80, scroll_offset = 0, playing_note = 0, orientation;
 	bool tall;
+	float pitch_precision = 1.0, volume_multiplier = 1.0;
+	Instrument* instrument = nullptr;
 	shared_ptr<Gtk::GestureClick> lmb_gesture;
 	shared_ptr<Gtk::GestureClick> rmb_gesture;
 	shared_ptr<Gtk::EventControllerMotion> motion_controller;
-	Instrument* instrument;
 	int get_note_number_at_position(double x, double y);
 	void on_lmb_down(int n_press, double x, double y);
 	void on_lmb_up(int n_press, double x, double y);
@@ -65,8 +66,12 @@ public:
 	void set_deepness(int value) { deepness = value; queue_draw(); }
 	void set_scroll_offset(int value) { scroll_offset = value; queue_draw(); }
 	void set_instrument(Instrument* value) { instrument = value; }
+	void set_volume_multiplier(float value) { volume_multiplier = value; }
+	void set_pitch_precision(float value) { pitch_precision = value; }
 	int get_key_width() const { return key_width; }
 	int get_deepness() const { return deepness; }
 	int get_scroll_offset() const { return scroll_offset; }
+	float get_pitch_precision() const { return pitch_precision; }
+	float get_volume_multiplier() const { return volume_multiplier; }
 	Instrument* get_instrument() const { return instrument; }
 };

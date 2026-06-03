@@ -76,6 +76,17 @@ string note_number_to_letter(int note_number) {
 	return note_symbol;
 }
 
+bool is_note_flat(int note_number) {
+	int semitone = (((note_number - 3) + full_octave) % full_octave);
+	if (semitone >= 4) {
+		semitone += 1;
+	}
+	if (semitone >= 10) {
+		semitone += 1;
+	}
+	return (semitone % 2 == 1);
+}
+
 float get_float_from_string(string str_val, float min, float max) {
 	if (str_val.empty()) return -1.0;
 	float ret_float = 1.0;

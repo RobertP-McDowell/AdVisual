@@ -96,6 +96,8 @@ struct Channel {
 	void set_pitch_event(int at_tick, float value);
 	void set_volume_event(int at_tick, float value);
 	Instrument* get_instrument_at_tick(int at_tick); // Convience function to get instrument object directly.
+	float get_pitch_at_tick(int at_tick);
+	float get_volume_at_tick(int at_tick);
 	void get_last_instrument_event(int start_tick, int& ret_tick, string& ret_value);
 	void get_last_pitch_event(int start_tick, int& ret_tick, float& ret_value);
 	void get_last_volume_event(int start_tick, int& ret_tick, float& ret_value);

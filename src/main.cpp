@@ -231,6 +231,10 @@ using namespace Gtk;
 	insert_mode_button.set_action_name("composer.toggle_insert_mode");
 	grid->attach(insert_mode_button, 0, 1);
 
+	ToggleButton loop_mode_button = create_image_button("LoopMode.svg", false);
+	loop_mode_button.set_action_name("actions.toggle_loop_mode");
+	grid->attach(loop_mode_button, 1, 1);
+
 	grid->set_row_spacing(0);
 	grid->set_column_spacing(0);
 	composer_toolbar.append(*grid);
@@ -325,6 +329,17 @@ using namespace Gtk;
 	menu_append_radio(instrument_edit_menu_model, "Hi-Hat Mode", "insmaker.set_rhythm_mode", 10);
 	edit_menu_model->append_section(bank_edit_menu_model);
 	edit_menu_model->append_section(instrument_edit_menu_model);
+// Volume control.
+	Picture* volume_picture = make_managed<Picture>(ICON_PATH("VolumeIcon.svg"));
+	shared_ptr<Adjustment> volume_adjust = Adjustment::create(1.0, 0.1, 1.0, 0.1, 0.2);
+	volume_adjust->signal_value_changed().connect(sigc::bind(mem_fun(*insmaker_panel, &InsmakerPanel::on_volume_changed), volume_adjust));
+	Scale* volume_slider = make_managed<Scale>(volume_adjust);
+	volume_slider->set_size_request(100, -1);
+	volume_slider->set_has_origin(true);
+	volume_slider->set_value_pos(PositionType::RIGHT);
+	volume_slider->set_draw_value(true);
+	insmaker_toolbar.append(*volume_slider);
+	insmaker_toolbar.append(*volume_picture);
 }
 
 MainWindow::MainWindow() {
@@ -368,6 +383,7 @@ using namespace Gtk;
 // Create common actions.
 // File actions.
 	common_action_group = Gio::SimpleActionGroup::create();
+	common_action_group->add_action_bool("toggle_loop_mode", mem_fun(*adplayer, &AdPlayer::toggle_loop_mode), false);
 	common_action_group->add_action_bool("playing_song", mem_fun(*this, &MainWindow::continue_playback), false);
 	common_action_group->add_action("continue_playback", mem_fun(*this, &MainWindow::continue_playback));
 	common_action_group->add_action("restart_playback", mem_fun(*this, &MainWindow::restart_playback));

@@ -11,7 +11,6 @@ using namespace std;
 extern int cursor_tick;
 extern int selection1;
 extern int selection2;
-extern vector<unique_ptr<UndoCommand>> composer_undo;
 
 class EventPopup : public Gtk::Popover {
 public:
@@ -101,12 +100,10 @@ public:
 	};
 	void toggle_insert_mode();
 	void update_grid_width();
-	bool is_unsaved() { return (last_saved_undo_index == undo_index); }
+	//bool is_unsaved() { return (last_saved_undo_index == undo_index); }
+	bool is_unsaved() { return false; }
 	void on_track_saved();
-	static void add_undo(unique_ptr<UndoCommand> new_command, bool is_continuous = false);
-	static void set_continuous_undo(bool value) { continuous_undo = value; }
-	static bool get_continuous_undo() { return continuous_undo; }
-	static UndoCommand::Reason get_last_undo_reason();
+	static UndoBuffer<UndoNotes*>* current_undo() { return &composer_undo[current_channel->channel_number]; }
 	// General.
 	static int selection_start() { return (selection1 < selection2 ? selection1 : selection2); }
 	static int selection_end() { return (selection1 < selection2 ? selection2 : selection1); }
@@ -123,6 +120,7 @@ protected:
 	bool on_mouse_scroll(double x, double y);
 	void on_track_changed();
 	void on_channel_changed();
+	void update_piano_ctrl();
 	// Actions.
 	void cut();
 	void copy();
@@ -133,13 +131,11 @@ protected:
 	void unselect();
 	void undo();
 	void redo();
+	static array<UndoBuffer<UndoNotes*>, 11> composer_undo;
 
 	bool insert_mode = true;
 	int copy_buffer_start_tick = 0, copy_buffer_length = 0;
 	NoteGroup copy_buffer;
-	static int last_saved_undo_index;
-	static int undo_index;
-	static bool continuous_undo;
 
 	EventHeader* event_header;
 	GridPanel* grid_panel;

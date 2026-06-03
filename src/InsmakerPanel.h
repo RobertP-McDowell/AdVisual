@@ -331,6 +331,7 @@ public:
 	int get_unsaved_instrument_count() const { return unsaved_instruments.size() + (get_number_of_unsaved_changes() == 0 ? 0 : 1); }
 	static Instrument* find_unsaved_instrument(const char name[9]);
 	shared_ptr<Gio::SimpleActionGroup> action_group;
+	void on_volume_changed(shared_ptr<Gtk::Adjustment> volume_adjust);
 private:
 	void create_oplfm_editor();
 	void update_oplfm_editor(OPLFM* p_car, OPLFM* p_mod, OPLFM* n_car, OPLFM* n_mod);

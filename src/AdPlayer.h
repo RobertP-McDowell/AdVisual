@@ -15,8 +15,9 @@ class AdPlayer {
 public:
 	AdPlayer();
 	~AdPlayer();
+	void toggle_loop_mode();
 	bool play(string file_path = "", int start_from = 0); // Returns false if failed to play.
-	void play_note(int note_number, int channel, Instrument* instrument);
+	void play_note(int note_number, int channel, Instrument* instrument, float pitch = 1.0, float volume = 1.0);
 	void stop();
 	void seek(unsigned long p_tick);
 	void mix_miniaudio(ma_device* p_device, void* p_output, const void* p_input, ma_uint32 frame_count);
@@ -28,7 +29,7 @@ protected:
 	ma_device mini_device;
 	unique_ptr<CVisPlayer> opl_playback;
 	unique_ptr<Copl> opl_device;
-	bool stereo = false, loop = false, active = false, playing_song = false;
+	bool stereo = false, looping = false, active = false, playing_song = false;
 	int adplug_process(short* p_buffer, unsigned int p_frames, unsigned int p_buffer_offset);
 	friend class ma_device;
 };

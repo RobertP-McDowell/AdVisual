@@ -18,7 +18,7 @@ int AdPlayer::adplug_process(short* p_buffer, unsigned int p_frames, unsigned in
 	towrite -= write;
 	if (towrite <= 0) { // When true we had to make the last buffer smaller, therefore we need to update.
 		if (!opl_playback->update()) {
-			if (loop) {
+			if (looping) {
 				seek(0.0);
 			}
 			else {
@@ -58,8 +58,14 @@ void AdPlayer::mix_miniaudio(ma_device* p_device, void* p_output, const void* p_
 	if (playing_song && new_tick != cursor_tick) {
 		ComposerPanel::set_cursor_tick(new_tick);
 		if (ComposerPanel::has_selection() && new_tick >= ComposerPanel::selection_end()) {
-			thread stop_thr(&AdPlayer::stop, this);
-			stop_thr.detach();
+			if (looping) {
+				opl_playback->rewind(ComposerPanel::selection_start());
+				towrite = RATE / opl_playback->getrefresh();
+			}
+			else {
+				thread stop_thr(&AdPlayer::stop, this);
+				stop_thr.detach();
+			}
 		}
 	}
 	return;
@@ -115,16 +121,21 @@ AdPlayer::~AdPlayer() {
 	ma_device_uninit(&mini_device);
 }
 
-void AdPlayer::play_note(int note_number, int channel, Instrument* instrument) {
+void AdPlayer::toggle_loop_mode() {
+	looping = !looping;
+	common_action_group->change_action_state("toggle_loop_mode", Glib::Variant<bool>::create(looping));
+}
+
+void AdPlayer::play_note(int note_number, int channel, Instrument* instrument, float pitch, float volume) {
 	if (instrument != nullptr) {
 		if (instrument->percussion_mode != 0 || channel > 7) {
 			if (opl_playback->get_rhythm_mode() != 1) { opl_playback->set_rhythm_mode(1); }
 			if (instrument->percussion_mode != 0) { channel = instrument->voice_number; }
 		}
 	}
-	if (note_number != 0) { DBPRINT("Play dynamic note at channel: " << channel); }
+	if (note_number > -1) { DBPRINT("Play dynamic note at channel: " << channel); }
 	else { DBPRINT("Stop dynamic note at channel: " << channel); }
-	opl_playback->channel_play_note(channel, note_number, instrument);
+	opl_playback->channel_play_note(channel, note_number, instrument, pitch, volume);
 
 	if (!active) {
 		DBPRINT("Starting playback to play dynamic note");

@@ -10,11 +10,8 @@ int selection2 = 0;
 
 static vec2 note_size;
 static vec2 cell_size;
-int ComposerPanel::last_saved_undo_index = 0;
-int ComposerPanel::undo_index = 0;
-bool ComposerPanel::continuous_undo = false;
 sigc::signal<void()> ComposerPanel::signal_cursor_moved;
-vector<unique_ptr<UndoCommand>> composer_undo = {};
+array<UndoBuffer<UndoNotes*>, 11> ComposerPanel::composer_undo;
 
 ComposerPanel::ComposerPanel() {
 	current_track = new Track();
@@ -101,39 +98,25 @@ void ComposerPanel::set_cursor_tick(int p_new_tick) {
 
 void ComposerPanel::toggle_insert_mode() {
 	insert_mode = !insert_mode;
-	continuous_undo = false;
+	current_undo()->set_continuous(false);
 	action_group->change_action_state("toggle_insert_mode", Glib::Variant<bool>::create(insert_mode));
 }
 
 void ComposerPanel::on_track_changed() {
-	composer_undo.clear();
-	continuous_undo = false;
+	for (UndoBuffer<UndoNotes*>& i : composer_undo) {
+		i.clear(); // clear undo buffers.
+	}
+	current_undo()->set_continuous(false);
 	on_channel_changed();
 }
 
-void ComposerPanel::on_track_saved() {
-	last_saved_undo_index = undo_index;
-}
-
-void ComposerPanel::add_undo(unique_ptr<UndoCommand> new_undo, bool is_continuous) {
-	if (undo_index != composer_undo.size()) { // We split history.
-		composer_undo.erase(composer_undo.begin() + undo_index, composer_undo.end());
-		if (undo_index < last_saved_undo_index) { last_saved_undo_index = -1; }
-	}
-	undo_index += 1;
-	composer_undo.push_back(move(new_undo));
-	continuous_undo = is_continuous;
-}
-
-UndoCommand::Reason ComposerPanel::get_last_undo_reason() {
-	if (undo_index <= 0 || composer_undo.empty()) { return UndoCommand::Reason::REASON_INVALID; }
-	return composer_undo.at(undo_index - 1)->get_reason();
-}
-
 void ComposerPanel::on_channel_changed() {
-	Instrument* last_ins = current_channel->get_instrument_at_tick(hscrollbar->get_adjustment()->get_value());
-	piano_ctrl->set_instrument(last_ins);
-	instrument_hint->set_text((string)last_ins->name);
+	update_piano_ctrl();
+	current_undo()->set_continuous(false);
+}
+
+void ComposerPanel::on_track_saved() {
+	current_undo()->set_saved();
 }
 
 void ComposerPanel::cut() {
@@ -150,7 +133,7 @@ void ComposerPanel::copy() {
 }
 void ComposerPanel::paste() {
 	if (copy_buffer.notes.empty()) { return; }
-	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::PASTE_SELECTION,
+	UndoSelection* new_undo = new UndoSelection(UndoCommand::Reason::PASTE_SELECTION,
 		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP);
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	new_undo->set_insert_mode(insert_mode);
@@ -160,31 +143,30 @@ void ComposerPanel::paste() {
 	new_undo->new_notes.offset_tick(selection_start() - copy_buffer_start_tick);
 	new_undo->new_notes.trim(selection_start(), new_undo->new_selection_end);
 	new_undo->redo();
-	add_undo(move(new_undo));
+	current_undo()->add_undo(new_undo);
 	grid_panel->update_grid();
 }
 
 void ComposerPanel::erase_selection() {
-	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::ERASE_SELECTION,
+	UndoSelection* new_undo = new UndoSelection(UndoCommand::Reason::ERASE_SELECTION,
 		UndoNotes::RedoCommand::ERASE_OLD_GAP);
 	new_undo->set_insert_mode(insert_mode);
 	new_undo->set_old_selection(selection_start(), selection_end());
 	new_undo->set_new_selection(selection_start(), selection_start());
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	new_undo->redo();
-	add_undo(move(new_undo));
+	current_undo()->add_undo(new_undo);
 	grid_panel->update_grid();
 }
 void ComposerPanel::move_selection_semitone(int pitch_offset) {
-	unique_ptr<UndoNotes> new_undo = make_unique<UndoNotes>(current_channel, UndoCommand::Reason::MOVE_PITCH,
-		UndoNotes::RedoCommand::WRITE_NEW);
+	UndoNotes* new_undo = new UndoNotes(UndoCommand::Reason::MOVE_PITCH, UndoNotes::RedoCommand::WRITE_NEW);
 	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
 	if (selection_length() == 0 || new_undo->old_notes.notes.empty()) { return; }
 	new_undo->new_notes = new_undo->old_notes;
 	new_undo->new_notes.trim(selection_start(), selection_end());
 	new_undo->new_notes.offset_pitch(pitch_offset);
 	current_channel->paste(&new_undo->new_notes, selection_start(), selection_length(), selection_start());
-	add_undo(move(new_undo));
+	current_undo()->add_undo(new_undo);
 	grid_panel->update_grid();
 }
 void ComposerPanel::move_selection_tick(int tick_offset) {
@@ -192,11 +174,11 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 		selection1 = max(0, selection1 + tick_offset); selection2 = selection1;
 		grid_panel->update_grid(); return;
 	}
-	unique_ptr<UndoSelection> new_undo = make_unique<UndoSelection>(current_channel, UndoCommand::Reason::MOVE_TICKS,
+	UndoSelection* new_undo = new UndoSelection(UndoCommand::Reason::MOVE_TICKS,
 		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP | UndoNotes::RedoCommand::ERASE_OLD_GAP);
-	if (continuous_undo && new_undo->match_reason(get_last_undo_reason())) {
-		UndoSelection* prior_undo = static_cast<UndoSelection*>(composer_undo.at(undo_index - 1).get());
-		new_undo.reset(new UndoSelection(*prior_undo));
+	if (current_undo()->get_continuous() && new_undo->match_reason(current_undo()->get_last_undo_reason())) {
+		UndoSelection* prior_undo = static_cast<UndoSelection*>(current_undo()->get_current_undo());
+		*new_undo = *prior_undo;
 		undo();
 	}
 	new_undo->set_insert_mode(insert_mode);
@@ -212,7 +194,7 @@ void ComposerPanel::move_selection_tick(int tick_offset) {
 	new_undo->new_notes.trim(new_undo->old_selection_start, new_undo->old_selection_end);
 	new_undo->new_notes.offset_tick(selection_start() - new_undo->old_selection_start);
 	new_undo->redo();
-	add_undo(move(new_undo), true);
+	current_undo()->add_undo(new_undo, true);
 	grid_panel->update_grid();
 }
 void ComposerPanel::unselect() {
@@ -222,17 +204,13 @@ void ComposerPanel::unselect() {
 	selection2 = selection1;
 	grid_panel->update_grid();
 }
+
 void ComposerPanel::undo() {
-	if (undo_index <= 0) { return; }
-	undo_index -= 1;
-	composer_undo.at(undo_index)->undo();
-	continuous_undo = false;
+	current_undo()->undo();
 	grid_panel->update_grid();
 }
 void ComposerPanel::redo() {
-	if (undo_index >= composer_undo.size()) { return; }
-	composer_undo.at(undo_index)->redo();
-	undo_index += 1;
+	current_undo()->redo();
 	grid_panel->update_grid();
 }
 
@@ -246,16 +224,22 @@ void ComposerPanel::on_show() {
 	vscrollbar->get_adjustment()->set_page_size(grid_panel->get_height() / cell_size.y);
 }
 
+void ComposerPanel::update_piano_ctrl() {
+	int scroll_tick = hscrollbar->get_adjustment()->get_value();
+	Instrument* last_ins = current_channel->get_instrument_at_tick(scroll_tick);
+	instrument_hint->set_text((string)last_ins->name);
+	piano_ctrl->set_instrument(last_ins);
+	piano_ctrl->set_pitch_precision(current_channel->get_pitch_at_tick(scroll_tick));
+	piano_ctrl->set_volume_multiplier(current_channel->get_volume_at_tick(scroll_tick));
+}
+
 void ComposerPanel::on_hscroll() {
 	int new_x = hscrollbar->get_adjustment()->get_value() * cell_size.x;
 	event_header->scroll_offset = new_x;
 	event_header->queue_draw();
 	grid_panel->scroll_offset.x = new_x;
 	grid_panel->queue_draw();
-
-	Instrument* last_ins = current_channel->get_instrument_at_tick(hscrollbar->get_adjustment()->get_value());
-	piano_ctrl->set_instrument(last_ins);
-	instrument_hint->set_text((string)last_ins->name);
+	update_piano_ctrl();
 }
 
 void ComposerPanel::on_vscroll() {
@@ -414,8 +398,10 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 	ghost_note->pitch = clamp(mouse_down_start.y / cell_size.y, 0, pitch_range-1);
 	ghost_note->length = 1;
 	if (audio_feedback) {
-		Instrument* last_ins = current_channel->get_instrument_at_tick(x / cell_size.x);
-		adplayer->play_note(ghost_note->pitch, current_channel->channel_number, last_ins);
+		int down_tick = x / cell_size.x;
+		Instrument* last_ins = current_channel->get_instrument_at_tick(down_tick);
+		adplayer->play_note(ghost_note->pitch, current_channel->channel_number, last_ins,
+		current_channel->get_pitch_at_tick(down_tick), current_channel->get_volume_at_tick(down_tick));
 	}
 	update_grid();
 }
@@ -423,31 +409,29 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 void GridPanel::on_lmb_up(int n_press, double x, double y) {
 	if (ghost_note != nullptr) {
 		if (bool(lmb_gesture->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
-			unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoNotes::Reason::ERASE_NOTE,
-				UndoNotes::RedoCommand::ERASE_NEW);
+			UndoNotes* undo = new UndoNotes(UndoNotes::Reason::ERASE_NOTE, UndoNotes::RedoCommand::ERASE_NEW);
 			undo->old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
 			current_channel->erase_notes(ghost_note->offset, ghost_note->length);
 			undo->new_notes = NoteGroup({*ghost_note});
-			ComposerPanel::add_undo(move(undo));
+			ComposerPanel::current_undo()->add_undo(undo);
 		}
 		else {
-			unique_ptr<UndoNotes> undo = make_unique<UndoNotes>(current_channel, UndoNotes::Reason::CREATE_NOTE,
-				UndoNotes::RedoCommand::WRITE_NEW);
+			UndoNotes* undo = new UndoNotes(UndoNotes::Reason::CREATE_NOTE, UndoNotes::RedoCommand::WRITE_NEW);
 			undo->old_notes = current_channel->copy(ghost_note->offset, ghost_note->get_end_offset());
 			current_channel->add_note(*ghost_note);
 			undo->new_notes = NoteGroup({*ghost_note});
-			ComposerPanel::add_undo(move(undo));
+			ComposerPanel::current_undo()->add_undo(undo);
 		}
 	}
 	ghost_note = nullptr;
 	if (audio_feedback) {
-		adplayer->play_note(0, current_channel->channel_number, nullptr);
+		adplayer->play_note(-1, current_channel->channel_number, nullptr);
 	}
 	update_grid();
 }
 
 void GridPanel::on_rmb_down(int n_press, double x, double y) {
-	ComposerPanel::set_continuous_undo(false);
+	ComposerPanel::current_undo()->set_continuous(false);
 	selection1 = (x + scroll_offset.x) / cell_size.x;
 	selection2 = selection1;
 	update_grid();

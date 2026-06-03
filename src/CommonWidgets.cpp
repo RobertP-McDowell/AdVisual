@@ -305,28 +305,44 @@ PianoCtrl::PianoCtrl(bool p_tall) : instrument(&Instrument::default_instrument),
 
 int PianoCtrl::get_note_number_at_position(double x, double y) {
 	if (tall == true) {
-		return (y + scroll_offset) / key_width;
+		double offset = (y + scroll_offset) / key_width;
+		int note_number = min(pitch_range, int(offset));
+		if (x > deepness / 2.0) {
+			if (!is_note_flat(note_number)) {
+				offset += (offset - double(note_number) > 0.5 ? 0.5 : -0.5);
+				note_number = min(pitch_range, int(offset));
+			}
+		}
+		return note_number;
 	}
 	else {
-		return (x + scroll_offset) / key_width;
+		double offset = (x + scroll_offset) / key_width;
+		int note_number = min(pitch_range, int(offset));
+		if (y > deepness / 2.0) {
+			if (!is_note_flat(note_number)) {
+				offset += (offset - double(note_number) > 0.5 ? 0.5 : -0.5);
+				note_number = min(pitch_range, int(offset));
+			}
+		}
+		return note_number;
 	}
 }
 
 void PianoCtrl::on_lmb_down(int n_press, double x, double y) {
 	int note_number = get_note_number_at_position(x, y);
-	adplayer->play_note(note_number, current_channel->channel_number, instrument);
+	adplayer->play_note(note_number, current_channel->channel_number, instrument, pitch_precision, volume_multiplier);
 	playing_note = note_number;
 }
 
 void PianoCtrl::on_lmb_up(int n_press, double x, double y) {
-	adplayer->play_note(0, current_channel->channel_number, instrument);
+	adplayer->play_note(-1, current_channel->channel_number, instrument, pitch_precision, volume_multiplier);
 	playing_note = 0;
 }
 
 void PianoCtrl::on_mouse_motion(double x, double y) {
 	int note_number = get_note_number_at_position(x, y);
 	if (lmb_gesture->get_current_button() && playing_note != note_number) {
-		adplayer->play_note(note_number, current_channel->channel_number, instrument);
+		adplayer->play_note(note_number, current_channel->channel_number, instrument, volume_multiplier);
 		playing_note = note_number;
 	}
 	status->set_text(note_number_to_letter(note_number));
@@ -340,7 +356,7 @@ void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	int grid_sub = 0;
 	int half_key = key_width / 2.0;
 	if (tall == true) {
-		for (int i = 0; i <= height / key_width; i++) {
+		for (int i = 0; i <= min(number_of_flats, height / key_width); i++) {
 			double y = (key_width * 2.0 * (i-(grid_sub/2.0))) - draw_offstep;
 			if (i % 7 == 4 || i % 7 == 0)  {
 				cr->move_to(0, y);
@@ -365,7 +381,7 @@ void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		}
 	}
 	else {
-		for (int i = 0; i <= width / key_width; i++) {
+		for (int i = 0; i <= min(number_of_flats, width / key_width); i++) {
 			double x = (key_width * 2.0 * (i-(grid_sub/2.0))) - draw_offstep;
 			if (i % 7 == 4 || i % 7 == 0)  {
 				cr->move_to(x, 0);
@@ -390,4 +406,3 @@ void PianoCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		}
 	}
 }
-

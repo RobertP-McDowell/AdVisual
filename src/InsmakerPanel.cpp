@@ -309,3 +309,7 @@ void InsmakerPanel::save_instruments() {
 	}
 	unsaved_instruments.clear();
 }
+
+void InsmakerPanel::on_volume_changed(shared_ptr<Adjustment> volume_adjust) {
+	piano_ctrl->set_volume_multiplier(volume_adjust->get_value());
+}

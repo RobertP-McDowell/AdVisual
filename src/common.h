@@ -16,9 +16,11 @@ extern shared_ptr<Gio::SimpleActionGroup> common_action_group;
 
 #define ICON_PATH(file_name) (get_advisual_dir() + string("share/advisual/icons/") + string(file_name))
 
-const int pitch_range = 108 - 12;
-const int middle_c = pitch_range / 2;
 const int full_octave = 12;
+const int number_of_octaves = 8;
+const int pitch_range = number_of_octaves * full_octave;
+const int number_of_flats = number_of_octaves * 7;
+const int middle_c = pitch_range / 2;
 
 enum
 {
@@ -78,6 +80,7 @@ void string_to_upper(string& str);
 // exclude boolean operation on two 1D lines, useful for refreshing a lot of ui rects.
 void line_exclusion(int p1, int l1, int p2, int l2, int& out_p, int& out_length);
 string note_number_to_letter(int note_number);
+bool is_note_flat(int note_number);
 float get_float_from_string(string str_val, float min = 0.0, float max = 1.0);
 string get_advisual_dir();
 

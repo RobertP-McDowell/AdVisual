@@ -10,11 +10,10 @@ struct UndoNotes : public UndoCommand {
 		ERASE_OLD_GAP = 8,
 		MAKE_NEW_GAP = 16
 	};
-	UndoNotes(Channel* p_channel, Reason p_reason, int p_redo_command = RedoCommand::WRITE_NEW) :
-			channel(p_channel), redo_command(p_redo_command), UndoCommand(p_reason) {}
+	UndoNotes(Reason p_reason, int p_redo_command = RedoCommand::WRITE_NEW) :
+			redo_command(p_redo_command), UndoCommand(p_reason) {}
 	NoteGroup new_notes;
 	NoteGroup old_notes;
-	Channel* channel;
 	int redo_command;
 	bool insert_mode = false;
 	void set_insert_mode(bool value) { insert_mode = value; }
@@ -24,8 +23,8 @@ struct UndoNotes : public UndoCommand {
 };
 
 struct UndoSelection : public UndoNotes {
-	UndoSelection(Channel* p_channel, Reason p_reason, int p_redo_command = RedoCommand::WRITE_NEW) :
-			UndoNotes(p_channel, p_reason, p_redo_command) {}
+	UndoSelection(Reason p_reason, int p_redo_command = RedoCommand::WRITE_NEW) :
+			UndoNotes(p_reason, p_redo_command) {}
 	NoteGroup oldest_notes;
 	int old_selection_start = 0;
 	int old_selection_end = 0;

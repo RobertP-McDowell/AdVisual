@@ -189,7 +189,7 @@ void CVisPlayer::enable_channel(int v) {
 		return;
 	}
 	note_off(v);
-	dynamic_notes[v] = -1;
+	dynamic_notes[v] = -2;
 	refresh_voice_events(v);
 }
 //---------------------------------------------------------
@@ -198,15 +198,15 @@ void CVisPlayer::channel_play_note(int channel, int note_pitch, Instrument* inst
 		cerr << "disable_channel_and_play_note() voice " << channel << " >= " << get_channel_count() << "\n";
 		return;
 	}
-	if (note_pitch <= -1) { // Let the channel play as normal.
+	if (note_pitch == -2) { // Let the channel play as normal.
 		note_off(channel);
-		dynamic_notes[channel] = -1;
+		dynamic_notes[channel] = -2;
 		return;
 	}
-	if (note_pitch == 0) { // 0 still overrides the notes on the channel, but doesn't play anything.
+	if (note_pitch == -1) { // -1 still overrides the notes on the channel, but doesn't play anything.
 		note_off(channel);
 	}
-	else if (note_pitch > 0) { // Anything above 0 will play sound like a normal note.
+	else if (note_pitch >= 0) { // Anything above 0 will play sound like a normal note.
 		if (instrument != nullptr) {
 			set_instrument(channel, instrument);
 		}
@@ -219,14 +219,14 @@ void CVisPlayer::channel_play_note(int channel, int note_pitch, Instrument* inst
 //---------------------------------------------------------
 void CVisPlayer::enable_all_channels() {
 	for (int v = 0; v < kNumPercussiveVoices; v++) {
-		dynamic_notes[v] = -1;
+		dynamic_notes[v] = -2;
 		note_off(v);
 	}
 }
 //---------------------------------------------------------
 void CVisPlayer::disable_all_channels() {
 	for (int v = 0; v < kNumPercussiveVoices; v++) {
-		dynamic_notes[v] = 0;
+		dynamic_notes[v] = -1;
 		note_off(v);
 	}
 }
@@ -277,7 +277,7 @@ bool CVisPlayer::update_track() {
 	track->get_last_tempo_event(tick, tempo_tick, tempo_value);
 	refresh_rate = (track->ticks_per_beat * track->basic_tempo * tempo_value) / 60.0f;
 	for (int v = 0; v < get_channel_count(); v++) {
-		if (dynamic_notes[v] != -1) {
+		if (dynamic_notes[v] != -2) {
 			continue;
 		}
 		update_voice(v);
