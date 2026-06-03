@@ -101,7 +101,7 @@ public:
 	void toggle_insert_mode();
 	void update_grid_width();
 	//bool is_unsaved() { return (last_saved_undo_index == undo_index); }
-	bool is_unsaved() { return false; }
+	bool is_unsaved();
 	void on_track_saved();
 	static UndoBuffer<UndoNotes*>* current_undo() { return &composer_undo[current_channel->channel_number]; }
 	// General.

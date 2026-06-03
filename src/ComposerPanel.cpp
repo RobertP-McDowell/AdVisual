@@ -115,8 +115,18 @@ void ComposerPanel::on_channel_changed() {
 	current_undo()->set_continuous(false);
 }
 
+bool ComposerPanel::is_unsaved() {
+	bool saved = true;
+	for (UndoBuffer<UndoNotes*>& i : composer_undo) {
+		saved &= i.is_saved();
+	}
+	return saved;
+}
+
 void ComposerPanel::on_track_saved() {
-	current_undo()->set_saved();
+	for (UndoBuffer<UndoNotes*>& i : composer_undo) {
+		i.set_saved();
+	}
 }
 
 void ComposerPanel::cut() {

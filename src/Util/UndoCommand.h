@@ -39,7 +39,6 @@ protected:
 
 template <class T, class Allocator = allocator<T>> class UndoBuffer {
 public:
-	//static_assert(is_base_of<UndoCommand, T>::value, "'UndoBuffer' element type must derive from 'UndoCommand'");
 	using value_type = T;
 	using allocator_type = Allocator;
 	using reference = value_type&;
@@ -73,8 +72,9 @@ public:
 	UndoBuffer() : data(nullptr), msize(0), mcapacity(0) {
 		static_cast<UndoCommand*>((T)0); // Test type is derived from UndoCommand.
 	}
-	UndoBuffer(const UndoBuffer& copy) : msize(copy.msize), mcapacity(copy.mcapacity) {
+	UndoBuffer(const UndoBuffer& other) : msize(other.msize), mcapacity(other.mcapacity) {
 		data = allocator_type().allocate(mcapacity);
+		copy(other.data, other.data + size, data);
 	}
 	~UndoBuffer() {
 		allocator_type().deallocate(data, mcapacity);
@@ -93,13 +93,13 @@ public:
 		}
 		return data[index];
 	}
-	void push_back(const T& value) {
+	void push_back(const reference value) {
 		if (msize == mcapacity) {
-			size_type new_capacity = (mcapacity ? mcapacity * 2 : 1);
-			T* new_data = allocator_type().allocate(new_capacity);
-			copy(data, data + msize, new_data);
-			allocator_type().deallocate(data, mcapacity);
-			data = new_data;
+			size_type new_capacity = (mcapacity != 0 ? mcapacity * 2 : 1);
+			T* old_data = data;
+			data = allocator_type().allocate(new_capacity);
+			copy(old_data, old_data + msize, data);
+			allocator_type().deallocate(old_data, mcapacity);
 			mcapacity = new_capacity;
 		}
 		data[msize++] = value;
@@ -110,18 +110,20 @@ public:
 			delete data[i];
 		}
 		msize = new_size;
+		undo_index = msize;
 	}
 	void clear() {
 		if (!empty()) {
 			shrink(0);
 		}
-		allocator_type().deallocate(data, mcapacity);
-		mcapacity = 0;
 		msize = 0;
+		undo_index = 0;
+		continuous = false;
+		last_saved_index = 0;
 	}
 	reference get_current_undo() { return at(undo_index - 1); }
 
-	void add_undo(T new_undo, bool is_continuous = false) {
+	void add_undo(value_type new_undo, bool is_continuous = false) {
 		if (undo_index != msize) { // We split history.
 			shrink(undo_index);
 			if (undo_index < last_saved_index) { last_saved_index = -1; }
@@ -139,7 +141,7 @@ public:
 	}
 
 	void redo() {
-		if (undo_index >= size()) { return; }
+		if (undo_index >= msize) { return; }
 		at(undo_index)->redo();
 		undo_index += 1;
 	}
@@ -150,10 +152,10 @@ public:
 	}
 
 	void set_continuous(bool value) { continuous = value; }
-	bool get_continuous() { return continuous; }
+	bool get_continuous() { return continuous && !empty(); }
 	size_type get_undo_index() const { return undo_index; }
 	void set_saved() { last_saved_index = undo_index; }
-	bool get_saved() const { return last_saved_index == undo_index; }
+	bool is_saved() const { return last_saved_index == undo_index; }
 private:
 	T* data;
 	size_type msize;

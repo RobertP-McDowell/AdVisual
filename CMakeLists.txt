@@ -16,6 +16,7 @@ file(GLOB_RECURSE src_files CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 target_sources(advisual PRIVATE ${src_files})
 target_include_directories(advisual PRIVATE "include")
 target_include_directories(advisual PRIVATE "src")
+set_property(TARGET advisual PROPERTY CXX_STANDARD 20)
 target_link_directories(advisual PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 message(STATUS "Adding ${CMAKE_SOURCE_DIR}/lib to library link path.")
 

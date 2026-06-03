@@ -474,7 +474,10 @@ void MainWindow::save_as() {
 	on_select_file(true, true);
 }
 void MainWindow::save() {
-	if (!current_track->file_path.empty()) { current_track->save_file(current_track->file_path); }
+	if (!current_track->file_path.empty()) {
+		current_track->save_file(current_track->file_path);
+		composer_panel->on_track_saved();
+	}
 	else { on_select_file(false, true); }
 
 	if (!current_bank->file_path.empty()) {
