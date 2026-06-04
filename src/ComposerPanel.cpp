@@ -1,5 +1,6 @@
 #include <ComposerPanel.h>
 #include <AdPlayer.h>
+#include <Util/MetaDataWindow.h>
 #include <math.h>
 
 using namespace Gtk;
@@ -56,7 +57,7 @@ ComposerPanel::ComposerPanel() {
 	add_controller(scroll_controller);
 // Setup action group.
 	action_group = Gio::SimpleActionGroup::create();
-	action_group->add_action_bool("toggle_insert_mode", mem_fun(*this, &ComposerPanel::toggle_insert_mode), true);
+	action_group->add_action_bool("toggle_insert_mode", mem_fun(*this, &ComposerPanel::toggle_insert_mode), false);
 	action_group->add_action("cut_selection", mem_fun(*this, &ComposerPanel::cut));
 	action_group->add_action("copy_selection", mem_fun(*this, &ComposerPanel::copy));
 	action_group->add_action("paste_selection", mem_fun(*this, &ComposerPanel::paste));
@@ -226,7 +227,7 @@ void ComposerPanel::redo() {
 
 void ComposerPanel::show_track_settings() {
 	track_settings.set_transient_for(*(app->get_run_window()));
-	track_settings.set_visible(true);
+	track_settings.show();
 }
 
 void ComposerPanel::on_show() {
@@ -413,6 +414,8 @@ void GridPanel::on_lmb_down(int n_press, double x, double y) {
 		adplayer->play_note(ghost_note->pitch, current_channel->channel_number, last_ins,
 		current_channel->get_pitch_at_tick(down_tick), current_channel->get_volume_at_tick(down_tick));
 	}
+	status->set_text(note_number_to_letter(ghost_note->pitch) + " " +
+		to_string(ghost_note->offset) + ":" + "1" + ", Shift+lmb to erase.");
 	update_grid();
 }
 
@@ -719,6 +722,10 @@ TrackSettings::TrackSettings() {
 	percussion_checkbox.set_active(true);
 	percussion_checkbox.signal_toggled().connect(mem_fun(*this, &TrackSettings::on_percussion_toggled));
 
+	Button* meta_data_button = make_managed<Button>("Edit Meta");
+	grid.attach(*meta_data_button, 0, 4, 2, 1);
+	meta_data_button->signal_clicked().connect(mem_fun(*this, &TrackSettings::on_edit_meta_data));
+
 	set_child(grid);
 }
 
@@ -753,6 +760,18 @@ void TrackSettings::on_ticks_per_beat_set() {
 }
 void TrackSettings::on_percussion_toggled() {
 	current_track->melodic_mode = !percussion_checkbox.get_active();
-	cout << "Melodic = " << bool(current_track->melodic_mode) << "\n";
 	signal_visible_change.emit();
+}
+
+void TrackSettings::on_edit_meta_data() {
+	if (meta_data_window.is_visible()) {
+		meta_data_window.close();
+		return;
+	}
+	meta_data_window = MetaDataWindow();
+	meta_data_window.set_transient_for(*this);
+	meta_data_window.set_title("Track Meta Data");
+	meta_data_window.set_base_string(&current_track->meta_data);
+	meta_data_window.set_max_length(39);
+	meta_data_window.show();
 }

@@ -5,7 +5,8 @@
 using namespace Gtk;
 
 HelpWindow::HelpWindow() {
-	set_hide_on_close(true);
+	set_hide_on_close(false);
+	set_modal(true);
 	set_size_request(800, 600);
 	set_title("AdVisual Docs");
 	shared_ptr<TextBuffer> text_buffer = TextBuffer::create();

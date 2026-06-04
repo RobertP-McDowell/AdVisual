@@ -12,7 +12,7 @@ protected:
 	uint8_t* base_value = nullptr;
 	uint8_t* control_value = nullptr;
 public:
-	bool is_valid() const { return base_value != nullptr && control_value != nullptr; }
+	bool is_valid() const { return (base_value != nullptr && control_value != nullptr); }
 	virtual void set_new_value(int new_value) { // signed int as argument so it doesn't underflow.
 		*control_value = (new_value < 0 ? uint8_t(0) : uint8_t(new_value));
 		queue_draw();
@@ -55,6 +55,7 @@ protected:
 public:
 	virtual void set_new_value(int new_value) {
 		if (!is_valid()) { return; }
+		cout << "THIS THING: " << base_value << "\n";
 		*control_value = (new_value < 0 ? uint8_t(0) : uint8_t(new_value));
 		check_picture.set_opacity(*control_value);
 		// We set opacity instead of showing/hiding it, so the box will measure its size.

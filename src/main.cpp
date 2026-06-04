@@ -393,6 +393,7 @@ using namespace Gtk;
 	common_action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
 	common_action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
 	common_action_group->add_action("show_help", mem_fun(*this, &MainWindow::show_help));
+	common_action_group->add_action("quit", mem_fun(*this, &MainWindow::close));
 // Toolbar actions.
 	common_action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
 	insert_action_group("actions", common_action_group);
@@ -569,7 +570,6 @@ bool MainWindow::on_close_request() {
 	dialog->set_cancel_button(2);
 	dialog->set_default_button(2);
 	dialog->choose(*this, sigc::bind(mem_fun(*this, &MainWindow::on_close_dialog_choose), dialog));
-	
 	return true; // Don't quit.
 }
 

@@ -5,6 +5,7 @@
 #include <Track.h>
 #include <CommonWidgets.h>
 #include <Util/UndoComposer.h>
+#include <Util/MetaDataWindow.h>
 
 using namespace std;
 
@@ -76,11 +77,13 @@ protected:
 	void on_ticks_per_beat_set();
 	void on_percussion_toggled();
 	void add_spinbox_property(string name, Gtk::SpinButton& spinner, double val, double min, double max, double step, double page, int idx);
+	void on_edit_meta_data();
 	Gtk::SpinButton tempo_spinner;
 	Gtk::SpinButton beats_per_measure_spinner;
 	Gtk::SpinButton ticks_per_beat_spinner;
 	Gtk::CheckButton percussion_checkbox;
 	Gtk::Grid grid;
+	MetaDataWindow meta_data_window;
 };
 
 class ComposerPanel : public Gtk::Grid {
@@ -133,7 +136,7 @@ protected:
 	void redo();
 	static array<UndoBuffer<UndoNotes*>, 11> composer_undo;
 
-	bool insert_mode = true;
+	bool insert_mode = false;
 	int copy_buffer_start_tick = 0, copy_buffer_length = 0;
 	NoteGroup copy_buffer;
 

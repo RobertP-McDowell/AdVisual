@@ -291,9 +291,8 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 }
 
 void InsmakerPanel::save_current_instrument() {
-	if (instrument_ptr != nullptr) {
-		*instrument_ptr = new_instrument;
-	}
+	if (instrument_ptr == nullptr) { return; }
+	*instrument_ptr = new_instrument;
 	update_oplfm_editor(&instrument_ptr->carrier, &instrument_ptr->modulator, &new_instrument.carrier, &new_instrument.modulator);
 }
 

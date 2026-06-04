@@ -372,7 +372,9 @@ void Track::rol_move_fields() {
 	fieldcpy_uint16(&file_version_major, 2);
 	fieldcpy_uint16(&file_version_minor, 2);
 	DBPRINT("File version " << int(file_version_major) << "." << int(file_version_minor));
-	fieldzero(40); // "Meta data".
+	meta_data.resize(40);
+	fieldcpy_char(meta_data.data(), 40);
+	cout << meta_data << " Meta Data\n";
 	fieldcpy_uint16(&ticks_per_beat, 2);
 	fieldcpy_uint16(&beats_per_measure, 2);
 	fieldcpy_uint16(&editor_scale_y, 2);

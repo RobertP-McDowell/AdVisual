@@ -9,16 +9,10 @@ Click the saxophone icon in the toolbar to switch to it.
 
 You may find the source code for this project at https://github.com/RobertP-McDowell/AdVisual
 Read COMPILING.txt to find out how to compile your own modified version of AdVisual!
-
---- Credits ------------------------------------------------------------------------------
-AdVisual is created and maintained by Robert McDowell:
-<Github: @RobertP-McDowell>, <email: teatimewithrobert@gmail.com>
-
-AdVisual depends on gtkmm4.0 (and it's dependencies) for UI,
-adplug (and it's sub-dependencies) as the audio backend,
-and miniaudio.h as the audio frontend.
-
-AdVisual is Free and Open Source under an MIT license! Read COPYING.txt for the license.
+AdVisual is still in early beta, thus missing a few important features like settings
+and shortcuts, if you come across any bugs or inconsistent behaviours, or simply want to request
+a feature, please create an issue in the AdVisual GitHub repository (linked above ^), and
+I will make it a priority!
 
 --- Files --------------------------------------------------------------------------------
 The .rol file format is the only song type currently supported, it contains the tracks note
@@ -30,7 +24,10 @@ When loading and saving to dialogs will appear, one looking for track files and 
 you can simply press cancel on one of them to load only a track or bank file.
 
 ---- Samples:
-You can find sample .ROL and .BNK files by downloading and extracting the original AdLib Visual:
+AdVisual comes with a few sample track files and a bank file on its own, those samples are
+under the same MIT license!
+You can find more sample .ROL and .BNK files by downloading and extracting the original
+AdLib Visual Composer:
 https://www.vgmpf.com/Wiki/index.php?title=File:AdLib_Visual_Composer_v1.51.zip
 
 --- Composer -----------------------------------------------------------------------------
@@ -106,3 +103,13 @@ sounds good, you can use the arrow keys to navigate if you prefer.
 Use the piano guide below to sample the instrument.
 
 Unsaved envelope properties are represented by an asterisk(*) next to them.
+
+--- Credits ------------------------------------------------------------------------------
+AdVisual is created and maintained by Robert McDowell:
+<Github: @RobertP-McDowell>, <email: teatimewithrobert@gmail.com>
+
+AdVisual depends on gtkmm4.0 (and it's dependencies) for UI,
+adplug (and it's sub-dependencies) as the audio backend,
+and miniaudio.h as the audio frontend.
+
+AdVisual is Free and Open Source under an MIT license! Read COPYING.txt for the license.

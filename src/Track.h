@@ -132,6 +132,7 @@ struct Track {
 	// Every event, key == time of event in Ticks. for tempo_events, Value = Tempo multipler (0.01 - 10.0).
 	map<int, float> tempo_events = {{0, 1.0f}};
 	string file_path = "";
+	string meta_data = "";
 protected:
 	void rol_move_fields();
 };
