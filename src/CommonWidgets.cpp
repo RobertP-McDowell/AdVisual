@@ -342,7 +342,7 @@ void PianoCtrl::on_lmb_up(int n_press, double x, double y) {
 void PianoCtrl::on_mouse_motion(double x, double y) {
 	int note_number = get_note_number_at_position(x, y);
 	if (lmb_gesture->get_current_button() && playing_note != note_number) {
-		adplayer->play_note(note_number, current_channel->channel_number, instrument, volume_multiplier);
+		adplayer->play_note(note_number, current_channel->channel_number, instrument, pitch_precision, volume_multiplier);
 		playing_note = note_number;
 	}
 	status->set_text(note_number_to_letter(note_number));

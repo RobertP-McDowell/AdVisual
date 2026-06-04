@@ -1,18 +1,13 @@
 --- About --------------------------------------------------------------------------------
 AdVisual is an AdLib/OPL2 Chiptune DAW.
 
-AdVisual has two main panels where you will do your work. The one you start off in is the
-Composer, here you will Create and edit the Tracks notes and events.
-
-The Insmaker panel allows you to create and edit instruments, and manage your bnk files.
-Click the saxophone icon in the toolbar to switch to it.
-
 You may find the source code for this project at https://github.com/RobertP-McDowell/AdVisual
 Read COMPILING.txt to find out how to compile your own modified version of AdVisual!
-AdVisual is still in early beta, thus missing a few important features like settings
-and shortcuts, if you come across any bugs or inconsistent behaviours, or simply want to request
-a feature, please create an issue in the AdVisual GitHub repository (linked above ^), and
-I will make it a priority!
+
+AdVisual is still in early beta (it will remain open source forever), thus missing a few
+important features, but that comes with the opportunity to be shaped by the users! If you come
+across any bugs, inconsistent behaviour, slow downs, or simply want to request a feature, please
+create an issue in the AdVisual GitHub repository (linked above ^), and I will make it a priority!
 
 --- Files --------------------------------------------------------------------------------
 The .rol file format is the only song type currently supported, it contains the tracks note
@@ -31,6 +26,9 @@ AdLib Visual Composer:
 https://www.vgmpf.com/Wiki/index.php?title=File:AdLib_Visual_Composer_v1.51.zip
 
 --- Composer -----------------------------------------------------------------------------
+AdVisual has two main panels where you will do your work. The one you start off in is the
+Composer, here you will Create and edit the Tracks notes and events.
+
 ---- The Grid:
 The grid is made up one dashed vertical line for every beat, and one solid vertical line
 for every measure, you may change the frequency of ticks and beats in track options in the
@@ -75,6 +73,9 @@ The Cymbal channel will use the same pitch as the last TD note.
 The Snare Drum and Hi-Hat channels pitch will always be 7 semitones higher than the last TD note.
 
 --- Insmaker -----------------------------------------------------------------------------
+The Insmaker panel allows you to create and edit instruments, and manage your bnk files.
+Click the saxophone icon in the toolbar to switch to it.
+
 Select the instrument you want to edit in the text field in the toolbar, click the
 three dots on the right to create/delete an instrument. Click the magnifying glass on the
 left to search.

@@ -55,7 +55,6 @@ protected:
 public:
 	virtual void set_new_value(int new_value) {
 		if (!is_valid()) { return; }
-		cout << "THIS THING: " << base_value << "\n";
 		*control_value = (new_value < 0 ? uint8_t(0) : uint8_t(new_value));
 		check_picture.set_opacity(*control_value);
 		// We set opacity instead of showing/hiding it, so the box will measure its size.

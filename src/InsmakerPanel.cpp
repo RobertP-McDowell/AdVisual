@@ -165,7 +165,6 @@ InsmakerPanel::InsmakerPanel() : Box(Orientation::VERTICAL) {
 	scroll_controller->set_flags(EventControllerScroll::Flags::VERTICAL);
 	scroll_controller->signal_scroll().connect(mem_fun(*this, &InsmakerPanel::on_mouse_scroll_piano), true);
 	piano_ctrl->add_controller(scroll_controller); // the piano_ctrl owns the scroll_controller.
-	hscrollbar->get_adjustment()->set_page_size(piano_ctrl->get_width() / piano_ctrl->get_key_width());
 // Setup actions.
 	action_group = Gio::SimpleActionGroup::create();
 	action_group->add_action_bool("toggle_additive_synth", mem_fun(*this, &InsmakerPanel::toggle_additive_synth), false);

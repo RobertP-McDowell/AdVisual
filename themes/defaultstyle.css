@@ -1,10 +1,14 @@
 @define-color primary_fg rgba(255, 255, 255, 1.0);
-@define-color primary_bg rgba(25, 5, 10, 0.9);
+@define-color primary_bg rgba(25, 5, 10, 1.0);
 @define-color primary_border rgba(75, 75, 75, 1.0);
 
 @define-color secondary_fg rgba(150, 150, 150, 1.0);
-@define-color secondary_bg rgba(15, 10, 15, 0.5);
+@define-color secondary_bg rgba(15, 10, 15, 1.0);
 @define-color secondary_border rgba(50, 50, 50, 1.0);
+
+@define-color widget_active rgba(100, 10, 30, 1.0);
+@define-color widget_bg rgba(75, 30, 40, 1.0);
+@define-color widget_hover rgba(100, 40, 50, 1.0);
 
 @define-color active_bg rgba(80, 20, 20, 1.0);
 @define-color active_fg rgba(150, 30, 30, 1.0);
@@ -72,9 +76,6 @@ popover .vertical, popover .horizontal {
 	background: @primary_bg;
 	color: @primary_fg;
 }
-popover > scrollbar {
-	background: @primary_bg;
-}
 popover > contents, popover > arrow {
 	background: @primary_bg;
 	border-color: @primary_border;
@@ -83,24 +84,61 @@ popover > contents, popover > arrow {
 
 scrollbar {
 	background: @primary_bg;
-	color: @active_border;
+	color: @primary_fg;
 }
 scrollbar > range > trough {
 	margin: 0px;
 	padding: 0px;
 }
 scrollbar > range > trough > slider {
-	background: @secondary_fg;
-	border-style: none;
+	background: @widget_bg;
+	border: solid 1px @primary_border;
 	box-shadow: none;
 	padding: 3px;
 	margin: 0px;
 }
 scrollbar:hover > range > trough > slider {
-	background: @hover_border;
+	border-color: @hover_border;
+	background: @widget_hover;
 }
 scrollbar:active > range > trough > slider {
-	background: @active_fg;
+	border-color: @active_border;
+	background: @widget_active;
+}
+
+scale {
+	background: none;
+	color: @primary_fg;
+	border-color: @primary_border;
+}
+
+scale > trough > fill {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+}
+
+scale > trough > highlight {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+}
+
+scale > trough > slider {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+	box-shadow: none;
+}
+
+scale:active > trough > highlight, scale:focus > trough > highlight {
+	border-color: @active_border;
+	background: @widget_active;
+}
+scale:hover > trough > slider {
+	border-color: @hover_border;
+	background: @widget_hover;
+}
+scale:active > trough > slider, scale:focus > trough > slider {
+	border-color: @active_border;
+	background: @widget_active;
 }
 
 .small-image {
