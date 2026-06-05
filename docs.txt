@@ -43,6 +43,8 @@ Right click to place the cursor, hold it to select a range of notes, backspace t
 Press Ctrl + X, C, V, to cut, copy and paste selection respectively.
 
 Press Ctrl+Z to undo your last action, Ctrl+Shift+Z to redo your last undo.
+Use the scroll wheel to scroll the grid vertically, Shift+Scroll for horizontal, and
+Alt+Scroll for faster scrolling. You can also zoom in/out of the grid with Ctrl+Scroll.
 
 ---- Events:
 Editing the event header, which is placed between the toolbar and the grid, allows you to

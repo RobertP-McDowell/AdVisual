@@ -9,6 +9,9 @@ int cursor_tick = 0;
 int selection1 = 0;
 int selection2 = 0;
 
+static const vec2 default_note_size = vec2(20.0, 17.0);
+static const vec2 default_cell_size = vec2(20.0, 20.0);
+
 static vec2 note_size;
 static vec2 cell_size;
 sigc::signal<void()> ComposerPanel::signal_cursor_moved;
@@ -23,8 +26,8 @@ ComposerPanel::ComposerPanel() {
 	insert_column(0);
 	insert_column(0);
 	insert_column(0);
-	note_size = vec2(20.0 / zoom, 17.0 / zoom);
-	cell_size = vec2(20.0 / zoom, 20.0 / zoom);
+	note_size = vec2(default_note_size.x / zoom, default_note_size.y / zoom);
+	cell_size = vec2(default_cell_size.x / zoom, default_cell_size.y / zoom);
 // Init event_header.
 	event_header = make_managed<EventHeader>();
 	attach(*event_header, 1, 0);
@@ -242,6 +245,7 @@ void ComposerPanel::update_piano_ctrl() {
 	piano_ctrl->set_instrument(last_ins);
 	piano_ctrl->set_pitch_precision(current_channel->get_pitch_at_tick(scroll_tick));
 	piano_ctrl->set_volume_multiplier(current_channel->get_volume_at_tick(scroll_tick));
+	piano_ctrl->set_key_width(cell_size.y);
 }
 
 void ComposerPanel::on_hscroll() {
@@ -262,11 +266,23 @@ void ComposerPanel::on_vscroll() {
 }
 
 bool ComposerPanel::on_mouse_scroll(double x, double y) {
+	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::CONTROL_MASK)) {
+		zoom += y * 0.1;
+		note_size = vec2(default_note_size.x / zoom, default_note_size.y / zoom);
+		cell_size = vec2(default_cell_size.x / zoom, default_cell_size.y / zoom);
+		grid_panel->update_grid();
+		update_piano_ctrl();
+		return true;
+	}
 	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
 		// Need to setup Shift+Scroll for horizontal scrolling... and potentially vertical from horizontal?
 		double old_x = x;
 		x = y;
 		y = old_x;
+	}
+	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::ALT_MASK)) {
+		x *= current_track->ticks_per_beat;
+		y *= full_octave;
 	}
 	vscrollbar->get_adjustment()->set_value(vscrollbar->get_adjustment()->get_value() + y);
 	hscrollbar->get_adjustment()->set_value(hscrollbar->get_adjustment()->get_value() + x);
