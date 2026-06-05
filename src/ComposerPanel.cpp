@@ -267,11 +267,16 @@ void ComposerPanel::on_vscroll() {
 
 bool ComposerPanel::on_mouse_scroll(double x, double y) {
 	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::CONTROL_MASK)) {
-		zoom += y * 0.1;
+		double max_height = default_cell_size.y * pitch_range;
+		double max_zoom = max_height / double(grid_panel->get_height());
+		zoom = clamp(zoom + (y * 0.1), 0.1, max_zoom);
 		note_size = vec2(default_note_size.x / zoom, default_note_size.y / zoom);
 		cell_size = vec2(default_cell_size.x / zoom, default_cell_size.y / zoom);
 		grid_panel->update_grid();
 		update_piano_ctrl();
+		event_header->queue_draw();
+		on_vscroll(); // Update scrollbars.
+		on_hscroll();
 		return true;
 	}
 	if (bool(scroll_controller->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK)) {
