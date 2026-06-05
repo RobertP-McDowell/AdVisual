@@ -514,7 +514,7 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 	vec2 max_offstep = vec2(cell_size.x * ticks_per_measure, cell_size.y * full_octave);
 	vec2 draw_offstep = vec2(scroll_offset.x % max_offstep.x, scroll_offset.y % max_offstep.y);
 
-	int columns = (get_width() / cell_size.x);
+	int columns = (width / cell_size.x);
 	int rows = min(pitch_range, get_height() / cell_size.y);
 	int grid_sub = 0;
 	double middle_c_y = cell_size.y * 50;
@@ -529,17 +529,17 @@ void GridPanel::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int hei
 		}
 		int y = ((cell_size.y * 2.0 * (i-(grid_sub/2.0))) + (cell_size.y /2.0)) - draw_offstep.y;
 		cr->move_to(-draw_offstep.x, y);
-		cr->line_to(get_width(), y);
+		cr->line_to(width, y);
 		cr->stroke();
 	}
 	// Draw solid line per measure.
-	for (int measure = 0; measure <= columns + 2; measure += ticks_per_measure) {
+	for (int measure = 0; measure <= columns + ticks_per_measure; measure += ticks_per_measure) {
 		cr->unset_dash();
 		cr->set_line_width(measure_width);
 		Gdk::Cairo::set_source_rgba(cr, measure_color);
 		double x = measure * cell_size.x;
 		cr->move_to(x - draw_offstep.x, 0);
-		cr->line_to(x - draw_offstep.x, get_height());
+		cr->line_to(x - draw_offstep.x, height);
 		cr->stroke();
 		// Draw dashed line per beat.
 		for (int beat = current_track->ticks_per_beat; beat < ticks_per_measure; beat += current_track->ticks_per_beat) {

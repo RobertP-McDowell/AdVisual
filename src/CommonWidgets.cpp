@@ -118,13 +118,13 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 		cr->fill();
 		Gdk::Cairo::set_source_rgba(cr, ch_color);
 	}
-	double text_scaler = ((double(width) - (diameter + half_line_width)) / double(width)) * 2.0;
-	if (text_scaler <= 0.4 || width <= height) { return; } // Don't bother with writing text.
+	double text_scaler = ((double(width) - (diameter + line_width + half_line_width)) / double(width)) * 2.0;
+	if (text_scaler <= 0.3 || width <= height) { return; } // Don't bother with writing text.
 	Gdk::Cairo::set_source_rgba(cr, RGBA(1.0, 1.0, 1.0));
 	Pango::FontDescription font;
 	font.set_family("Monospace");
 	font.set_weight(Pango::Weight::BOLD);
-	font.set_size(height / 2.0 * PANGO_SCALE);
+	font.set_absolute_size(height * PANGO_SCALE);
 	shared_ptr<Pango::Layout> layout = create_pango_layout("");
 	layout->set_font_description(font);
 	string ch_txt = to_string(channel_index + 1);
@@ -137,7 +137,7 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 	}
 	layout->set_text(ch_txt);
 	if (ch_txt.length() == 1) { text_scaler *= 2.0; }
-	cr->move_to(diameter - half_line_width, 0);
+	cr->move_to(diameter - line_width, 0);
 	cr->scale(text_scaler, 1.0);
 	layout->show_in_cairo_context(cr);
 }
@@ -237,12 +237,12 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 	RGBA select_color = RGBA(0.4, 0.4, 0.4, 1.0);
 	RGBA search_indicator_color = RGBA(0.7, 0.7, 0.7, 1.0);
 	double left_gap = 4;
-	double half_item_height = item_height / 2.0;
+	double half_item_height = item_height / 2.0, half_item_padding = item_padding / 2.0;
 	int items_start = max(0, (int)floor(vadjust->get_value() / item_height) - 1);
 	// Draw background for selected item.
 	if (selected_item_idx != -1) {
 		Gdk::Cairo::set_source_rgba(cr, select_color);
-		int selected_start = ((selected_item_idx - items_start + 1) * item_height);
+		int selected_start = ((selected_item_idx - items_start + 1) * item_height) - half_item_padding;
 		cr->set_line_width(item_height + 1);
 		cr->move_to(0, selected_start);
 		cr->line_to(width, selected_start);
@@ -252,15 +252,15 @@ void BankCtrl::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int heig
 	if (first_match_idx != -1) {
 		Gdk::Cairo::set_source_rgba(cr, search_indicator_color);
 		cr->set_line_width(left_gap);
-		cr->move_to(left_gap / 2.0, (half_item_height - item_padding) + (first_match_idx - items_start) * item_height);
-		cr->line_to(left_gap / 2.0, (half_item_height - item_padding) + (last_match_idx - items_start + 1) * item_height);
+		cr->move_to(left_gap / 2.0, (half_item_height - half_item_padding) + (first_match_idx - items_start) * item_height);
+		cr->line_to(left_gap / 2.0, (half_item_height - half_item_padding) + (last_match_idx - items_start + 1) * item_height);
 		cr->stroke();
 	}
 	// Draw text for each item.
 	Pango::FontDescription font;
 	font.set_family("Monospace");
 	font.set_weight(Pango::Weight::BOLD);
-	font.set_size((item_height - item_padding) * PANGO_SCALE);
+	font.set_absolute_size((item_height - item_padding) * 2 * PANGO_SCALE);
 	shared_ptr<Pango::Layout> layout = create_pango_layout("");
 	layout->set_font_description(font);
 	int items_visible = (height / item_height) + 2;

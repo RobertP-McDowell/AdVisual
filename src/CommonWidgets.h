@@ -42,7 +42,7 @@ protected:
 	shared_ptr<Gtk::GestureClick> lmb_gesture;
 	shared_ptr<Gtk::EventControllerScroll> scroll_controller;
 	int selected_item_idx = -1, first_match_idx = -1, last_match_idx = -1;
-	double item_height = 12, item_padding = 2, panel_stretch = 1.2;
+	double item_height = 12, item_padding = 4, panel_stretch = 1.2;
 };
 
 class PianoCtrl : public Gtk::DrawingArea {
