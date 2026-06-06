@@ -5,6 +5,7 @@
 #include <CommonWidgets.h>
 #include <AdPlayer.h>
 #include <Util/HelpWindow.h>
+#include <Util/Settings.h>
 
 class MainWindow;
 
@@ -180,7 +181,7 @@ using namespace Gtk;
 	file_menu->append("Save Panel", "actions.save_panel");
 	file_menu->append("Save As", "actions.save_as");
 	file_menu->append("Help", "actions.show_help");
-	file_menu->append("Settings", "actions.open_settings");
+	file_menu->append("Settings", "actions.show_settings");
 	file_menu->append("Quit", "actions.quit");
 	file_button.set_can_focus(false);
 	append(file_button);
@@ -268,7 +269,9 @@ public:
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
 protected:
 	HelpWindow help_window;
+	SettingsWindow settings_window;
 	void show_help();
+	void show_settings();
 	void open_panel(int p_panel);
 	void load();
 	void save();
@@ -393,6 +396,7 @@ using namespace Gtk;
 	common_action_group->add_action("load_panel", mem_fun(*this, &MainWindow::load_panel));
 	common_action_group->add_action("save_panel", mem_fun(*this, &MainWindow::save_panel));
 	common_action_group->add_action("show_help", mem_fun(*this, &MainWindow::show_help));
+	common_action_group->add_action("show_settings", mem_fun(*this, &MainWindow::show_settings));
 	common_action_group->add_action("quit", mem_fun(*this, &MainWindow::close));
 // Toolbar actions.
 	common_action_group->add_action_radio_integer("open_panel", mem_fun(*this, &MainWindow::open_panel), 0);
@@ -409,12 +413,7 @@ using namespace Gtk;
 
 	insert_action_group("insmaker", insmaker_panel->action_group);
 	insert_action_group("composer", composer_panel->action_group);
-// Create common shortcuts.
-	app->set_accel_for_action("actions.continue_playback", "space");
-	app->set_accel_for_action("actions.restart_playback", "<Shift>space");
-	app->set_accel_for_action("actions.load", "<Ctrl>l");
-	app->set_accel_for_action("actions.save", "<Ctrl>s");
-	app->set_accel_for_action("actions.quit", "<Ctrl>q");
+	AppSettings::apply_settings();
 // Signal handlers.
 	signal_close_request().connect(mem_fun(*this, &MainWindow::on_close_request), false);
 
@@ -423,12 +422,17 @@ using namespace Gtk;
 
 int main(int argc, char* argv[]) {
 using namespace Gtk;
+	AppSettings::define_default_settings();
 	app = Application::create("com.github.advisual", Application::Flags::NON_UNIQUE);
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 
 void MainWindow::show_help() {
 	help_window.show();
+}
+
+void MainWindow::show_settings() {
+	settings_window.show();
 }
 
 void MainWindow::continue_playback() {

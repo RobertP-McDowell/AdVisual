@@ -9,10 +9,11 @@ namespace FileAccess {
 	binwstream file(&ios_file);
 	bool writing = false;
 	int file_length = 0;
+	int error = 0;
 };
 
 int FileAccess::catch_libbinio_errors() {
-	int error = file.error();
+	error |= (int)file.error();
 	if (error) {
 		cerr << "Libbinio error code: " << error << ", at file positon: " << file.pos() << "\n";
 		if (error == binio::Fatal) cerr << "Fatal error: an unspecified libbinio error occured.\n";
@@ -22,40 +23,46 @@ int FileAccess::catch_libbinio_errors() {
 		else if (error == binio::NotFound) cerr << "Fatal error: could not find file.\n";
 		else if (error == binio::Eof) cerr << "Fatal error: reached end of file.\n";
 		else cerr << "An unkown fatal error occured.\n";
-		DBBREAKPOINT("Libbinio error");
-		ios_file.close();
 	}
 	return error;
 }
 
-// Checks and calls fieldcpy_ functions will set object from read file, or get object and write to file.
-void FileAccess::fieldcpy_char(char* object, int field_size) {
-	if (writing == true) file.writeString(object, field_size);
-	else file.readString(object, field_size);
-	catch_libbinio_errors();
+bool FileAccess::eof() {
+	return file.ateof();
 }
 
-void FileAccess::fieldcpy_char(char* object, int field_size, char delimeter) {
-	if (writing == true) file.writeString(object, field_size);
-	else file.readString(object, field_size, delimeter);
+// Checks and calls fieldcpy_ functions will set object from read file, or get object and write to file.
+unsigned long FileAccess::fieldcpy_char(char* object, int field_size) {
+	if (writing == true) { file.writeString(object, field_size); }
+	else { file.readString(object, field_size); }
 	catch_libbinio_errors();
+	return field_size;
+}
+
+unsigned long FileAccess::fieldcpy_char(char* object, int field_size, char delimeter) {
+	int ret = field_size;
+	if (writing == true) { file.writeString(object, field_size); }
+	else { ret = file.readString(object, field_size, delimeter); }
+	//else { ret = file.readString(object, min(int(file_length - file.pos()), field_size), delimeter); }
+	catch_libbinio_errors();
+	return ret;
 }
 
 void FileAccess::fieldcpy_uint8(uint8_t* object, int field_size) {
-	if (writing == true) file.writeInt(*object, field_size);
-	else *object = file.readInt(1);
+	if (writing == true) { file.writeInt(*object, field_size); }
+	else { *object = file.readInt(1); }
 	catch_libbinio_errors();
 }
 
 void FileAccess::fieldcpy_uint16(uint16_t* object, int field_size) {
-	if (writing == true) file.writeInt(*object, field_size);
-	else *object = file.readInt(2);
+	if (writing == true) { file.writeInt(*object, field_size); }
+	else { *object = file.readInt(2); }
 	catch_libbinio_errors();
 }
 
 void FileAccess::fieldcpy_uint32(uint32_t* object, int field_size) {
-	if (writing == true) file.writeInt(*object, field_size);
-	else *object = file.readInt(field_size);
+	if (writing == true) { file.writeInt(*object, field_size); }
+	else { *object = file.readInt(field_size); }
 	catch_libbinio_errors();
 }
 
@@ -128,7 +135,7 @@ bool FileAccess::access_file(string file_path, bool write) {
 		return false;
 	}
 	file = binwstream(&ios_file);
-	int error = file.error();
+	error = file.error();
 	if (error) {
 		cerr << "Libbinio could not open file for " << (writing ? "write" : "read") << " operation: " << file_path << "\n";
 		if (error == binio::Fatal) cerr << "Fatal error: an unspecified libbinio error occured.\n";
@@ -151,5 +158,6 @@ bool FileAccess::access_file(string file_path, bool write) {
 }
 
 void FileAccess::close_file() {
+	error = 0;
 	ios_file.close();
 }

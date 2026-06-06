@@ -75,20 +75,6 @@ ComposerPanel::ComposerPanel() {
 	action_group->add_action("undo", mem_fun(*this, &ComposerPanel::undo));
 	action_group->add_action("redo", mem_fun(*this, &ComposerPanel::redo));
 	action_group->add_action("show_track_settings", mem_fun(*this, &ComposerPanel::show_track_settings));
-// Set shortcuts.
-	app->set_accel_for_action("composer.cut_selection", "<Ctrl>x");
-	app->set_accel_for_action("composer.copy_selection", "<Ctrl>c");
-	app->set_accel_for_action("composer.paste_selection", "<Ctrl>v");
-	app->set_accels_for_action("composer.erase_selection", {"Delete", "BackSpace"});
-	app->set_accel_for_action("composer.move_selection_semitone_up", "Up");
-	app->set_accel_for_action("composer.move_selection_semitone_down", "Down");
-	app->set_accel_for_action("composer.move_selection_tick_left", "Left");
-	app->set_accel_for_action("composer.move_selection_tick_right", "Right");
-	app->set_accel_for_action("composer.move_selection_measure_left", "<Ctrl>Left");
-	app->set_accel_for_action("composer.move_selection_measure_right", "<Ctrl>Right");
-	app->set_accel_for_action("composer.unselect", "Escape");
-	app->set_accel_for_action("composer.undo", "<Ctrl>z");
-	app->set_accel_for_action("composer.redo", "<Ctrl><Shift>z");
 	track_settings.signal_visible_change.connect(mem_fun(*grid_panel, &GridPanel::queue_draw));
 	signal_track_changed.connect(mem_fun(*this, &ComposerPanel::on_track_changed));
 	signal_channel_changed.connect(mem_fun(*this, &ComposerPanel::on_channel_changed));

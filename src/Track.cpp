@@ -353,7 +353,7 @@ void Track::clear_track_data() {
 void Track::save_file(string save_path) {
 	string try_path = (!save_path.empty() ? save_path : file_path);
 	cout << "Saving Track File: " << try_path << "\n";
-	if (!access_file(try_path, true)) return;
+	if (!access_file(try_path, true)) { return; }
 	rol_move_fields();
 	file_path = try_path;
 	close_file();
@@ -362,7 +362,7 @@ void Track::save_file(string save_path) {
 void Track::load_file(string load_path) {
 	string try_path = (!load_path.empty() ? load_path : file_path);
 	cout << "Load Track File: " << try_path << "\n";
-	if (!access_file(try_path, false)) return;
+	if (!access_file(try_path, false)) { return; }
 	clear_track_data();
 	rol_move_fields();
 	file_path = try_path;
@@ -376,7 +376,6 @@ void Track::rol_move_fields() {
 	DBPRINT("File version " << int(file_version_major) << "." << int(file_version_minor));
 	meta_data.resize(40);
 	fieldcpy_char(meta_data.data(), 40);
-	cout << meta_data << " Meta Data\n";
 	fieldcpy_uint16(&ticks_per_beat, 2);
 	fieldcpy_uint16(&beats_per_measure, 2);
 	fieldcpy_uint16(&editor_scale_y, 2);

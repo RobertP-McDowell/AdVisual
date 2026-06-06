@@ -115,4 +115,4 @@ AdVisual depends on gtkmm4.0 (and it's dependencies) for UI,
 adplug (and it's sub-dependencies) as the audio backend,
 and miniaudio.h as the audio frontend.
 
-AdVisual is Free and Open Source under an MIT license! Read COPYING.txt for the license.
+AdVisual is Free and Open Source under an MIT license! Read LICENSE.txt for the license.

@@ -56,6 +56,7 @@ install(DIRECTORY themes DESTINATION share/advisual
 
 install(FILES "docs.txt" DESTINATION share/advisual
 	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ)
+install(FILES "advisual.ini" DESTINATION share/advisual)
 
 if (UNIX)
 	install(FILES "advisual.desktop" DESTINATION share/applications)

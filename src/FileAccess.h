@@ -15,10 +15,12 @@ using namespace std;
 
 namespace FileAccess {
 	extern int catch_libbinio_errors();
+	// Returns true if the end of file has been reached.
+	extern bool eof();
 	// Checks and calls fieldcpy_read or write
 	// leave delimiter empty for non null-terminated char arrays.
-	extern void fieldcpy_char(char* object, int field_size);
-	extern void fieldcpy_char(char* object, int field_size, char delimiter);
+	extern unsigned long fieldcpy_char(char* object, int field_size);
+	extern unsigned long fieldcpy_char(char* object, int field_size, char delimiter);
 	extern void fieldcpy_uint8(uint8_t* object, int field_size);
 	extern void fieldcpy_uint16(uint16_t* object, int field_size);
 	extern void fieldcpy_uint32(uint32_t* object, int field_size);
@@ -35,5 +37,6 @@ namespace FileAccess {
 	extern fstream ios_file;
 	extern bool writing;
 	extern int file_length;
+	extern int error;
 };
 

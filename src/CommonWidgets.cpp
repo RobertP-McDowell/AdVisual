@@ -137,7 +137,10 @@ void ChannelButton::on_draw(const shared_ptr<Cairo::Context>& cr, int width, int
 	}
 	layout->set_text(ch_txt);
 	if (ch_txt.length() == 1) { text_scaler *= 2.0; }
-	cr->move_to(diameter - line_width, 0);
+	Pango::Rectangle rect = layout->get_pixel_ink_extents();
+	int text_y = rect.get_height() - rect.get_descent(); // Puts text at the top consistently.
+	text_y += (height - rect.get_height()) / 2.0; // Centers text vertically.
+	cr->move_to(diameter - line_width, text_y);
 	cr->scale(text_scaler, 1.0);
 	layout->show_in_cairo_context(cr);
 }

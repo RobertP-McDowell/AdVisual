@@ -1,4 +1,5 @@
 #include <common.h>
+#include <Util/Settings.h>
 
 shared_ptr<Gtk::Application> app;
 shared_ptr<Gtk::Label> status;
