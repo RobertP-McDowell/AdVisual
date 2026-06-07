@@ -161,3 +161,12 @@ void FileAccess::close_file() {
 	error = 0;
 	ios_file.close();
 }
+
+bool FileAccess::file_exists(string file_path) {
+	fstream f = fstream(file_path, ios::in | ios::binary);
+	if (f.is_open()) {
+		f.close();
+		return true;
+	}
+	return false;
+}

@@ -85,10 +85,9 @@ void AppSettings::initialize() {
 	msettings["insmaker_shortcuts"] = {};
 
 	// if settings file doesn't exist, create it.
-	if (!FileAccess::access_file(ini_file_path, false)) {
+	if (!FileAccess::file_exists(ini_file_path)) {
 		AppSettings::write_default_file();
 	}
-	FileAccess::close_file();
 
 	parse_ini_file(ini_file_path);
 }
@@ -177,7 +176,7 @@ void AppSettings::parse_ini_file(string file_path) {
 				msettings[current_group_str] = {};
 			}
 			current_group = &msettings[current_group_str];
-			DBPRINT("Line " << current_line << " starts a group, [" << current_group_str << "]");
+			//DBPRINT("Line " << current_line << " starts a group, [" << current_group_str << "]");
 			continue;
 		}
 		long equals_delim = line_buffer.find("=");
@@ -193,7 +192,7 @@ void AppSettings::parse_ini_file(string file_path) {
 				continue;
 			}
 			(*current_group)[key_str] = value_str;
-			DBPRINT("Line " << current_line << " is a definition, " << key_str << "=" << value_str);
+			//DBPRINT("Line " << current_line << " is a definition, " << key_str << "=" << value_str);
 		}
 	}
 	DBPRINT("End parse settings");

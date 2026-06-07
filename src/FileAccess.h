@@ -32,6 +32,7 @@ namespace FileAccess {
 	// Opens file and initializes. returns false if opening file was unsuccessful.
 	extern bool access_file(string file_path, bool write);
 	extern void close_file();
+	extern bool file_exists(string file_path);
 
 	extern binwstream file;
 	extern fstream ios_file;

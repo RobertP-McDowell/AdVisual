@@ -39,6 +39,7 @@ target_link_libraries(advisual PRIVATE ${GTKMM_LIBRARIES})
 
 target_compile_definitions(advisual PUBLIC INSTALL_PATH="${CMAKE_INSTALL_PREFIX}/")
 if (WIN32)
+	target_link_options(advisual PRIVATE -mwindows)
 	target_compile_definitions(advisual PUBLIC "WINDOWS")
 endif()
 
