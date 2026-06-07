@@ -1,18 +1,24 @@
 #include <Util/Settings.h>
 #include <FileAccess.h>
+#include <filesystem>
 #include <common.h>
 #include <regex>
 
 using namespace Gtk;
 
-static string ini_file_path = "/home/robert/Desktop/AdVisual.ini";
+static string ini_file_path = get_config_dir() + string("advisual.ini");
 map<string, map<string, string>> AppSettings::msettings = {};
+shared_ptr<CssProvider> AppSettings::css_provider = CssProvider::create();
+
 
 SettingsWindow::SettingsWindow() {
+	set_hide_on_close(false);
 	set_modal(true);
 	set_size_request(800, 600);
 	set_title("AdVisual Settings at " + ini_file_path);
-	shared_ptr<TextBuffer> text_buffer = TextBuffer::create();
+
+	grid.set_column_homogeneous(false);
+	grid.attach(scrolled_window, 0, 0, 3, 1);
 
 	if (!FileAccess::access_file(ini_file_path, false)) { return; }
 	char* c_str_buffer = (char*)malloc(FileAccess::file_length);
@@ -21,22 +27,21 @@ SettingsWindow::SettingsWindow() {
 	free(c_str_buffer); // Free malloc ptr!
 	FileAccess::close_file();
 
-	set_child(grid);
-	grid.attach(scrolled_window, 0, 0, 3, 1);
-	grid.set_column_homogeneous(false);
-	scrolled_window.set_child(text_view);
-	scrolled_window.set_expand(true);
+	shared_ptr<TextBuffer> text_buffer = TextBuffer::create();
 	text_buffer->set_text(ustring_buffer);
 	text_view = TextView(text_buffer);
 	text_view.set_editable(true);
+	scrolled_window.set_child(text_view);
+	scrolled_window.set_expand(true);
 
-	//cancel_button = Button("Cancel");
-	//cancel_button.signal_clicked().connect(mem_fun(*this, &SettingsWindow::on_cancel));
-	//grid.attach(cancel_button, 1, 1);
+	Button* apply_button = make_managed<Button>("Save & Apply");
+	apply_button->signal_clicked().connect(sigc::mem_fun(*this, &SettingsWindow::on_save_and_apply));
+	grid.attach(*apply_button, 2, 1);
 
-	//apply_button = Button("Save & Apply");
-	//apply_button.signal_clicked().connect(mem_fun(*this, &SettingsWindow::on_save_and_apply));
-	//grid.attach(apply_button, 2, 1);
+	Button* cancel_button = make_managed<Button>("Cancel");
+	cancel_button->signal_clicked().connect(sigc::mem_fun(*this, &SettingsWindow::on_cancel));
+	grid.attach(*cancel_button, 1, 1);
+	set_child(grid);
 }
 
 void SettingsWindow::on_save_and_apply() {
@@ -48,19 +53,42 @@ void SettingsWindow::on_save_and_apply() {
 	// Parse updated settings and apply.
 	AppSettings::parse_ini_file(ini_file_path);
 	AppSettings::apply_settings();
+	close();
 }
 
 void SettingsWindow::on_cancel() {
 	close();
 }
 
-void AppSettings::define_default_settings() {
+void AppSettings::write_default_file() {
+	cout << "Writing default ini file to " << ini_file_path << "\n";
+	// Create advisual config folder, in the probable chance it doesn't already.
+	filesystem::create_directories(get_config_dir());
+	// Read default ini file.
+	if (!FileAccess::access_file(get_advisual_dir() + string("share/advisual/advisual.ini"), false)) { return; }
+	char* c_str_buffer = (char*)malloc(FileAccess::file_length);
+	FileAccess::fieldcpy_char(&c_str_buffer[0], FileAccess::file_length);
+	FileAccess::close_file();
+	// Write to user defined ini file.
+	if (!FileAccess::access_file(ini_file_path, true)) { return; }
+	FileAccess::file.writeString(&c_str_buffer[0], FileAccess::file_length);
+	free(c_str_buffer); // Free malloc ptr!
+	FileAccess::close_file();
+}
+
+void AppSettings::initialize() {
 	// We don't predefine any settings inline, but we do define groups
 	// to help with user warnings.
 	msettings["common"] = {};
 	msettings["common_shortcuts"] = {};
 	msettings["composer_shortcuts"] = {};
 	msettings["insmaker_shortcuts"] = {};
+
+	// if settings file doesn't exist, create it.
+	if (!FileAccess::access_file(ini_file_path, false)) {
+		AppSettings::write_default_file();
+	}
+	FileAccess::close_file();
 
 	parse_ini_file(ini_file_path);
 }
@@ -69,10 +97,17 @@ void AppSettings::apply_settings() {
 	apply_group_shortcuts("actions", "common_shortcuts");
 	apply_group_shortcuts("composer", "composer_shortcuts");
 	apply_group_shortcuts("insmaker", "insmaker_shortcuts");
+	string theme_path = get_setting("common", "theme_path");
+	if (theme_path.empty()) { // Use fallback theme.
+		css_provider->load_from_path(get_advisual_dir() + (string)"share/advisual/themes/" + (string)"DefaultStyle.css");
+	}
+	else {
+		css_provider->load_from_path(theme_path);
+	}
 }
 
 void AppSettings::apply_group_shortcuts(string action_group, string setting_group) {
-	map<string, string> shortcut_settings = AppSettings::get_group(setting_group);
+	map<string, string> shortcut_settings = get_group(setting_group);
 	for (auto const& pair : shortcut_settings) {
 		if (pair.second.empty()) { continue; }
 		app->set_accel_for_action(action_group + "." + pair.first, pair.second);
@@ -90,6 +125,7 @@ void print_matches(smatch& matches) {
 string trim_whitespace(string base_str) {
 	int real_start = base_str.find_first_not_of(" ");
 	int real_end = base_str.find_last_not_of(" ") + 1;
+	if (real_start == -1) { return ""; }
 	return base_str.substr(real_start, real_end - real_start);
 }
 
@@ -130,6 +166,9 @@ void AppSettings::parse_ini_file(string file_path) {
 		smatch matches;
 		if (regex_search(line_buffer, matches, comment_regex)) {
 			line_buffer = matches[0];
+			if (line_buffer.length() == 0) {
+				continue;
+			}
 		}
 		if (regex_search(line_buffer, matches, brackets_regex)) {
 			string current_group_str = trim_whitespace(matches[1]);
@@ -138,7 +177,7 @@ void AppSettings::parse_ini_file(string file_path) {
 				msettings[current_group_str] = {};
 			}
 			current_group = &msettings[current_group_str];
-			DBPRINT("Line " << current_line << " starts a group, \"" << current_group_str << "\"");
+			DBPRINT("Line " << current_line << " starts a group, [" << current_group_str << "]");
 			continue;
 		}
 		long equals_delim = line_buffer.find("=");

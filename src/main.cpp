@@ -263,13 +263,11 @@ public:
 	MainWindow();
 	double opacity = 0.5;
 	shared_ptr<Toolbar> toolbar;
-	shared_ptr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
 	shared_ptr<ComposerPanel> composer_panel;
 	shared_ptr<InsmakerPanel> insmaker_panel;
 	static shared_ptr<Gtk::GestureClick> global_lmb_gesture;
 protected:
 	HelpWindow help_window;
-	SettingsWindow settings_window;
 	void show_help();
 	void show_settings();
 	void open_panel(int p_panel);
@@ -347,9 +345,8 @@ using namespace Gtk;
 
 MainWindow::MainWindow() {
 using namespace Gtk;
+	StyleProvider::add_provider_for_display(get_display(), AppSettings::css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 	// Initialize.
-	css_provider->load_from_path(get_advisual_dir() + (string)"share/advisual/themes/" + (string)"defaultstyle.css");
-	StyleProvider::add_provider_for_display(get_display(), css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 	set_name("mainframe");
 	set_title("AdVisual");
 	set_default_size(1024, 720);
@@ -414,6 +411,10 @@ using namespace Gtk;
 	insert_action_group("insmaker", insmaker_panel->action_group);
 	insert_action_group("composer", composer_panel->action_group);
 	AppSettings::apply_settings();
+	string default_bnk_path = AppSettings::get_setting("common", "default_bnk_path");
+	if (!default_bnk_path.empty()) {
+		current_bank->load_file(default_bnk_path);
+	}
 // Signal handlers.
 	signal_close_request().connect(mem_fun(*this, &MainWindow::on_close_request), false);
 
@@ -422,17 +423,23 @@ using namespace Gtk;
 
 int main(int argc, char* argv[]) {
 using namespace Gtk;
-	AppSettings::define_default_settings();
+	AppSettings::initialize();
 	app = Application::create("com.github.advisual", Application::Flags::NON_UNIQUE);
 	return app->make_window_and_run<MainWindow>(argc, argv);
 }
 
 void MainWindow::show_help() {
-	help_window.show();
+	if (!help_window.is_visible()) {
+		help_window.close();
+		help_window = HelpWindow();
+	}
+	help_window.present();
 }
 
 void MainWindow::show_settings() {
-	settings_window.show();
+	SettingsWindow* settings_window = Gtk::make_managed<SettingsWindow>();
+	settings_window->set_transient_for(*this);
+	settings_window->present();
 }
 
 void MainWindow::continue_playback() {

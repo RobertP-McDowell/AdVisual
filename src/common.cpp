@@ -27,9 +27,15 @@ shared_ptr<Gio::SimpleActionGroup> common_action_group;
 		string str_value = buffer;
 		return str_value + "/";
 	}
+	string get_config_dir() {
+		return string(getenv("HOME") + string("/.appdata/local/advisual/"));
+	}
 #else
 	string get_advisual_dir() {
 		return (string)INSTALL_PATH;
+	}
+	string get_config_dir() {
+		return string(getenv("HOME") + string("/.config/advisual/"));
 	}
 #endif
 

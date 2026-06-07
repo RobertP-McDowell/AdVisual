@@ -54,9 +54,8 @@ install(DIRECTORY themes DESTINATION share/advisual
 	FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ WORLD_EXECUTE
 	DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install(FILES "docs.txt" DESTINATION share/advisual
-	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ GROUP_WRITE WORLD_READ)
-install(FILES "advisual.ini" DESTINATION share/advisual)
+install(FILES "docs.txt" DESTINATION share/advisual)
+install(FILES "advisual.ini" DESTINATION share/advisual) # Default/Fallback ini file.
 
 if (UNIX)
 	install(FILES "advisual.desktop" DESTINATION share/applications)

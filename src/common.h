@@ -83,6 +83,7 @@ string note_number_to_letter(int note_number);
 bool is_note_flat(int note_number);
 float get_float_from_string(string str_val, float min = 0.0, float max = 1.0);
 string get_advisual_dir();
+string get_config_dir();
 
 Gtk::ToggleButton create_image_button(string image_name, bool large_icon = true);
 Gtk::ToggleButton create_picture_button(string picture_name);

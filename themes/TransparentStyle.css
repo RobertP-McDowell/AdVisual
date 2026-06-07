@@ -1,0 +1,295 @@
+@define-color primary_fg rgba(255, 255, 255, 1.0);
+@define-color primary_bg rgba(25, 5, 10, 0.8);
+@define-color primary_border rgba(75, 75, 75, 1.0);
+
+@define-color secondary_fg rgba(150, 150, 150, 1.0);
+@define-color secondary_bg rgba(15, 10, 15, 0.5);
+@define-color secondary_border rgba(50, 50, 50, 1.0);
+
+@define-color widget_active rgba(100, 10, 30, 1.0);
+@define-color widget_bg rgba(75, 30, 40, 1.0);
+@define-color widget_hover rgba(100, 40, 50, 1.0);
+
+@define-color active_bg rgba(80, 20, 20, 1.0);
+@define-color active_fg rgba(150, 30, 30, 1.0);
+@define-color active_border rgba(200, 20, 20, 1.0);
+
+@define-color hover_border rgba(100, 100, 100, 1.0);
+@define-color hover_fg rgba(200, 200, 200, 1.0);
+@define-color hover_bg rgba(35, 35, 35, 1.0);
+
+@define-color contents_bg rgba(15, 15, 15, 1.0);
+@define-color keynav_outline rgba(255, 255, 255, 0.25);
+@define-color placeholder_color rgba(120, 120, 120, 1);
+
+:root {
+	font-family: monospace;
+	background: @secondary_bg;
+	color: @primary_fg;
+}
+
+* {
+	outline-color: @keynav_outline;
+}
+
+widget {
+	background: @primary_bg;
+	color: @primary_fg;
+}
+
+window {
+	background: @secondary_bg;
+	color: @secondary_fg;
+	border-radius: 0px;
+}
+
+headerbar {
+	min-height: 0px;
+	background: @active_fg;
+	color: rgb(255, 255, 255);
+	padding-top: 0;
+	padding-bottom: 0;
+	border: none;
+}
+headerbar * button {
+	background: rgba(0, 0, 0, 0);
+	color: @primary_bg;
+	border-radius: 0px;
+}
+headerbar * button:hover {
+	background: @hover_bg;
+	color: @primary_bg;
+	border-radius: 0px;
+}
+headerbar * button * {
+	border-radius: 0px;
+}
+headerbar:backdrop {
+	background: @primary_bg;
+	color: rgb(255, 255, 255);
+}
+headerbar:backdrop * button {
+	color: @secondary_bg;
+}
+
+popover .vertical, popover .horizontal {
+	background: @primary_bg;
+	color: @primary_fg;
+}
+popover > contents, popover > arrow {
+	background: @primary_bg;
+	border-color: @primary_border;
+	border-width: 1px;
+}
+
+scrollbar {
+	background: @primary_bg;
+	color: @primary_fg;
+}
+scrollbar > range > trough {
+	margin: 0px;
+	padding: 0px;
+}
+scrollbar > range > trough > slider {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+	box-shadow: none;
+	padding: 3px;
+	margin: 0px;
+}
+scrollbar:hover > range > trough > slider {
+	border-color: @hover_border;
+	background: @widget_hover;
+}
+scrollbar:active > range > trough > slider {
+	border-color: @active_border;
+	background: @widget_active;
+}
+
+scale {
+	background: none;
+	color: @primary_fg;
+	border-color: @primary_border;
+}
+
+scale > trough > fill {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+}
+
+scale > trough > highlight {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+}
+
+scale > trough > slider {
+	background: @widget_bg;
+	border: solid 1px @primary_border;
+	box-shadow: none;
+}
+
+scale:active > trough > highlight, scale:focus > trough > highlight {
+	border-color: @active_border;
+	background: @widget_active;
+}
+scale:hover > trough > slider {
+	border-color: @hover_border;
+	background: @widget_hover;
+}
+scale:active > trough > slider, scale:focus > trough > slider {
+	border-color: @active_border;
+	background: @widget_active;
+}
+
+.small-image {
+	-gtk-icon-size: 18px;
+}
+.large-image {
+	-gtk-icon-size: 40px;
+}
+.grid {
+	margin: 0px;
+	padding: 0px;
+	min-height: 4px;
+	min-width: 4px;
+}
+
+.channel-button {
+	min-width: 60px;
+}
+.channel-button-percussion {
+	min-width: 64px;
+}
+
+button {
+	margin: 0px;
+	padding: 0px;
+	min-height: 4px;
+	min-width: 4px;
+	background: @primary_bg;
+	color: @primary_fg;
+	border-color: @primary_border;
+	box-shadow: none;
+}
+button:focus, button:focus, button:hover, .toggle:focus, .toggle:hover {
+	border-color: @hover_border;
+	background: @hover_bg;
+	color: @hover_fg;
+	box-shadow: none;
+}
+button:active, .toggle:checked, .toggle:focus:active, .toggle:focus:checked  {
+	background: @active_bg;
+	border-color: @active_border;
+}
+.toolbar {
+	background: @primary_bg;
+}
+#statusbar {
+	background: @primary_bg;
+	color: @primary_fg;
+	font-family: monospace;
+	border-top-width: 1px;
+	border-style: solid;
+	border-color: @secondary_border;
+}
+#event-header {
+	background: @primary_bg;
+}
+#grid-panel {
+	background: @secondary_bg;
+}
+#insmaker {
+	background: @secondary_bg;
+}
+#insmaker-slider {
+	border-width: 2px;
+	border-color: @primary_border;
+	background: @primary_bg;
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;
+}
+
+#insmaker-plus {}
+#insmaker-minus {}
+#insmaker-checkbox {}
+#insmaker-radio {}
+
+#mainframe {
+	background: @secondary_bg;
+}
+
+textview {
+	background: @contents_bg;
+	color: @primary_fg;
+}
+textview selection {
+	background: @active_bg;
+	color: @primary_fg;
+}
+textview:focus-within selection {
+	background: @active_border;
+	color: @primary_fg;
+}
+
+entry {
+	background: @contents_bg;
+	color: @primary_fg;
+	border-color: @primary_border;
+	border-width: 1px;
+}
+entry selection {
+	background: @active_bg;
+	color: @primary_fg;
+}
+entry:focus-within selection {
+	background: @active_border;
+	color: @primary_fg;
+}
+entry > text > placeholder {
+	color: @placeholder_color;
+}
+
+spinbutton {
+	background: @contents_bg;
+	color: @primary_fg;
+	border-color: @primary_border;
+	border-width: 1px;
+}
+spinbutton selection {
+	background: @active_bg;
+	color: @primary_fg;
+}
+spinbutton:focus-within selection {
+	background: @active_border;
+	color: @primary_fg;
+}
+
+.field {
+	border-style: outset;
+	border-width: 0px;
+	border-bottom-width: 4px;
+}
+
+#field-tempo {
+	border-color: rgb(255, 255, 255);
+}
+#field-instrument {
+	border-color: rgb(255, 0, 0);
+}
+#field-pitch {
+	border-color: rgb(0, 255, 0);
+}
+#field-volume {
+	border-color: rgb(0, 0, 255);
+}
+
+.piano-ctrl {
+	background: rgba(255, 255, 255, 1.0);
+}
+
+.bank-ctrl > .drawing-area {
+	background: @contents_bg;
+	border-style: solid;
+	border-width: 1px;
+	border-color: @secondary_border;
+}
