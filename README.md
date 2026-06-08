@@ -21,7 +21,11 @@ Press f2 to edit settings, you can set or view shortcuts from there.
 If you're installing for linux or just want to compile from source, read COMPILING.txt.
 If you're on windows, check the releases for the latest build.
 
-#### Sample Bank and Songs.
+#### Sample Bank and Songs
 Download the samples folder for a couple example .rol tracks, and a simple .bnk file.
+
+#### Contributing
+If you have a bug report or a feature request, please create a new issue in the Issues tab above.
+No AI code please!
 
 <img width="1249" height="1440" alt="AdVisualCom Ins" src="https://github.com/user-attachments/assets/d0d5723d-a4c4-4cf8-b28c-6129c1272c66" />
