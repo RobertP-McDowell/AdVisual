@@ -10,7 +10,6 @@ static string ini_file_path = get_config_dir() + string("advisual.ini");
 map<string, map<string, string>> AppSettings::msettings = {};
 shared_ptr<CssProvider> AppSettings::css_provider = CssProvider::create();
 
-
 SettingsWindow::SettingsWindow() {
 	set_hide_on_close(false);
 	set_modal(true);

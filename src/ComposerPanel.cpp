@@ -772,14 +772,10 @@ void TrackSettings::on_percussion_toggled() {
 }
 
 void TrackSettings::on_edit_meta_data() {
-	if (meta_data_window.is_visible()) {
-		meta_data_window.close();
-		return;
-	}
-	meta_data_window = MetaDataWindow();
-	meta_data_window.set_transient_for(*this);
-	meta_data_window.set_title("Track Meta Data");
-	meta_data_window.set_base_string(&current_track->meta_data);
-	meta_data_window.set_max_length(39);
-	meta_data_window.show();
+	MetaDataWindow* meta_data_window = Gtk::make_managed<MetaDataWindow>();
+	meta_data_window->set_transient_for(*this);
+	meta_data_window->set_title("Track Meta Data");
+	meta_data_window->set_base_string(&current_track->meta_data);
+	meta_data_window->set_max_length(39);
+	meta_data_window->present();
 }

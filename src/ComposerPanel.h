@@ -83,7 +83,6 @@ protected:
 	Gtk::SpinButton ticks_per_beat_spinner;
 	Gtk::CheckButton percussion_checkbox;
 	Gtk::Grid grid;
-	MetaDataWindow meta_data_window;
 };
 
 class ComposerPanel : public Gtk::Grid {
