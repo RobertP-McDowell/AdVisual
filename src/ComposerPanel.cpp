@@ -135,10 +135,11 @@ void ComposerPanel::paste() {
 	if (copy_buffer.notes.empty()) { return; }
 	UndoSelection* new_undo = new UndoSelection(UndoCommand::Reason::PASTE_SELECTION,
 		UndoNotes::RedoCommand::WRITE_NEW | UndoNotes::RedoCommand::MAKE_NEW_GAP);
-	new_undo->old_notes = current_channel->copy(selection_start(), selection_end());
+	int paste_sel_end = selection_length() != 0 ? selection_end() : selection_start() + copy_buffer_length;
+	new_undo->oldest_notes = current_channel->copy(selection_start(), paste_sel_end);
 	new_undo->set_insert_mode(insert_mode);
 	new_undo->set_old_selection(selection_start(), selection_end());
-	new_undo->set_new_selection(selection_start(), selection_length() != 0 ? selection_end() : selection_start() + copy_buffer_length);
+	new_undo->set_new_selection(selection_start(), paste_sel_end);
 	new_undo->new_notes = copy_buffer;
 	new_undo->new_notes.offset_tick(selection_start() - copy_buffer_start_tick);
 	new_undo->new_notes.trim(selection_start(), new_undo->new_selection_end);

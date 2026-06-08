@@ -1,38 +1,79 @@
---- Compiling ----------------------------------------------------------------------------
+--- Context ------------------------------------------------------------------------------
 The project depends on gtkmm-4.0, adplug and miniaudio.h. It can be compiled with CMake,
-tested with make (on arch) and ninja (on windows).
-On windows you will need to compile on an msys2 enviroment. It's recommended you start with a
-clean msys2 installation:
-1. Download the msys2 installer msys2.org, we will use the mingw64 version that comes with it.
-Update msys2 and restart it with this command:
-2. `pacman -Syu`
-Next download cmake, a build system (ninja in this case), gtkmm-4.0, and git for ease.
-3. `pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-gcc 
-mingw-w64-x86_64-gtkmm-4.0 mingw-w64-x86_64-git`
+frequently tested with make on arch, and ninja on windows.
 You will then need to clone this repo, libbinio and adplug in three sibling folders, compile
 libbinio first, adplug using libbinio second, and advisual using both third.
-NOTE that we are using the latest version of libbinio and adplug here rather than a release,
-as CMake support wasn't quite ready in the last release.
-First compile libbinio:
-4. `cd ~ && 
+NOTE: We use the latest version of libbinio and adplug rather than a release, as
+CMake support wasn't quite ready in the last releases.
+
+--- Compiling for Windows on msys2 -------------------------------------------------------
+On windows you will need to compile on an msys2 enviroment. It's recommended you start with a
+clean msys2 installation:
+
+1. Download the msys2 installer from msys2.org, be sure too use the mingw64 version of msys2.
+Update msys2 and restart it with this command:
+`pacman -Syu`
+
+2. Next download cmake, a build system (ninja in this case), gtkmm-4.0, and git for ease.
+`pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-gcc 
+mingw-w64-x86_64-gtkmm-4.0 mingw-w64-x86_64-git`
+
+3. First compile libbinio:
+`cd ~ && 
 git clone https://github.com/adplug/libbinio.git && 
 cd libbinio && 
 cmake --preset windows-x64 && 
 cd out/build/windows-x64 && 
 ninja install`
-Then compile adplug:
-5. `cd ~ && 
+
+4. Then compile adplug:
+`cd ~ && 
 git clone https://github.com/adplug/adplug.git && 
 cd adplug && 
 cmake --preset windows-x64 -Dlibbinio_DIR="~/libbinio/out/install/windows-x64/lib/cmake/libbinio" && 
-cd out/build/windows-x64 && ninja install`
-Finally we should be able to compile a windows version of AdVisual, portable between machines with CPack:
-6. `cd ~ && 
+cd out/build/windows-x64 && 
+ninja install`
+
+5. Build the binaries:
+`cd ~ && 
 git clone https://github.com/RobertP-McDowell/AdVisual.git && 
 cd AdVisual && 
 cmake --preset msys2-release -Dlibbinio_DIR="~/libbinio/out/install/windows-x64/lib/cmake/libbinio" 
 -Dadplug_DIR="~/adplug/out/install/windows-x64/lib/cmake/adplug" && 
 cd bin`
-7. Build the installer so it can run without msys2.
+
+6. Build the CPack installer so it can run without msys2:
 `pacman -S mingw-w64-x86_64-nsis && 
 ninja package`
+
+--- Compiling for Arch Linux -------------------------------------------------------------
+The instructions are similar to the windows msys2 ones, as they both use pacman.
+1. Download dependencies:
+`sudo pacman -S gtkmm-4.0`
+
+2. Move to the location you want to build libbinio, adplug, and advisual, this can be any
+directory and the rest of the script doesn't need modification. Use Desktop to keep things simple.
+`cd ~/Desktop && 
+git clone https://github.com/adplug/libbinio.git && 
+git clone https://github.com/adplug/adplug.git && 
+git clone https://github.com/RobertP-McDowell/AdVisual.git`
+
+3. Compile libbinio:
+`cd libbinio && 
+cmake --preset linux-base && 
+cd out/build/linux-base && 
+ninja install`
+
+4. Then compile adplug:
+`cd ../../../../adplug && 
+cmake --preset linux-base -Dlibbinio_DIR="../libbinio/out/install/linux-base/lib/cmake/libbinio" && 
+cd out/build/linux-base && 
+ninja install`
+
+5. Build the advisual binaries:
+`cd ../../../../AdVisual && 
+cmake --preset release -Dlibbinio_DIR="../libbinio/out/install/linux-base/lib/cmake/libbinio" \
+-Dadplug_DIR="../adplug/out/install/linux-base/lib/cmake/adplug"`
+
+6. Install advisual:
+`cd bin && sudo make install`

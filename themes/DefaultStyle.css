@@ -111,12 +111,13 @@ scale {
 	color: @primary_fg;
 	border-color: @primary_border;
 }
-
+scale > value {
+	color: @primary_fg;
+}
 scale > trough > fill {
 	background: @widget_bg;
 	border: solid 1px @primary_border;
 }
-
 scale > trough > highlight {
 	background: @widget_bg;
 	border: solid 1px @primary_border;
