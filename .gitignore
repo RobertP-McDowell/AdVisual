@@ -6,3 +6,5 @@ bin/
 # Dependecies.
 include/
 lib/
+libbinio/
+adplug/
