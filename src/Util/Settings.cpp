@@ -5,8 +5,11 @@
 #include <regex>
 
 using namespace Gtk;
+namespace fs = filesystem;
 
 static string ini_file_path = get_config_dir() + string("advisual.ini");
+static string user_themes_path = get_config_dir() + string("themes");
+static string fallback_themes_path = get_advisual_dir() + string("share/advisual/themes");
 map<string, map<string, string>> AppSettings::msettings = {};
 shared_ptr<CssProvider> AppSettings::css_provider = CssProvider::create();
 
@@ -59,22 +62,6 @@ void SettingsWindow::on_cancel() {
 	close();
 }
 
-void AppSettings::write_default_file() {
-	cout << "Writing default ini file to " << ini_file_path << "\n";
-	// Create advisual config folder, in the probable chance it doesn't already.
-	filesystem::create_directories(get_config_dir());
-	// Read default ini file.
-	if (!FileAccess::access_file(get_advisual_dir() + string("share/advisual/advisual.ini"), false)) { return; }
-	char* c_str_buffer = (char*)malloc(FileAccess::file_length);
-	FileAccess::fieldcpy_char(&c_str_buffer[0], FileAccess::file_length);
-	FileAccess::close_file();
-	// Write to user defined ini file.
-	if (!FileAccess::access_file(ini_file_path, true)) { return; }
-	FileAccess::file.writeString(&c_str_buffer[0], FileAccess::file_length);
-	free(c_str_buffer); // Free malloc ptr!
-	FileAccess::close_file();
-}
-
 void AppSettings::initialize() {
 	// We don't predefine any settings inline, but we do define groups
 	// to help with user warnings.
@@ -83,9 +70,15 @@ void AppSettings::initialize() {
 	msettings["composer_shortcuts"] = {};
 	msettings["insmaker_shortcuts"] = {};
 
+	if (!FileAccess::exists(get_config_dir())) {
+		fs::create_directories(get_config_dir());
+	}
 	// if settings file doesn't exist, create it.
-	if (!FileAccess::file_exists(ini_file_path)) {
-		AppSettings::write_default_file();
+	if (!FileAccess::exists(ini_file_path)) {
+		fs::copy_file(get_advisual_dir() + string("share/advisual/advisual.ini"), ini_file_path);
+	}
+	if (!FileAccess::exists(user_themes_path)) {
+		fs::copy(fallback_themes_path, user_themes_path);
 	}
 
 	parse_ini_file(ini_file_path);
@@ -95,12 +88,29 @@ void AppSettings::apply_settings() {
 	apply_group_shortcuts("actions", "common_shortcuts");
 	apply_group_shortcuts("composer", "composer_shortcuts");
 	apply_group_shortcuts("insmaker", "insmaker_shortcuts");
-	string theme_path = get_setting("common", "theme_path");
-	if (theme_path.empty()) { // Use fallback theme.
-		css_provider->load_from_path(get_advisual_dir() + (string)"share/advisual/themes/" + (string)"DefaultStyle.css");
+
+	string theme_name = get_setting("common", "theme_name");
+	if (theme_name == "system") { return; }
+	if (!theme_name.empty()) {
+		// First search user directory for theme.
+		if (FileAccess::exists(user_themes_path + "/" + theme_name)) {
+			css_provider->load_from_path(user_themes_path + "/" + theme_name);
+			return;
+		}
+		// Then search fallback directory for theme.
+		if (FileAccess::exists(fallback_themes_path + "/" + theme_name)) {
+			css_provider->load_from_path(fallback_themes_path + "/" + theme_name);
+			return;
+		}
 	}
-	else {
-		css_provider->load_from_path(theme_path);
+	// If no theme is found, use default theme.
+	if (FileAccess::exists(user_themes_path + string("/DefaultTheme.css"))) {
+		css_provider->load_from_path(user_themes_path + string("/DefaultTheme.css"));
+		return;
+	}
+	if (FileAccess::exists(fallback_themes_path + string("/DefaultTheme.css"))) {
+		css_provider->load_from_path(fallback_themes_path + string("/DefaultTheme.css"));
+		return;
 	}
 }
 
