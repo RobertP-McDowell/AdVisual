@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.26)
 cmake_policy(VERSION 3.26)
 cmake_policy(SET CMP0207 NEW)
 
-project(advisual LANGUAGES C CXX VERSION 1.0.1 HOMEPAGE_URL "https://github.com/RobertP-McDowell/AdVisual")
+project(advisual LANGUAGES C CXX VERSION 1.0.2 HOMEPAGE_URL "https://github.com/RobertP-McDowell/AdVisual")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)

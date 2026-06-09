@@ -37,7 +37,6 @@ void MetaDataWindow::set_max_length(size_t p_max_len) {
 }
 
 void MetaDataWindow::on_change_text() {
-	cout << "Text changed\n";
 		shared_ptr<TextBuffer> text_buffer = text_view.get_buffer();
 	if (text_buffer->get_text().length() > max_length) {
 		// Pretty sure we're good to ignore the iterator warning caused by this.

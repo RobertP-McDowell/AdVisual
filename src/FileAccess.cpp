@@ -2,6 +2,7 @@
 #include <cstring>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 #include <common.h>
 
 namespace FileAccess {
@@ -160,13 +161,4 @@ bool FileAccess::access_file(string file_path, bool write) {
 void FileAccess::close_file() {
 	error = 0;
 	ios_file.close();
-}
-
-bool FileAccess::exists(string file_path) {
-	fstream f = fstream(file_path, ios::in | ios::binary);
-	if (f.is_open()) {
-		f.close();
-		return true;
-	}
-	return false;
 }

@@ -70,14 +70,14 @@ void AppSettings::initialize() {
 	msettings["composer_shortcuts"] = {};
 	msettings["insmaker_shortcuts"] = {};
 
-	if (!FileAccess::exists(get_config_dir())) {
+	if (!fs::exists(get_config_dir())) {
 		fs::create_directories(get_config_dir());
 	}
 	// if settings file doesn't exist, create it.
-	if (!FileAccess::exists(ini_file_path)) {
+	if (!fs::exists(ini_file_path)) {
 		fs::copy_file(get_advisual_dir() + string("share/advisual/advisual.ini"), ini_file_path);
 	}
-	if (!FileAccess::exists(user_themes_path)) {
+	if (!fs::exists(user_themes_path)) {
 		fs::copy(fallback_themes_path, user_themes_path);
 	}
 
@@ -93,22 +93,22 @@ void AppSettings::apply_settings() {
 	if (theme_name == "system") { return; }
 	if (!theme_name.empty()) {
 		// First search user directory for theme.
-		if (FileAccess::exists(user_themes_path + "/" + theme_name)) {
+		if (fs::exists(user_themes_path + "/" + theme_name)) {
 			css_provider->load_from_path(user_themes_path + "/" + theme_name);
 			return;
 		}
 		// Then search fallback directory for theme.
-		if (FileAccess::exists(fallback_themes_path + "/" + theme_name)) {
+		if (fs::exists(fallback_themes_path + "/" + theme_name)) {
 			css_provider->load_from_path(fallback_themes_path + "/" + theme_name);
 			return;
 		}
 	}
 	// If no theme is found, use default theme.
-	if (FileAccess::exists(user_themes_path + string("/DefaultTheme.css"))) {
+	if (fs::exists(user_themes_path + string("/DefaultTheme.css"))) {
 		css_provider->load_from_path(user_themes_path + string("/DefaultTheme.css"));
 		return;
 	}
-	if (FileAccess::exists(fallback_themes_path + string("/DefaultTheme.css"))) {
+	if (fs::exists(fallback_themes_path + string("/DefaultTheme.css"))) {
 		css_provider->load_from_path(fallback_themes_path + string("/DefaultTheme.css"));
 		return;
 	}

@@ -28,7 +28,7 @@ shared_ptr<Gio::SimpleActionGroup> common_action_group;
 		return str_value + "/";
 	}
 	string get_config_dir() {
-		return string(getenv("APPDATA") + string("/local/advisual/"));
+		return string(getenv("APPDATA") + string("/advisual/"));
 	}
 #else
 	string get_advisual_dir() {

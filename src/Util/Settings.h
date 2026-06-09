@@ -16,7 +16,6 @@ public:
 	static void set_setting(string group, string key, string value);
 	static void parse_ini_file(string file_path);
 	static void apply_group_shortcuts(string action_group, string setting_group);
-	static void write_default_file();
 	static shared_ptr<Gtk::CssProvider> css_provider;
 protected:
 	static map<string, map<string, string>> msettings;
