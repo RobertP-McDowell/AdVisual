@@ -212,7 +212,7 @@ void InsmakerPanel::set_rhythm_mode(int value) {
 				&(new_instrument.carrier), &(new_instrument.modulator));
 		}
 		else {
-			update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
+			update_oplfm_editor(&(instrument_ptr->modulator), nullptr, &(new_instrument.modulator), nullptr);
 		}
 	}
 	action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
@@ -279,7 +279,7 @@ void InsmakerPanel::set_instrument(Instrument* p_new_instrument)  {
 				&(new_instrument.carrier), &(new_instrument.modulator));
 		}
 		else {
-			update_oplfm_editor(nullptr, &(instrument_ptr->modulator), nullptr, &(new_instrument.modulator));
+			update_oplfm_editor(&(instrument_ptr->modulator), nullptr, &(new_instrument.modulator), nullptr);
 		}
 		action_group->change_action_state("set_rhythm_mode", Glib::Variant<int>::create(new_instrument.voice_number));
 		action_group->change_action_state("toggle_additive_synth", Glib::Variant<bool>::create(new_instrument.modulator.additive_synth));

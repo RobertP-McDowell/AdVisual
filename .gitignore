@@ -8,3 +8,6 @@ include/
 lib/
 libbinio/
 adplug/
+
+# Unsaved files in Midnight Commander.
+.#*
